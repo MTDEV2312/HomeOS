@@ -3,49 +3,45 @@
 import React, { useEffect, useState } from 'react';
 import { useHousehold } from '@/lib/household-context';
 import { useAuth } from '@/lib/auth-context';
-import { useRouter } from 'next/navigation';
 import {
   getHouseholdMembers,
   removeMember,
   updateMemberRole,
   updateHousehold,
   regenerateInviteCode,
-  leaveHousehold,
   HouseholdMemberDetails,
 } from '@/services/householdService';
 import {
-  Home, Users, Copy, Shield, ShieldAlert, Trash2,
-  User, Loader2, Pencil, RefreshCw, LogOut, Check, X,
-  Calendar, Key, Crown,
+  Copy, Shield, ShieldAlert, Trash2, User, Loader2, Users,
+  Pencil, Check, X, RefreshCw, Home, Calendar, KeyRound, Crown,
 } from 'lucide-react';
 
-export default function HouseholdPage() {
+export default function HouseholdAdminPage() {
   const { activeHousehold, activeRole, refreshHousehold } = useHousehold();
   const { user } = useAuth();
-  const router = useRouter();
 
   const [members, setMembers] = useState<HouseholdMemberDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Edit name state
-  const [editingName, setEditingName] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [savingName, setSavingName] = useState(false);
+  // Edit state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  // Invite code state
+  // Invite code
   const [copied, setCopied] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [localInviteCode, setLocalInviteCode] = useState('');
 
-  // Local invite code to reflect regeneration immediately
-  const [inviteCode, setInviteCode] = useState('');
-
-  const isAdmin = activeRole === 'OWNER' || activeRole === 'ADMIN';
+  const isOwner = activeRole === 'OWNER';
+  const isAdmin = activeRole === 'ADMIN';
+  const canManage = isOwner || isAdmin;
 
   useEffect(() => {
     if (activeHousehold) {
       fetchMembers();
-      setInviteCode(activeHousehold.invite_code || '');
+      setLocalInviteCode(activeHousehold.invite_code);
     }
   }, [activeHousehold]);
 
@@ -62,58 +58,45 @@ export default function HouseholdPage() {
     }
   };
 
-  // --- Name editing ---
-  const handleStartEditName = () => {
-    setNewName(activeHousehold.name);
-    setEditingName(true);
-  };
-
   const handleSaveName = async () => {
-    if (!newName.trim() || newName.trim() === activeHousehold.name) {
-      setEditingName(false);
+    if (!editName.trim() || editName.trim() === activeHousehold.name) {
+      setIsEditingName(false);
       return;
     }
     try {
-      setSavingName(true);
-      await updateHousehold(activeHousehold.id, { name: newName.trim() });
+      setSaving(true);
+      await updateHousehold(activeHousehold.id, { name: editName.trim() });
       await refreshHousehold();
-      setEditingName(false);
+      setIsEditingName(false);
     } catch (err: any) {
-      alert(err.message || 'Error al actualizar el nombre.');
+      setError(err.message || 'Error al actualizar el nombre.');
     } finally {
-      setSavingName(false);
+      setSaving(false);
     }
   };
 
-  const handleCancelEditName = () => {
-    setEditingName(false);
-    setNewName('');
-  };
-
-  // --- Invite code ---
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(inviteCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const handleRegenerateCode = async () => {
-    if (!confirm('¿Estás seguro? El código anterior dejará de funcionar para cualquier persona que lo tenga.')) return;
+    if (!confirm('¿Regenerar el código de invitación? El código anterior dejará de funcionar.')) return;
     try {
       setRegenerating(true);
-      const updated = await regenerateInviteCode(activeHousehold.id);
-      setInviteCode(updated.invite_code);
+      const newCode = await regenerateInviteCode(activeHousehold.id);
+      setLocalInviteCode(newCode);
       await refreshHousehold();
     } catch (err: any) {
-      alert(err.message || 'Error al regenerar el código.');
+      setError(err.message || 'Error al regenerar el código.');
     } finally {
       setRegenerating(false);
     }
   };
 
-  // --- Member management ---
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(localInviteCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleRemoveMember = async (userIdToRemove: string) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar a este miembro del hogar?')) return;
+    if (!confirm('¿Estás seguro de que deseas expulsar a este miembro del hogar?')) return;
     try {
       await removeMember(activeHousehold.id, userIdToRemove);
       setMembers(members.filter(m => m.user_id !== userIdToRemove));
@@ -131,70 +114,43 @@ export default function HouseholdPage() {
     }
   };
 
-  const handleLeave = async () => {
-    if (!user) return;
-    if (activeRole === 'OWNER') {
-      alert('Como propietario, no podés abandonar el hogar. Transferí la propiedad primero o eliminá el hogar.');
-      return;
-    }
-    if (!confirm('¿Estás seguro de que querés abandonar este hogar? Perderás el acceso a toda la información.')) return;
-    try {
-      await leaveHousehold(activeHousehold.id, user.id);
-      await refreshHousehold();
-      router.push('/household-setup');
-    } catch (err: any) {
-      alert(err.message || 'Error al abandonar el hogar.');
-    }
-  };
-
   const canManageMember = (targetRole: string) => {
-    if (activeRole === 'OWNER') return targetRole !== 'OWNER';
-    if (activeRole === 'ADMIN') return targetRole === 'MEMBER';
+    if (isOwner) return targetRole !== 'OWNER';
+    if (isAdmin) return targetRole === 'MEMBER';
     return false;
   };
 
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case 'OWNER':
-        return (
-          <span className="inline-flex items-center gap-1.5 text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full text-xs font-semibold">
-            <Crown className="w-3.5 h-3.5" /> Propietario
-          </span>
-        );
-      case 'ADMIN':
-        return (
-          <span className="inline-flex items-center gap-1.5 text-secondary bg-secondary/10 border border-secondary/20 px-2.5 py-1 rounded-full text-xs font-semibold">
-            <Shield className="w-3.5 h-3.5" /> Admin
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 text-on-surface-variant bg-surface border border-outline-variant px-2.5 py-1 rounded-full text-xs font-semibold">
-            <User className="w-3.5 h-3.5" /> Miembro
-          </span>
-        );
-    }
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('es-ES', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center p-xl min-h-[300px]">
+      <div className="flex justify-center items-center p-xl min-h-[60vh]">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  const createdDate = activeHousehold?.created_at
-    ? new Date(activeHousehold.created_at).toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' })
-    : '—';
+  if (!activeHousehold) {
+    return (
+      <div className="flex justify-center items-center p-xl min-h-[60vh]">
+        <p className="text-on-surface-variant font-body-lg text-body-lg">No hay hogar seleccionado.</p>
+      </div>
+    );
+  }
+
+  const ownerMember = members.find(m => m.role === 'OWNER');
 
   return (
-    <div className="flex flex-col gap-xl max-w-4xl">
-      {/* Header */}
+    <div className="flex flex-col gap-xl max-w-4xl mx-auto">
+      {/* Page Header */}
       <div>
-        <h1 className="font-h2 text-h2 text-on-surface mb-xs">Gestión del Hogar</h1>
+        <h1 className="font-h2 text-h2 text-on-surface mb-xs">Mi Residencia</h1>
         <p className="font-body-md text-body-md text-on-surface-variant">
-          Información, miembros y configuración de tu residencia.
+          Información y administración de tu hogar.
         </p>
       </div>
 
@@ -204,186 +160,242 @@ export default function HouseholdPage() {
         </div>
       )}
 
-      {/* Household Info Card */}
+      {/* ─── Household Info Card ─── */}
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
-        <div className="p-md border-b border-outline-variant bg-surface flex items-center gap-sm">
-          <Home className="w-5 h-5 text-primary" />
-          <h2 className="font-h3 text-h3 text-on-surface">Información del Hogar</h2>
+        <div className="p-md border-b border-outline-variant bg-surface flex items-center justify-between">
+          <div className="flex items-center gap-sm">
+            <Home className="w-5 h-5 text-primary" />
+            <h2 className="font-h3 text-h3 text-on-surface">Información del Hogar</h2>
+          </div>
+          {isOwner && !isEditingName && (
+            <button
+              onClick={() => {
+                setEditName(activeHousehold.name);
+                setIsEditingName(true);
+              }}
+              className="flex items-center gap-1 text-primary hover:bg-primary-container/50 px-3 py-1.5 rounded-lg transition-colors font-label-md text-label-md"
+            >
+              <Pencil className="w-4 h-4" />
+              Editar
+            </button>
+          )}
         </div>
 
-        <div className="p-lg flex flex-col gap-lg">
-          {/* Name row */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-sm">
-            <span className="font-label-md text-label-md text-on-surface-variant w-36 shrink-0">Nombre</span>
-            {editingName ? (
-              <div className="flex items-center gap-sm flex-1">
+        <div className="p-lg space-y-lg">
+          {/* Name */}
+          <div className="flex flex-col gap-xs">
+            <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+              Nombre del Hogar
+            </span>
+            {isEditingName ? (
+              <div className="flex items-center gap-sm">
                 <input
                   type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="flex-1 rounded border border-outline-variant bg-surface-container-lowest text-on-surface focus:border-primary focus:ring-1 focus:ring-primary font-body-md text-body-md px-3 py-1.5"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2 font-body-lg text-body-lg"
                   autoFocus
-                  disabled={savingName}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') handleCancelEditName(); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
                 />
-                <button onClick={handleSaveName} disabled={savingName} className="p-1.5 text-primary hover:bg-primary-container rounded transition-colors" title="Guardar">
-                  {savingName ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                <button
+                  onClick={handleSaveName}
+                  disabled={saving}
+                  className="p-2 rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 </button>
-                <button onClick={handleCancelEditName} className="p-1.5 text-on-surface-variant hover:bg-surface-container rounded transition-colors" title="Cancelar">
+                <button
+                  onClick={() => setIsEditingName(false)}
+                  className="p-2 rounded-lg bg-surface-container-high text-on-surface-variant hover:bg-surface-variant transition-colors"
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-sm flex-1">
-                <span className="font-body-lg text-body-lg text-on-surface font-medium">{activeHousehold?.name}</span>
-                {activeRole === 'OWNER' && (
-                  <button onClick={handleStartEditName} className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-primary-container/50 rounded transition-colors" title="Editar nombre">
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+              <span className="font-h3 text-h3 text-on-surface">{activeHousehold.name}</span>
             )}
           </div>
 
-          {/* Created date */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-sm">
-            <span className="font-label-md text-label-md text-on-surface-variant w-36 shrink-0">Creado</span>
-            <span className="font-body-md text-body-md text-on-surface flex items-center gap-xs">
-              <Calendar className="w-4 h-4 text-on-surface-variant" />
-              {createdDate}
-            </span>
-          </div>
-
-          {/* Invite code — only admins/owners */}
-          {isAdmin && (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-sm">
-              <span className="font-label-md text-label-md text-on-surface-variant w-36 shrink-0">Código de Unión</span>
-              <div className="flex items-center gap-sm">
-                <div className="bg-surface-container px-4 py-2 rounded-lg border border-outline-variant flex items-center gap-md">
-                  <Key className="w-4 h-4 text-primary" />
-                  <span className="font-mono text-body-lg font-bold tracking-[0.25em] text-primary select-all">{inviteCode}</span>
-                </div>
-                <button
-                  onClick={handleCopyCode}
-                  className="p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors border border-transparent hover:border-primary/20"
-                  title="Copiar código"
-                >
-                  {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
-                </button>
-                {activeRole === 'OWNER' && (
-                  <button
-                    onClick={handleRegenerateCode}
-                    disabled={regenerating}
-                    className="p-2 rounded-lg text-on-surface-variant hover:text-secondary hover:bg-secondary-container/50 transition-colors border border-transparent hover:border-secondary/20 disabled:opacity-50"
-                    title="Regenerar código (invalidará el anterior)"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
-                  </button>
-                )}
-              </div>
+          {/* Info Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
+            {/* Owner */}
+            <div className="flex flex-col gap-xs">
+              <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
+                <Crown className="w-3.5 h-3.5" /> Propietario
+              </span>
+              <span className="font-body-md text-body-md text-on-surface">
+                {ownerMember?.name || 'Desconocido'}
+              </span>
             </div>
-          )}
 
-          {/* Member count */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-sm">
-            <span className="font-label-md text-label-md text-on-surface-variant w-36 shrink-0">Miembros</span>
-            <span className="font-body-md text-body-md text-on-surface">{members.length} miembro{members.length !== 1 ? 's' : ''}</span>
-          </div>
+            {/* Created At */}
+            <div className="flex flex-col gap-xs">
+              <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5" /> Fecha de Creación
+              </span>
+              <span className="font-body-md text-body-md text-on-surface">
+                {activeHousehold.created_at ? formatDate(activeHousehold.created_at) : '—'}
+              </span>
+            </div>
 
-          {/* Tu Rol */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-sm">
-            <span className="font-label-md text-label-md text-on-surface-variant w-36 shrink-0">Tu Rol</span>
-            {getRoleBadge(activeRole || 'MEMBER')}
+            {/* Member Count */}
+            <div className="flex flex-col gap-xs">
+              <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
+                <Users className="w-3.5 h-3.5" /> Miembros
+              </span>
+              <span className="font-body-md text-body-md text-on-surface">
+                {members.length} {members.length === 1 ? 'persona' : 'personas'}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Members Card */}
+      {/* ─── Invite Code Card ─── */}
+      {canManage && (
+        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
+          <div className="p-md border-b border-outline-variant bg-surface flex items-center gap-sm">
+            <KeyRound className="w-5 h-5 text-primary" />
+            <h2 className="font-h3 text-h3 text-on-surface">Código de Invitación</h2>
+          </div>
+          <div className="p-lg">
+            <p className="font-body-md text-body-md text-on-surface-variant mb-md">
+              Compartí este código con las personas que quieras invitar a tu hogar. Cualquiera con el código puede unirse.
+            </p>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-md">
+              <div className="flex-1 bg-surface-container-low rounded-lg border border-outline-variant p-md flex items-center justify-center">
+                <span className="font-mono text-h2 font-bold tracking-[0.3em] text-primary select-all">
+                  {localInviteCode}
+                </span>
+              </div>
+              <div className="flex gap-sm">
+                <button
+                  onClick={handleCopyCode}
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors font-label-md text-label-md"
+                >
+                  <Copy className="w-4 h-4" />
+                  {copied ? '¡Copiado!' : 'Copiar'}
+                </button>
+                {isOwner && (
+                  <button
+                    onClick={handleRegenerateCode}
+                    disabled={regenerating}
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-surface-container-high text-on-surface border border-outline-variant hover:bg-surface-variant transition-colors font-label-md text-label-md disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
+                    Regenerar
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Members List Card ─── */}
       <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
         <div className="p-md border-b border-outline-variant bg-surface flex items-center justify-between">
           <div className="flex items-center gap-sm">
-            <Users className="w-5 h-5 text-on-surface-variant" />
-            <h2 className="font-h3 text-h3 text-on-surface">Miembros del Hogar ({members.length})</h2>
+            <Users className="w-5 h-5 text-primary" />
+            <h2 className="font-h3 text-h3 text-on-surface">Miembros ({members.length})</h2>
           </div>
         </div>
 
         <div className="divide-y divide-outline-variant">
-          {members.map((member) => (
-            <div key={member.member_id} className="p-md flex flex-col md:flex-row items-start md:items-center justify-between gap-md hover:bg-surface-container-low/50 transition-colors">
-              <div className="flex items-center gap-md">
-                <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-label-lg shrink-0">
-                  {member.name ? member.name.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
-                </div>
-                <div>
-                  <p className="font-label-lg text-label-lg text-on-surface flex items-center gap-xs">
-                    {member.name || 'Usuario'}
-                    {member.user_id === user?.id && (
-                      <span className="bg-secondary-container text-on-secondary-container text-[10px] px-2 py-0.5 rounded-full font-bold ml-1">(Vos)</span>
-                    )}
-                  </p>
-                  <p className="font-body-sm text-body-sm text-on-surface-variant">{member.email}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-md w-full md:w-auto justify-between md:justify-end">
-                {getRoleBadge(member.role)}
-
-                {/* Actions */}
-                {canManageMember(member.role) && (
-                  <div className="flex items-center gap-sm">
-                    {activeRole === 'OWNER' && member.role === 'MEMBER' && (
-                      <button
-                        onClick={() => handleUpdateRole(member.user_id, 'ADMIN')}
-                        className="text-xs font-medium text-secondary hover:text-on-surface transition-colors px-2 py-1 rounded hover:bg-surface-container"
-                      >
-                        Hacer Admin
-                      </button>
-                    )}
-                    {activeRole === 'OWNER' && member.role === 'ADMIN' && (
-                      <button
-                        onClick={() => handleUpdateRole(member.user_id, 'MEMBER')}
-                        className="text-xs font-medium text-secondary hover:text-on-surface transition-colors px-2 py-1 rounded hover:bg-surface-container"
-                      >
-                        Quitar Admin
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleRemoveMember(member.user_id)}
-                      className="p-1.5 text-error hover:bg-error-container hover:text-on-error-container rounded transition-colors"
-                      title="Expulsar Miembro"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
+          {members.length === 0 ? (
+            <div className="p-lg text-center text-on-surface-variant font-body-md text-body-md">
+              No hay miembros en este hogar todavía.
             </div>
-          ))}
+          ) : (
+            members.map((member) => (
+              <div key={member.member_id} className="p-md flex flex-col md:flex-row items-start md:items-center justify-between gap-md hover:bg-surface-container transition-colors">
+                <div className="flex items-center gap-md">
+                  <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-label-lg shrink-0">
+                    {member.name ? member.name.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <p className="font-label-lg text-label-lg text-on-surface flex items-center gap-xs">
+                      {member.name || 'Usuario'}
+                      {member.user_id === user?.id && (
+                        <span className="bg-secondary-container text-on-secondary-container text-[10px] px-2 py-0.5 rounded-full font-bold ml-1">Tú</span>
+                      )}
+                    </p>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant">{member.email}</p>
+                    <p className="font-body-sm text-[11px] text-on-surface-variant mt-0.5">
+                      Se unió el {member.joined_at ? formatDate(member.joined_at) : '—'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-md w-full md:w-auto justify-between md:justify-end">
+                  {/* Role Badge */}
+                  <div className="flex items-center">
+                    {member.role === 'OWNER' && (
+                      <span className="flex items-center gap-1.5 text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-full text-xs font-medium">
+                        <ShieldAlert className="w-3.5 h-3.5" /> Propietario
+                      </span>
+                    )}
+                    {member.role === 'ADMIN' && (
+                      <span className="flex items-center gap-1.5 text-secondary bg-secondary/10 border border-secondary/20 px-3 py-1 rounded-full text-xs font-medium">
+                        <Shield className="w-3.5 h-3.5" /> Admin
+                      </span>
+                    )}
+                    {member.role === 'MEMBER' && (
+                      <span className="flex items-center gap-1.5 text-on-surface-variant bg-surface border border-outline-variant px-3 py-1 rounded-full text-xs font-medium">
+                        <User className="w-3.5 h-3.5" /> Miembro
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  {canManageMember(member.role) && (
+                    <div className="flex items-center gap-sm">
+                      {isOwner && member.role === 'MEMBER' && (
+                        <button
+                          onClick={() => handleUpdateRole(member.user_id, 'ADMIN')}
+                          className="text-xs font-medium text-secondary hover:text-on-surface transition-colors px-2 py-1 rounded hover:bg-surface-container-high"
+                        >
+                          Hacer Admin
+                        </button>
+                      )}
+                      {isOwner && member.role === 'ADMIN' && (
+                        <button
+                          onClick={() => handleUpdateRole(member.user_id, 'MEMBER')}
+                          className="text-xs font-medium text-secondary hover:text-on-surface transition-colors px-2 py-1 rounded hover:bg-surface-container-high"
+                        >
+                          Quitar Admin
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleRemoveMember(member.user_id)}
+                        className="p-1.5 text-error hover:bg-error-container hover:text-on-error-container rounded transition-colors"
+                        title="Expulsar Miembro"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
-      {/* Danger Zone — only for non-owners */}
-      {activeRole !== 'OWNER' && (
-        <div className="bg-surface-container-lowest rounded-xl border border-error/30 shadow-sm overflow-hidden">
-          <div className="p-md border-b border-error/20 bg-error/5 flex items-center gap-sm">
-            <ShieldAlert className="w-5 h-5 text-error" />
-            <h2 className="font-h3 text-h3 text-error">Zona de Peligro</h2>
-          </div>
-          <div className="p-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-md">
-            <div>
-              <p className="font-label-md text-label-md text-on-surface mb-xs">Abandonar este hogar</p>
-              <p className="font-body-sm text-body-sm text-on-surface-variant">Perderás acceso a toda la información y tendrás que ser re-invitado para volver.</p>
-            </div>
-            <button
-              onClick={handleLeave}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-error text-on-error font-label-md text-label-md hover:bg-error/80 transition-colors shrink-0"
-            >
-              <LogOut className="w-4 h-4" />
-              Abandonar Hogar
-            </button>
-          </div>
+      {/* ─── Your Role Info ─── */}
+      <div className="bg-surface-container-low rounded-xl border border-outline-variant p-lg flex items-center gap-md">
+        <div className="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+          <Shield className="w-5 h-5" />
         </div>
-      )}
+        <div>
+          <p className="font-label-md text-label-md text-on-surface">Tu rol en este hogar</p>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            {activeRole === 'OWNER' && 'Propietario — Tenés control total sobre el hogar, miembros y configuración.'}
+            {activeRole === 'ADMIN' && 'Administrador — Podés gestionar miembros e invitaciones.'}
+            {activeRole === 'MEMBER' && 'Miembro — Podés ver la información del hogar y participar en las actividades.'}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
