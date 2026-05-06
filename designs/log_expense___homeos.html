@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Log Expense - HomeOS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary": "#3e4143",
+                      "on-primary": "#ffffff",
+                      "on-background": "#121c2a",
+                      "inverse-primary": "#9ccbf7",
+                      "background": "#f8f9ff",
+                      "surface-dim": "#d0dbed",
+                      "outline-variant": "#c1c7cf",
+                      "on-tertiary-container": "#cdced0",
+                      "surface-variant": "#d9e3f6",
+                      "secondary-fixed": "#dce2f3",
+                      "surface-container-low": "#eff4ff",
+                      "surface": "#f8f9ff",
+                      "surface-bright": "#f8f9ff",
+                      "primary": "#074469",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-secondary-fixed": "#151c27",
+                      "primary-fixed": "#cde5ff",
+                      "secondary-fixed-dim": "#c0c7d6",
+                      "error-container": "#ffdad6",
+                      "secondary-container": "#dce2f3",
+                      "tertiary-fixed": "#e1e2e4",
+                      "on-surface": "#121c2a",
+                      "surface-container-highest": "#d9e3f6",
+                      "tertiary-container": "#56585a",
+                      "inverse-surface": "#27313f",
+                      "on-tertiary-fixed-variant": "#444749",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed-variant": "#124a6f",
+                      "on-primary-fixed": "#001d32",
+                      "on-tertiary-fixed": "#191c1e",
+                      "surface-container": "#e6eeff",
+                      "tertiary-fixed-dim": "#c5c6c8",
+                      "on-error": "#ffffff",
+                      "primary-container": "#2a5c82",
+                      "on-secondary-container": "#5e6572",
+                      "surface-container-high": "#dee9fc",
+                      "surface-container-lowest": "#ffffff",
+                      "error": "#ba1a1a",
+                      "surface-tint": "#316289",
+                      "on-surface-variant": "#41474e",
+                      "on-secondary-fixed-variant": "#404754",
+                      "on-primary-container": "#a5d4ff",
+                      "primary-fixed-dim": "#9ccbf7",
+                      "on-tertiary": "#ffffff",
+                      "secondary": "#585f6c",
+                      "on-secondary": "#ffffff",
+                      "outline": "#72787f"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit": "4px",
+                      "xs": "4px",
+                      "sm": "8px",
+                      "margin": "32px",
+                      "lg": "24px",
+                      "xl": "48px",
+                      "gutter": "20px",
+                      "md": "16px",
+                      "max_width": "1440px"
+              },
+              "fontFamily": {
+                      "h1": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "h3": [
+                              "Inter"
+                      ],
+                      "h2": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "h1": [
+                              "36px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "letterSpacing": "0",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "letterSpacing": "0",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "h3": [
+                              "20px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "letterSpacing": "0",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "h2": [
+                              "28px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background antialiased font-body-md h-screen flex flex-col md:flex-row overflow-hidden">
+<!-- SideNavBar (Desktop) -->
+<nav class="bg-surface-container-low dark:bg-inverse-surface text-primary dark:text-primary-fixed font-label-md text-label-md border-r border-outline-variant dark:border-outline shadow-sm docked left-0 h-full w-64 hidden md:flex flex-col h-screen py-lg px-md gap-sm shrink-0 z-10 relative">
+<div class="flex items-center gap-sm px-sm pb-md border-b border-outline-variant mb-md">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold font-h3 text-h3 shrink-0 overflow-hidden">
+<img alt="Household Logo" class="w-full h-full object-cover" data-alt="A small, stylized icon or logo representing a modern home, perhaps a simple roofline or an abstract geometric shape in soft blue and white tones, set against a clean background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAGazoRVCqk4qwFGk1l6BAl2Wx6kkJhjw_CDbRQZWZ2d8smP6eyr0Hd0FGGoe1LZJnSdrDx84U5Ykix4uUyqEbH7mMuBUiJlKRkphn7DxnCc6u0obOSpeNu79R7wqXMfqVLKXGALKZlgssAZuHDq90O38QV0BSpJKNFxZpUYcMstpYUtSOnhMK_aGDuCdo7nbxG446hanhmm9OHrlGuLv2dpyGHb9FV3CHYPhL-ByUl0nXY1l0UKQtAnzno7pidvtu6W9GhQ98RrI"/>
+</div>
+<div class="flex flex-col overflow-hidden">
+<span class="font-h3 text-h3 font-bold text-primary dark:text-primary-fixed truncate">Our Home</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant truncate">Management Suite</span>
+</div>
+</div>
+<div class="flex-1 flex flex-col gap-xs overflow-y-auto">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-secondary dark:text-on-secondary-container hover:bg-surface-container-highest transition-all duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-secondary dark:text-on-secondary-container hover:bg-surface-container-highest transition-all duration-150" href="#">
+<span class="material-symbols-outlined">task_alt</span>
+                Tasks
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-secondary dark:text-on-secondary-container hover:bg-surface-container-highest transition-all duration-150" href="#">
+<span class="material-symbols-outlined">shopping_basket</span>
+                Shopping
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg bg-primary-container dark:bg-primary-container text-on-primary-container dark:text-on-primary-container font-bold Active: scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">payments</span>
+                Expenses
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-secondary dark:text-on-secondary-container hover:bg-surface-container-highest transition-all duration-150" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+                Inventory
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-secondary dark:text-on-secondary-container hover:bg-surface-container-highest transition-all duration-150" href="#">
+<span class="material-symbols-outlined">home_repair_service</span>
+                Maintenance
+            </a>
+</div>
+<div class="mt-auto pt-md border-t border-outline-variant flex flex-col gap-xs">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-secondary dark:text-on-secondary-container hover:bg-surface-container-highest transition-all duration-150" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-secondary dark:text-on-secondary-container hover:bg-surface-container-highest transition-all duration-150" href="#">
+<span class="material-symbols-outlined">help</span>
+                Help
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col relative w-full h-full overflow-hidden bg-background">
+<!-- TopAppBar (Mobile & Desktop Header Area) -->
+<header class="flex justify-between items-center h-16 px-margin w-full bg-surface-container-lowest dark:bg-surface-dim font-body-md text-body-md border-b border-outline-variant dark:border-outline shadow-sm docked full-width top-0 z-40 shrink-0">
+<div class="flex items-center gap-sm md:hidden">
+<span class="material-symbols-outlined text-primary cursor-pointer">menu</span>
+</div>
+<div class="font-h2 text-h2 font-bold text-primary dark:text-primary-fixed md:hidden">HomeOS</div>
+<div class="font-h2 text-h2 font-bold text-primary dark:text-primary-fixed hidden md:block">Expenses</div>
+<div class="flex items-center gap-md">
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container overflow-hidden border border-outline-variant cursor-pointer">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" data-alt="A close-up portrait of a professional looking individual smiling warmly, set against a soft, blurred studio background. The lighting is bright and flattering, aligning with a clean, modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuRIGhJJy0KFpgKchajSGI5H3hYFF0pfJ-z4_yP99vYAzhhgqpZFndRW2oP4iTLS8tD1JaSAU-jfPQhSQc6QQ0iEQOI_yveyyfFoMEED9GWwt9W3utQzX1KMgzxDA46j1cCfsZVZGsfQRDfb1N1RrbdtAs1Rvo24uXIKlVrV9S944PgGLIH0hQGOfUBVyCL0cx371RjI0-kNS6HUc1p7sNLofZDZ9vMzqj0vmb8RG8sLV32gm0LvhPwecyq17aIiOnNEkEwxO4eGM"/>
+</div>
+</div>
+</header>
+<!-- Canvas Background with Modal Overlay -->
+<main class="flex-1 relative overflow-y-auto w-full h-full p-md md:p-margin bg-surface">
+<!-- Simulated background content to show context -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-lg opacity-40 pointer-events-none select-none blur-[2px]">
+<div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant col-span-1 md:col-span-2 h-64"></div>
+<div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant col-span-1 h-64"></div>
+<div class="bg-surface-container-lowest p-lg rounded-xl shadow-sm border border-outline-variant col-span-1 md:col-span-3 h-96"></div>
+</div>
+<!-- Modal Backdrop -->
+<div class="absolute inset-0 bg-on-background/40 flex items-center justify-center p-md z-50 overflow-y-auto">
+<!-- Modal Container -->
+<div aria-labelledby="modal-title" aria-modal="true" class="bg-surface-container-lowest rounded-[24px] shadow-lg border border-outline-variant w-full max-w-2xl overflow-hidden flex flex-col my-auto" role="dialog">
+<!-- Modal Header -->
+<div class="px-lg py-md border-b border-outline-variant flex justify-between items-center bg-surface-container-lowest sticky top-0 z-10">
+<h2 class="font-h3 text-h3 text-on-surface" id="modal-title">Log Expense</h2>
+<button aria-label="Close modal" class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Modal Body -->
+<div class="p-lg flex flex-col gap-lg overflow-y-auto max-h-[716px]">
+<!-- Amount Field (Large) -->
+<div class="flex flex-col items-center justify-center py-md">
+<label class="sr-only" for="amount">Amount</label>
+<div class="relative flex items-center justify-center w-full max-w-xs">
+<span class="absolute left-4 font-h1 text-h1 text-on-surface-variant">$</span>
+<input class="w-full text-center font-h1 text-h1 text-on-surface bg-transparent border-none focus:ring-0 placeholder:text-outline-variant py-sm pl-12 pr-4 outline-none" id="amount" name="amount" placeholder="0.00" step="0.01" type="number"/>
+</div>
+<div class="h-px w-full max-w-xs bg-outline-variant mt-sm"></div>
+</div>
+<!-- Two Column Grid for Desktop, Stacked for Mobile -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+<!-- Description -->
+<div class="flex flex-col gap-xs col-span-1 md:col-span-2">
+<label class="font-label-md text-label-md text-on-surface-variant" for="description">Description</label>
+<input class="w-full bg-surface border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-shadow" id="description" name="description" placeholder="e.g., Weekly Grocery Run" type="text"/>
+</div>
+<!-- Category -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant" for="category">Category</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">category</span>
+<select class="w-full bg-surface border border-outline-variant rounded-lg pl-10 pr-10 py-sm font-body-md text-body-md text-on-surface appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-shadow" id="category" name="category">
+<option disabled="" selected="" value="">Select category</option>
+<option value="groceries">Groceries</option>
+<option value="utilities">Utilities</option>
+<option value="maintenance">Maintenance</option>
+<option value="entertainment">Entertainment</option>
+<option value="other">Other</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+</div>
+<!-- Date -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant" for="date">Date</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">calendar_today</span>
+<input class="w-full bg-surface border border-outline-variant rounded-lg pl-10 pr-md py-sm font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-shadow" id="date" name="date" type="date"/>
+</div>
+</div>
+<!-- Payer -->
+<div class="flex flex-col gap-xs col-span-1 md:col-span-2">
+<label class="font-label-md text-label-md text-on-surface-variant">Paid By</label>
+<div class="flex flex-wrap gap-sm">
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="payer" type="radio" value="alex"/>
+<div class="flex items-center gap-sm px-md py-sm rounded-full border border-outline-variant peer-checked:bg-primary-container peer-checked:border-primary-container peer-checked:text-on-primary-container bg-surface transition-colors">
+<div class="w-6 h-6 rounded-full overflow-hidden bg-surface-variant">
+<img alt="Alex Profile" class="w-full h-full object-cover" data-alt="Small circular profile picture of Alex, a warm smiling person." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBacW6LeysyKRfz2eKUiZWfr-o38-Lel34dPcGD-aXfGN3ILVes6CzkQ2KOv86iiGMFRsVmiFBlT78R2um6X8qJRu9ekbtz1Y6UJbX9iF1-_gY0d2dH2vuwencZoSyi-RguBKPyLPZb-THUmdpeR_WMpglxiBOoSSXTahxvgdASwUwNqQXTZ95BoBqhvuavxudewQcikKiypcT6CZ8uA41YCqe5O5IHBwrbeD4l5Pe0GjkkpKXj1-B0ul5wqh9_gediU4R5us_MHJg"/>
+</div>
+<span class="font-label-md text-label-md">Alex</span>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="payer" type="radio" value="jordan"/>
+<div class="flex items-center gap-sm px-md py-sm rounded-full border border-outline-variant peer-checked:bg-primary-container peer-checked:border-primary-container peer-checked:text-on-primary-container bg-surface transition-colors">
+<div class="w-6 h-6 rounded-full overflow-hidden bg-surface-variant">
+<img alt="Jordan Profile" class="w-full h-full object-cover" data-alt="Small circular profile picture of Jordan, a casual friendly person." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXyHzefZPkac5oSn1hp1pmoXF8DcPjdYeWykgedOsTLjUi51pBJf4EG0_wzBEM6LXVQ7RhZC3KC6QIHE8T49PkEdMQWYN4lMIY3Yid0sigVT2ahtag_qon2WGOqainokd38vLFMK7K6Ad-RLxV_JFjeeqNX-4upvtis3duKbecPpETzpi8tVCfz2HoiuZVPxySG7VmZCB4Li1n-2CvRHVnOD5OJ7-ev3vvQVa6FviV9SY3FQIBXainTWdnWIQQuBNig3Dz5wD-EW0"/>
+</div>
+<span class="font-label-md text-label-md">Jordan</span>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="payer" type="radio" value="joint"/>
+<div class="flex items-center gap-sm px-md py-sm rounded-full border border-outline-variant peer-checked:bg-primary-container peer-checked:border-primary-container peer-checked:text-on-primary-container bg-surface transition-colors">
+<div class="w-6 h-6 rounded-full flex items-center justify-center bg-surface-variant text-on-surface-variant peer-checked:text-on-primary-container">
+<span class="material-symbols-outlined text-[16px]">group</span>
+</div>
+<span class="font-label-md text-label-md">Joint Account</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Receipt Upload -->
+<div class="flex flex-col gap-xs col-span-1 md:col-span-2">
+<label class="font-label-md text-label-md text-on-surface-variant">Receipt</label>
+<div class="border-2 border-dashed border-outline-variant rounded-xl p-lg flex flex-col items-center justify-center gap-sm bg-surface hover:bg-surface-container-low transition-colors cursor-pointer group">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-primary-container group-hover:text-on-primary-container transition-colors">
+<span class="material-symbols-outlined text-[24px]">upload_file</span>
+</div>
+<div class="text-center">
+<span class="font-label-md text-label-md text-primary block">Click to upload or drag and drop</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant block mt-xs">SVG, PNG, JPG or PDF (max. 5MB)</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="px-lg py-md border-t border-outline-variant bg-surface-container-lowest flex justify-end gap-md sticky bottom-0">
+<button class="px-lg py-sm rounded-full border border-outline-variant text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-surface-container-lowest" type="button">
+                            Cancel
+                        </button>
+<button class="px-lg py-sm rounded-full bg-primary text-on-primary font-label-md text-label-md hover:bg-surface-tint transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 focus:ring-offset-surface-container-lowest" type="button">
+                            Save Expense
+                        </button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

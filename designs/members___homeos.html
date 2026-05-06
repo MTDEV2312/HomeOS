@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HomeOS - Member Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-high": "#dee9fc",
+                      "on-secondary": "#ffffff",
+                      "inverse-surface": "#27313f",
+                      "surface-container-low": "#eff4ff",
+                      "surface-variant": "#d9e3f6",
+                      "on-primary-container": "#a5d4ff",
+                      "secondary": "#585f6c",
+                      "on-error": "#ffffff",
+                      "surface": "#f8f9ff",
+                      "outline-variant": "#c1c7cf",
+                      "tertiary-fixed": "#e1e2e4",
+                      "tertiary-container": "#56585a",
+                      "tertiary": "#3e4143",
+                      "secondary-container": "#dce2f3",
+                      "on-background": "#121c2a",
+                      "inverse-primary": "#9ccbf7",
+                      "on-error-container": "#93000a",
+                      "background": "#f8f9ff",
+                      "primary": "#074469",
+                      "on-tertiary": "#ffffff",
+                      "secondary-fixed": "#dce2f3",
+                      "surface-bright": "#f8f9ff",
+                      "primary-fixed": "#cde5ff",
+                      "surface-dim": "#d0dbed",
+                      "tertiary-fixed-dim": "#c5c6c8",
+                      "surface-container-highest": "#d9e3f6",
+                      "on-surface": "#121c2a",
+                      "on-tertiary-fixed-variant": "#444749",
+                      "on-secondary-fixed-variant": "#404754",
+                      "on-tertiary-container": "#cdced0",
+                      "surface-tint": "#316289",
+                      "surface-container": "#e6eeff",
+                      "primary-container": "#2a5c82",
+                      "on-secondary-container": "#5e6572",
+                      "primary-fixed-dim": "#9ccbf7",
+                      "on-primary-fixed-variant": "#124a6f",
+                      "on-primary": "#ffffff",
+                      "on-tertiary-fixed": "#191c1e",
+                      "outline": "#72787f",
+                      "on-secondary-fixed": "#151c27",
+                      "secondary-fixed-dim": "#c0c7d6",
+                      "on-primary-fixed": "#001d32",
+                      "error-container": "#ffdad6",
+                      "surface-container-lowest": "#ffffff",
+                      "on-surface-variant": "#41474e",
+                      "inverse-on-surface": "#eaf1ff",
+                      "error": "#ba1a1a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "max_width": "1440px",
+                      "sm": "8px",
+                      "xs": "4px",
+                      "margin": "32px",
+                      "md": "16px",
+                      "lg": "24px",
+                      "gutter": "20px",
+                      "xl": "48px",
+                      "unit": "4px"
+              },
+              "fontFamily": {
+                      "h2": ["Inter"],
+                      "h1": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "body-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "label-md": ["Inter"],
+                      "h3": ["Inter"]
+              },
+              "fontSize": {
+                      "h2": ["28px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                      "h1": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "label-sm": ["12px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                      "body-md": ["16px", { "lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400" }],
+                      "body-lg": ["18px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                      "label-md": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                      "h3": ["20px", { "lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600" }]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex">
+<!-- SideNavBar (Shared Component) -->
+<aside class="bg-surface-container-low border-r border-outline-variant docked h-screen left-0 w-64 flex flex-col h-full p-lg gap-sm fixed top-0 left-0 z-40 hidden md:flex">
+<!-- Header -->
+<div class="flex items-center gap-md mb-xl px-sm">
+<div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-on-primary overflow-hidden shrink-0">
+<img alt="Household brand logo" class="w-full h-full object-cover" data-alt="A macro shot of a sleek, modern architectural interior detail. Warm light spills across smooth, light grey concrete and frosted glass. The composition is highly geometric and abstract, evoking a sense of structural stability, quiet efficiency, and a digital sanctuary. High key lighting, modern corporate aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzWIYDt8qGHu0MIHSpfhbrAN0NnVFOkhdmSfg-5TKuy-z9ofLSRDsf4RdXDZSXony1_tlSi7N67XpcgumlaTIYZbU3yjjrCEMQGu5EOq_mItsgq__3B-H_yCeK326-2qn7RSIfIyJEaGIDLP6y7cGN_nr1isKYYSszlHw2L-BVT4c5Kg13HJnDpcu_v1aWjx7tAIq-4ra6L8e5PH3irjtRDKmmBwJEP4qBtiDbpfgfhHdNMAhVyCTlT5HAlbTC-FHDEfvWMSDC0Zc"/>
+</div>
+<div class="flex flex-col">
+<span class="font-h3 text-h3 font-semibold text-primary">HomeOS</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Digital Sanctuary</span>
+</div>
+</div>
+<!-- Main Navigation Tabs -->
+<nav class="flex flex-col gap-xs flex-1">
+<a class="flex items-center gap-md px-md py-sm text-secondary hover:bg-surface-variant rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-secondary hover:bg-surface-variant rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+<span class="font-label-md text-label-md">Chores</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-secondary hover:bg-surface-variant rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span class="font-label-md text-label-md">Groceries</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-secondary hover:bg-surface-variant rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-label-md text-label-md">Budget</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-secondary hover:bg-surface-variant rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="event">event</span>
+<span class="font-label-md text-label-md">Calendar</span>
+</a>
+<!-- Active Tab -->
+<a class="flex items-center gap-md px-md py-sm bg-secondary-container text-on-secondary-container rounded-lg font-bold translate-x-1 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-label-md text-label-md">Members</span>
+</a>
+</nav>
+<!-- CTA -->
+<button class="w-full mt-auto mb-md py-sm px-md bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity flex items-center justify-center gap-sm shadow-sm">
+<span class="material-symbols-outlined" data-icon="person_add" data-weight="fill" style="font-variation-settings: 'FILL' 1;">person_add</span>
+            Add New Member
+        </button>
+<!-- Footer Navigation -->
+<div class="flex flex-col gap-xs pt-md border-t border-outline-variant">
+<a class="flex items-center gap-md px-md py-sm text-secondary hover:bg-surface-variant rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-secondary hover:bg-surface-variant rounded-lg transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+<div class="px-md pt-sm mt-xs text-on-surface-variant opacity-70 font-label-sm text-label-sm flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]" data-icon="shield">shield</span>
+                Powered by InsForge
+            </div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 flex flex-col min-h-screen relative">
+<!-- TopNavBar (Shared Component) -->
+<header class="bg-surface border-b border-outline-variant docked full-width top-0 sticky z-30 shadow-none">
+<div class="flex justify-between items-center px-margin py-md w-full max-w-max_width mx-auto">
+<!-- Left: Mobile Menu / Search placeholder -->
+<div class="flex items-center gap-md">
+<button class="md:hidden p-xs text-on-surface-variant hover:bg-surface-container-low transition-colors duration-200 rounded-lg">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<div class="hidden sm:flex items-center bg-surface-container-low rounded-full px-md py-xs border border-outline-variant focus-within:border-primary transition-colors">
+<span class="material-symbols-outlined text-outline mr-sm" data-icon="search">search</span>
+<input class="bg-transparent border-none outline-none font-body-md text-body-md text-on-surface placeholder:text-outline w-48 focus:ring-0" placeholder="Search HomeOS..." type="text"/>
+</div>
+</div>
+<!-- Center: Brand (Mobile mostly, hidden on desktop if sidebar is present) -->
+<div class="md:hidden font-h2 text-h2 font-bold text-primary">HomeOS</div>
+<!-- Right: Actions & Profile -->
+<div class="flex items-center gap-md">
+<button class="hidden lg:block px-md py-sm rounded-lg bg-surface-container-high text-on-surface font-label-md text-label-md hover:bg-surface-variant transition-colors duration-200 border border-outline-variant hover:scale-95 duration-100">
+                        Join Household
+                    </button>
+<button class="hidden lg:block px-md py-sm rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:opacity-90 transition-opacity border border-transparent hover:scale-95 duration-100 shadow-sm">
+                        Create Household
+                    </button>
+<div class="flex items-center gap-xs ml-sm border-l border-outline-variant pl-md">
+<button class="p-sm text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors duration-200 hover:scale-95 duration-100">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-sm text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors duration-200 hover:scale-95 duration-100">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="ml-sm w-10 h-10 rounded-full bg-surface-variant border border-outline-variant overflow-hidden cursor-pointer hover:ring-2 ring-primary transition-all">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a smiling person, warmly lit against a clean, neutral white background. The image has a crisp, modern aesthetic suitable for a high-end corporate application profile picture. Soft shadows add depth." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHihoEicDBhLaXygRFlgbM_li4OAIq-Zp4EuIcP4A0XKtj7WRyuFmfEGpx_acvDMz2xpHScQIgtYZ386HoV2MoZiH2X5QWVHOvWlXF8EFQT_jrR4I4o5woEAVq0U-r09ma76oGckCS4I0fHAAodxtQHNOcyDL83yotN-HpV-h9Wxg_fQNF9y6y8-mJV7pOmVWD5eCl-QYZvGi1e-BvhIxAGC01UlWcCx8nrhNfgmNNkg8tH6ZFVPyE2uvQ1-smsJi4yaNdZ2uurHw"/>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- Page Canvas -->
+<div class="p-lg md:p-margin max-w-max_width w-full mx-auto flex-1 flex flex-col gap-lg">
+<!-- Section Header -->
+<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-md pb-md border-b border-outline-variant/50">
+<div>
+<h1 class="font-h1 text-h1 text-on-background mb-xs">Household Members</h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">Manage the people who have access to your digital sanctuary. Control roles, permissions, and invite new members.</p>
+</div>
+<button class="px-lg py-md rounded-xl bg-primary text-on-primary font-label-md text-label-md hover:bg-primary/90 transition-all shadow-[0_4px_14px_rgba(7,68,105,0.2)] flex items-center justify-center gap-sm whitespace-nowrap active:scale-95">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+                    Invite Member
+                </button>
+</div>
+<!-- Bento Grid List of Members -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
+<!-- Member Card: Owner -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-lg flex flex-col gap-md relative overflow-hidden group hover:border-primary/30 transition-colors shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+<div class="absolute top-0 left-0 w-full h-1 bg-primary opacity-20"></div>
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-md">
+<div class="w-14 h-14 rounded-full bg-surface-variant overflow-hidden border-2 border-surface-container-lowest shadow-sm shrink-0">
+<img alt="Avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a smiling person, warmly lit against a clean, neutral white background. The image has a crisp, modern aesthetic suitable for a high-end corporate application profile picture. Soft shadows add depth." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZKxUHx86HjdmmLA10cfTunv7fJqMaG5_avZjkxezwF5bWgvIX1Wgely_oX-yzJI1XWMxjqT48VZOz2RyLdm2VWRCMvLw0vIPJx-M9p8u24mgQ6WxVLuwWtICIR4aNMceiUFerh4ZVBy-QBzwbKBMCWYWVKdcsUTpBx2D4LZe813FQrmMQeoBZrSqBdt-cuXMXTNyHpGGySq27B24zKeABPQtcgK6X1sPowOJqLcR5CTPUFHFCcvkFFzCs4gaYhjdQTS-IYova6tU"/>
+</div>
+<div>
+<h3 class="font-h3 text-h3 text-on-background">Michael Chen</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">michael@homeos.com</p>
+</div>
+</div>
+<div class="px-sm py-xs bg-primary-container text-on-primary-container rounded-full font-label-sm text-label-sm flex items-center gap-xs border border-primary/20">
+<span class="material-symbols-outlined text-[14px]" data-icon="star" data-weight="fill" style="font-variation-settings: 'FILL' 1;">star</span>
+                            Owner
+                        </div>
+</div>
+<div class="pt-sm mt-auto border-t border-outline-variant/30 flex justify-end">
+<span class="font-label-sm text-label-sm text-outline">Full Access</span>
+</div>
+</div>
+<!-- Member Card: Admin -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-lg flex flex-col gap-md relative overflow-hidden group hover:border-primary/30 transition-colors shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-md">
+<div class="w-14 h-14 rounded-full bg-surface-variant overflow-hidden border-2 border-surface-container-lowest shadow-sm shrink-0">
+<img alt="Avatar" class="w-full h-full object-cover" data-alt="A well-lit, professional portrait of a woman with a gentle smile, positioned against an out-of-focus bright urban background. The image evokes a sense of reliability and warmth, adhering to a clean, modern aesthetic with soft tonal contrasts." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAntPhF_jyz096tdogplFhdBkJ9tmwa97O1ylAXQMZxr3xeKQzSC8sx7giOTKZ6YVdZawQ-SXJd9aXwXaJLDVKNxRcVD-I_hvmgE-PrH5kuWl2qK7ck7eOH2Y5xBcSpspz9qGRr6-hqqFG8CCmZusd2XsAEhsjS8S40GoDV0J5NDVUojDLFv2EAn6aASKEPklV5bPgMl6nuczmeewwWHR660TQB915RI_RTs1SWis2y-mUoFxHGL4BRfaM27ALt29jzKU-JT-Eigqs"/>
+</div>
+<div>
+<h3 class="font-h3 text-h3 text-on-background">Sarah Jenkins</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">sarah.j@example.com</p>
+</div>
+</div>
+<button class="p-xs text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-sm mt-xs">
+<div class="px-sm py-xs bg-secondary-container text-on-secondary-container rounded-full font-label-sm text-label-sm flex items-center gap-xs border border-secondary/20">
+<span class="material-symbols-outlined text-[14px]" data-icon="shield_person">shield_person</span>
+                            Admin
+                        </div>
+</div>
+<div class="pt-sm mt-auto border-t border-outline-variant/30 flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-outline">Joined Oct 2023</span>
+<div class="flex gap-sm">
+<button class="font-label-sm text-label-sm text-primary hover:underline">Change Role</button>
+<button class="font-label-sm text-label-sm text-error hover:underline">Remove</button>
+</div>
+</div>
+</div>
+<!-- Member Card: Member -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-lg flex flex-col gap-md relative overflow-hidden group hover:border-primary/30 transition-colors shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-md">
+<div class="w-14 h-14 rounded-full bg-surface-variant overflow-hidden border-2 border-surface-container-lowest shadow-sm shrink-0 flex items-center justify-center text-secondary font-h3">
+                                DT
+                            </div>
+<div>
+<h3 class="font-h3 text-h3 text-on-background">David Torres</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">david.t@example.com</p>
+</div>
+</div>
+<button class="p-xs text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-sm mt-xs">
+<div class="px-sm py-xs bg-surface-variant text-on-surface-variant rounded-full font-label-sm text-label-sm flex items-center gap-xs border border-outline-variant/50">
+<span class="material-symbols-outlined text-[14px]" data-icon="person">person</span>
+                            Member
+                        </div>
+</div>
+<div class="pt-sm mt-auto border-t border-outline-variant/30 flex justify-between items-center">
+<span class="font-label-sm text-label-sm text-outline">Joined Nov 2023</span>
+<div class="flex gap-sm">
+<button class="font-label-sm text-label-sm text-primary hover:underline">Change Role</button>
+<button class="font-label-sm text-label-sm text-error hover:underline">Remove</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Invite Member Dialog Overlay (Static visibility for demonstration) -->
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-on-background/40 backdrop-blur-sm p-md">
+<div class="bg-surface-container-lowest rounded-2xl w-full max-w-md shadow-[0_20px_40px_rgba(0,0,0,0.1)] border border-outline-variant overflow-hidden flex flex-col">
+<!-- Dialog Header -->
+<div class="px-lg py-md border-b border-outline-variant flex justify-between items-center bg-surface">
+<h2 class="font-h3 text-h3 text-on-background">Invite to Household</h2>
+<button class="p-xs text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<!-- Dialog Body -->
+<div class="p-lg flex flex-col gap-lg">
+<p class="font-body-md text-body-md text-on-surface-variant">
+                    Share this unique invite code with the person you want to add. They can use it to join your digital sanctuary.
+                </p>
+<div class="flex flex-col gap-xs">
+<label class="font-label-sm text-label-sm text-on-surface">Household Invite Code</label>
+<div class="flex items-center gap-sm">
+<div class="flex-1 bg-surface-container-low border border-outline-variant rounded-xl p-md font-h2 text-h2 text-center tracking-widest text-primary border-dashed">
+                            X7K-9P2-M4V
+                        </div>
+<button class="p-md rounded-xl bg-primary-container text-on-primary-container hover:bg-primary hover:text-on-primary transition-colors border border-transparent shadow-sm flex items-center justify-center shrink-0" title="Copy Code">
+<span class="material-symbols-outlined" data-icon="content_copy">content_copy</span>
+</button>
+</div>
+<p class="font-label-sm text-label-sm text-outline mt-xs text-center">Code expires in 48 hours.</p>
+</div>
+<div class="relative flex py-xs items-center">
+<div class="flex-grow border-t border-outline-variant"></div>
+<span class="flex-shrink-0 mx-md text-on-surface-variant font-label-sm text-label-sm">OR</span>
+<div class="flex-grow border-t border-outline-variant"></div>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-sm text-label-sm text-on-surface">Send Email Invite</label>
+<div class="flex gap-sm">
+<input class="flex-1 rounded-lg border border-outline-variant bg-surface px-md py-sm font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="Enter email address" type="email"/>
+<button class="px-md py-sm bg-surface-variant text-on-surface rounded-lg font-label-md text-label-md border border-outline-variant hover:bg-surface-container-highest transition-colors">
+                            Send
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

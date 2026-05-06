@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HomeOS - Task Detail</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed": "#191c1e",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "on-secondary-container": "#5e6572",
+                        "surface-bright": "#f8f9ff",
+                        "on-tertiary-container": "#cdced0",
+                        "surface-container": "#e6eeff",
+                        "surface-container-highest": "#d9e3f6",
+                        "surface-variant": "#d9e3f6",
+                        "on-secondary-fixed-variant": "#404754",
+                        "on-secondary-fixed": "#151c27",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#41474e",
+                        "on-primary-fixed-variant": "#124a6f",
+                        "surface-dim": "#d0dbed",
+                        "outline": "#72787f",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#e1e2e4",
+                        "secondary-container": "#dce2f3",
+                        "inverse-on-surface": "#eaf1ff",
+                        "outline-variant": "#c1c7cf",
+                        "inverse-primary": "#9ccbf7",
+                        "secondary-fixed-dim": "#c0c7d6",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-high": "#dee9fc",
+                        "on-surface": "#121c2a",
+                        "primary-container": "#2a5c82",
+                        "background": "#f8f9ff",
+                        "on-background": "#121c2a",
+                        "inverse-surface": "#27313f",
+                        "on-primary-container": "#a5d4ff",
+                        "secondary-fixed": "#dce2f3",
+                        "surface-container-low": "#eff4ff",
+                        "tertiary": "#3e4143",
+                        "on-error-container": "#93000a",
+                        "primary": "#074469",
+                        "surface-tint": "#316289",
+                        "error-container": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "primary-fixed": "#cde5ff",
+                        "tertiary-fixed-dim": "#c5c6c8",
+                        "surface": "#f8f9ff",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#001d32",
+                        "tertiary-container": "#56585a",
+                        "primary-fixed-dim": "#9ccbf7",
+                        "secondary": "#585f6c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "xs": "4px",
+                        "md": "16px",
+                        "max_width": "1440px",
+                        "gutter": "20px",
+                        "sm": "8px",
+                        "lg": "24px",
+                        "margin": "32px",
+                        "xl": "48px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "h2": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "h3": ["Inter"],
+                        "h1": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "h2": ["28px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "h3": ["20px", { "lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600" }],
+                        "h1": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased min-h-screen flex items-center justify-center p-md">
+<!-- Modal Backdrop -->
+<div class="fixed inset-0 bg-on-surface/20 backdrop-blur-sm z-40 transition-opacity"></div>
+<!-- Modal Container -->
+<main class="relative bg-surface-container-lowest rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-outline-variant w-full max-w-2xl z-50 flex flex-col overflow-hidden max-h-[921px]">
+<!-- Header -->
+<header class="flex items-center justify-between px-lg py-md border-b border-outline-variant bg-surface-container-lowest">
+<div>
+<h2 class="font-h3 text-h3 text-on-surface">New Task</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Add details for household coordination.</p>
+</div>
+<button class="p-sm text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" type="button">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">close</span>
+</button>
+</header>
+<!-- Form Content (Scrollable) -->
+<div class="flex-1 overflow-y-auto p-lg space-y-lg">
+<!-- Title Input -->
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface" for="task-title">Task Title</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm" id="task-title" name="task-title" placeholder="e.g., Deep clean kitchen" type="text"/>
+</div>
+<!-- Description Textarea -->
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface" for="task-desc">Description</label>
+<textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm resize-y" id="task-desc" name="task-desc" placeholder="Add notes or specific instructions..." rows="3"></textarea>
+</div>
+<!-- Grid Layout for Date, Priority, Assignee -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<!-- Due Date -->
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface" for="due-date">Due Date</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-md flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-variation-settings: 'FILL' 0;">calendar_today</span>
+</div>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-[44px] pr-md py-sm font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm" id="due-date" name="due-date" type="date"/>
+</div>
+</div>
+<!-- Priority -->
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface" for="priority">Priority</label>
+<div class="relative">
+<select class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface appearance-none focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm cursor-pointer" id="priority" name="priority">
+<option value="low">Low</option>
+<option selected="" value="medium">Medium</option>
+<option value="high">High</option>
+<option value="urgent">Urgent</option>
+</select>
+<div class="absolute inset-y-0 right-0 flex items-center px-md pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-variation-settings: 'FILL' 0;">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Assignee -->
+<div class="space-y-sm md:col-span-2">
+<label class="block font-label-md text-label-md text-on-surface" for="assignee">Assign To</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-md flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-variation-settings: 'FILL' 0;">person</span>
+</div>
+<select class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-[44px] pr-md py-sm font-body-md text-body-md text-on-surface appearance-none focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors shadow-sm cursor-pointer" id="assignee" name="assignee">
+<option value="unassigned">Unassigned</option>
+<option value="alex">Alex (You)</option>
+<option value="jordan">Jordan</option>
+<option value="sam">Sam</option>
+<option value="everyone">Everyone (Shared Task)</option>
+</select>
+<div class="absolute inset-y-0 right-0 flex items-center px-md pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-variation-settings: 'FILL' 0;">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Recurrence Section (Glassmorphism/Card style) -->
+<div class="bg-surface-bright border border-outline-variant rounded-xl p-md mt-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">repeat</span>
+</div>
+<div>
+<span class="block font-label-md text-label-md text-on-surface">Recurring Task</span>
+<span class="block font-label-sm text-label-sm text-on-surface-variant">Repeat this chore regularly</span>
+</div>
+</div>
+<!-- Custom Toggle Switch -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-surface-variant peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-container-lowest after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Recurrence Options (Visible when toggled on) -->
+<div class="mt-md pt-md border-t border-outline-variant/50">
+<div class="grid grid-cols-4 gap-sm">
+<button class="py-sm px-xs border border-outline-variant rounded-lg font-label-md text-label-md text-on-surface bg-surface-container-lowest hover:bg-surface-container-low transition-colors text-center" type="button">Daily</button>
+<button class="py-sm px-xs border-2 border-primary bg-primary/5 rounded-lg font-label-md text-label-md text-primary font-medium text-center" type="button">Weekly</button>
+<button class="py-sm px-xs border border-outline-variant rounded-lg font-label-md text-label-md text-on-surface bg-surface-container-lowest hover:bg-surface-container-low transition-colors text-center" type="button">Monthly</button>
+<button class="py-sm px-xs border border-outline-variant rounded-lg font-label-md text-label-md text-on-surface bg-surface-container-lowest hover:bg-surface-container-low transition-colors text-center" type="button">Custom</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Actions -->
+<footer class="flex items-center justify-between px-lg py-md border-t border-outline-variant bg-surface-container-lowest">
+<div class="flex items-center gap-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 0;">verified</span>
+<span class="font-label-sm text-label-sm">Powered by InsForge</span>
+</div>
+<div class="flex gap-md">
+<button class="px-lg py-sm rounded-lg font-label-md text-label-md text-on-surface border border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low transition-colors focus:outline-none focus:ring-2 focus:ring-outline-variant focus:ring-offset-2" type="button">Cancel</button>
+<button class="px-lg py-sm rounded-lg font-label-md text-label-md text-on-primary bg-primary hover:bg-primary/90 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" type="button">Save Task</button>
+</div>
+</footer>
+</main>
+</body></html>

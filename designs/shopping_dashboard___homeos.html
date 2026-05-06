@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HomeOS - Shopping Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#cdced0",
+                        "surface-container-highest": "#d9e3f6",
+                        "primary-fixed": "#cde5ff",
+                        "on-primary-container": "#a5d4ff",
+                        "error": "#ba1a1a",
+                        "surface-variant": "#d9e3f6",
+                        "secondary-container": "#dce2f3",
+                        "inverse-primary": "#9ccbf7",
+                        "outline-variant": "#c1c7cf",
+                        "on-secondary-fixed": "#151c27",
+                        "surface": "#f8f9ff",
+                        "on-error-container": "#93000a",
+                        "on-tertiary": "#ffffff",
+                        "primary-container": "#2a5c82",
+                        "on-surface": "#121c2a",
+                        "on-tertiary-fixed": "#191c1e",
+                        "on-primary-fixed-variant": "#124a6f",
+                        "on-secondary-fixed-variant": "#404754",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#41474e",
+                        "on-secondary-container": "#5e6572",
+                        "surface-container-high": "#dee9fc",
+                        "on-primary-fixed": "#001d32",
+                        "surface-dim": "#d0dbed",
+                        "secondary-fixed": "#dce2f3",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#3e4143",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "inverse-surface": "#27313f",
+                        "tertiary-container": "#56585a",
+                        "secondary": "#585f6c",
+                        "primary": "#074469",
+                        "on-background": "#121c2a",
+                        "surface-tint": "#316289",
+                        "secondary-fixed-dim": "#c0c7d6",
+                        "outline": "#72787f",
+                        "on-secondary": "#ffffff",
+                        "primary-fixed-dim": "#9ccbf7",
+                        "tertiary-fixed-dim": "#c5c6c8",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#f8f9ff",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#f8f9ff",
+                        "tertiary-fixed": "#e1e2e4",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-container-low": "#eff4ff",
+                        "surface-container": "#e6eeff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "48px",
+                        "sm": "8px",
+                        "margin": "32px",
+                        "lg": "24px",
+                        "unit": "4px",
+                        "gutter": "20px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "max_width": "1440px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "h2": ["Inter"],
+                        "h3": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "h1": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["12px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "h2": ["28px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "h3": ["20px", { "lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "h1": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.surface'); color: theme('colors.on-surface'); }
+    </style>
+</head>
+<body class="font-body-md text-body-md antialiased min-h-screen flex flex-col md:flex-row">
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full flex-col pt-20 pb-md px-sm z-30 bg-surface-container-low dark:bg-surface-dim text-primary dark:text-primary-fixed-dim border-r border-outline-variant dark:border-on-surface-variant w-64">
+<div class="px-md mb-lg">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center overflow-hidden shrink-0">
+<img alt="Household Logo" class="w-full h-full object-cover" data-alt="A small, stylized logo representing a cozy, modern family home. The icon is simple and elegant, set against a warm white background. Lighting is soft and bright, highlighting a minimalist, tactile corporate aesthetic with subtle deep blue and soft gray accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCh5DtegwTBnctqNSeey4sz8fnldYMMgRef5o49VBOGSSLc7X_6oeWBa72JlKi5gs3jiUiRsLZvHGDO64WgkiG_cVWpUzUpjX8ZlgN6qitsJTy8V_f1hH_pzjaEBjOzrbcV3t3hqmGMgNTE3IEsqKLowCIuW9HAamPBmTB5vspwZcq-jcYLEWp1VAMvAEE8ei6XrrBJftn2Xmmv_fURCEvAb_FbSkorov1QZyNyc7iod9K1JjZx9csG-mQhOy4a28fM5_7wWqujLI"/>
+</div>
+<div>
+<h2 class="font-h3 text-h3 font-bold text-primary dark:text-primary-fixed-dim">Our Home</h2>
+<p class="font-label-md text-label-md text-on-surface-variant">Family Hub</p>
+</div>
+</div>
+<button class="mt-md w-full py-sm px-md rounded-full bg-primary text-on-primary font-label-md text-label-md hover:opacity-90 transition-opacity">
+                Add Member
+            </button>
+</div>
+<ul class="flex flex-col gap-unit flex-grow overflow-y-auto px-unit">
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-on-tertiary-container font-medium hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-on-tertiary-container font-medium hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">checklist</span>
+<span class="font-label-md text-label-md">Tasks</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-primary dark:text-primary-fixed-dim font-bold border-r-4 border-primary dark:border-primary-fixed-dim bg-primary-fixed/10 scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">shopping_cart</span>
+<span class="font-label-md text-label-md">Shopping</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-on-tertiary-container font-medium hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">payments</span>
+<span class="font-label-md text-label-md">Expenses</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-on-tertiary-container font-medium hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">inventory_2</span>
+<span class="font-label-md text-label-md">Inventory</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-on-tertiary-container font-medium hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">handyman</span>
+<span class="font-label-md text-label-md">Maintenance</span>
+</a>
+</li>
+</ul>
+<div class="mt-auto px-unit pt-md border-t border-outline-variant/30">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">logout</span>
+<span class="font-label-md text-label-md">Sign Out</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 md:ml-64 flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 md:left-64 right-0 z-40 flex justify-between items-center px-lg h-16 bg-surface dark:bg-background border-b border-outline-variant dark:border-on-surface-variant">
+<div class="flex items-center gap-md">
+<h1 class="font-h3 text-h3 font-bold text-primary dark:text-primary-fixed-dim">HomeOS</h1>
+</div>
+<div class="flex items-center gap-sm">
+<!-- Search Box (Desktop) -->
+<div class="hidden sm:flex items-center bg-surface-container-low rounded-full px-md py-unit border border-outline-variant/50 focus-within:border-primary transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-md font-body-md text-on-surface placeholder-on-surface-variant/70 w-48 py-1 px-sm" placeholder="Search lists..." type="text"/>
+</div>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="w-8 h-8 rounded-full overflow-hidden ml-unit border border-outline-variant/30">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A small, professional profile portrait of a smiling woman with neat hair. The background is a soft, neutral gray to ensure focus on the subject. The lighting is bright and evenly distributed, fitting a modern, clean interface style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDiNLyKl3oS7L3AuP-Jki865R3f7eYrMwBS5OZPxCjQaVRC8pXolV4TSAzk3cpo_6GYNdr9uU4y_LWwys1BEqJKb6OuJGuTkE1dYUzJYDkLXUVfA0uknmbnYR6as2haXEvJMydc8nICy_7WA9_VnX_E2aw9y1jwMTE_ssahbTgt7VkwPcOYcPRyZR3X-Dh4eaRAvOyQiRRq8uNIwlvO_Ww7BOLUwM1_KH-w-4AIHBrmfunkqb3QEOc24W_9n9x1g0t5a_5KUIeD7pQ"/>
+</button>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 pt-24 pb-24 px-md md:px-lg lg:px-xl max-w-max_width mx-auto w-full">
+<!-- Header Section -->
+<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-md mb-lg">
+<div>
+<h2 class="font-h1 text-h1 text-on-surface mb-xs">Shopping</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Manage your household purchases and lists.</p>
+</div>
+<button class="inline-flex items-center justify-center gap-sm bg-primary text-on-primary font-label-md text-label-md px-lg py-3 rounded-full hover:bg-primary/90 transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                    Create New List
+                </button>
+</div>
+<!-- Bento Grid Layout for Lists -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Card 1: Weekly Groceries -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant/40 p-lg shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-shadow flex flex-col h-full">
+<div class="flex justify-between items-start mb-md">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">local_mall</span>
+</div>
+<div>
+<h3 class="font-h3 text-h3 text-on-surface">Weekly Groceries</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mt-unit">Last updated 2h ago</p>
+</div>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<!-- Progress -->
+<div class="mb-md">
+<div class="flex justify-between items-center mb-unit">
+<span class="font-label-md text-label-md text-on-surface-variant">5/12 items</span>
+<span class="font-label-md text-label-md text-primary font-bold">42%</span>
+</div>
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 42%;"></div>
+</div>
+</div>
+<!-- Preview Items -->
+<ul class="flex-1 flex flex-col gap-unit">
+<li class="flex items-center gap-sm py-xs border-b border-outline-variant/20 last:border-0">
+<span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+<span class="font-body-md text-body-md text-on-surface-variant line-through">Organic Milk (2L)</span>
+</li>
+<li class="flex items-center gap-sm py-xs border-b border-outline-variant/20 last:border-0">
+<span class="material-symbols-outlined text-outline-variant text-[20px]">radio_button_unchecked</span>
+<span class="font-body-md text-body-md text-on-surface">Eggs (Free Range)</span>
+</li>
+<li class="flex items-center gap-sm py-xs border-b border-outline-variant/20 last:border-0">
+<span class="material-symbols-outlined text-outline-variant text-[20px]">radio_button_unchecked</span>
+<span class="font-body-md text-body-md text-on-surface">Sourdough Bread</span>
+</li>
+</ul>
+<div class="mt-md pt-md border-t border-outline-variant/20 flex justify-between items-center">
+<div class="flex -space-x-2">
+<img alt="User" class="w-6 h-6 rounded-full border border-surface-container-lowest" data-alt="Small avatar of a woman, neutral background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlomI8QpHg6oMo38I1Ixrbx5gYn8a9BPvexadRgPFf7uyp1OeR3dSRlFRTfPpDZ_chKYY62zK85O44pgf5OF0IH3VMApM_yOVIkT5YmKjP--NyvnK68ajfSGshphk5pU_FsVEuo_7Pf_WFYjdDEB7igysQAYx52958wc5RO2NVOAgai985-OrTKA0OjuB7vplxjVE_jvcfSjnuMuUF5Yjq621YNiOFVLsCd7WTba7JqRWid41QmZT8X0R-oR1g7ZxI0LEQ6qZqa-w"/>
+<div class="w-6 h-6 rounded-full border border-surface-container-lowest bg-surface-container-high flex items-center justify-center text-[10px] font-bold text-on-surface-variant">+1</div>
+</div>
+<button class="font-label-md text-label-md text-primary hover:underline">View All</button>
+</div>
+</div>
+<!-- Card 2: Hardware Store -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant/40 p-lg shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-shadow flex flex-col h-full">
+<div class="flex justify-between items-start mb-md">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">hardware</span>
+</div>
+<div>
+<h3 class="font-h3 text-h3 text-on-surface">Hardware Store</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mt-unit">Last updated Yesterday</p>
+</div>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<!-- Progress -->
+<div class="mb-md">
+<div class="flex justify-between items-center mb-unit">
+<span class="font-label-md text-label-md text-on-surface-variant">0/4 items</span>
+<span class="font-label-md text-label-md text-primary font-bold">0%</span>
+</div>
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 0%;"></div>
+</div>
+</div>
+<!-- Preview Items -->
+<ul class="flex-1 flex flex-col gap-unit">
+<li class="flex items-center gap-sm py-xs border-b border-outline-variant/20 last:border-0">
+<span class="material-symbols-outlined text-outline-variant text-[20px]">radio_button_unchecked</span>
+<span class="font-body-md text-body-md text-on-surface">Furnace Filters (16x20)</span>
+</li>
+<li class="flex items-center gap-sm py-xs border-b border-outline-variant/20 last:border-0">
+<span class="material-symbols-outlined text-outline-variant text-[20px]">radio_button_unchecked</span>
+<span class="font-body-md text-body-md text-on-surface">WD-40</span>
+</li>
+</ul>
+<div class="mt-md pt-md border-t border-outline-variant/20 flex justify-end items-center">
+<button class="font-label-md text-label-md text-primary hover:underline">View All</button>
+</div>
+</div>
+<!-- Card 3: Party Supplies (Completed Example) -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant/40 p-lg shadow-[0_4px_20px_rgba(0,0,0,0.03)] opacity-80 hover:opacity-100 transition-opacity flex flex-col h-full">
+<div class="flex justify-between items-start mb-md">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">celebration</span>
+</div>
+<div>
+<h3 class="font-h3 text-h3 text-on-surface">Party Supplies</h3>
+<span class="inline-block mt-unit px-2 py-0.5 rounded-full bg-primary-container text-on-primary-container font-label-sm text-label-sm">Completed</span>
+</div>
+</div>
+</div>
+<!-- Progress -->
+<div class="mb-md">
+<div class="flex justify-between items-center mb-unit">
+<span class="font-label-md text-label-md text-on-surface-variant">8/8 items</span>
+<span class="font-label-md text-label-md text-primary font-bold">100%</span>
+</div>
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+<!-- Preview Items -->
+<ul class="flex-1 flex flex-col gap-unit">
+<li class="flex items-center gap-sm py-xs border-b border-outline-variant/20 last:border-0">
+<span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+<span class="font-body-md text-body-md text-on-surface-variant line-through">Paper Plates</span>
+</li>
+<li class="flex items-center gap-sm py-xs border-b border-outline-variant/20 last:border-0">
+<span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+<span class="font-body-md text-body-md text-on-surface-variant line-through">Balloons</span>
+</li>
+</ul>
+<div class="mt-md pt-md border-t border-outline-variant/20 flex justify-end items-center">
+<button class="font-label-md text-label-md text-primary hover:underline">View All</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

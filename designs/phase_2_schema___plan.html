@@ -1,0 +1,27 @@
+# HomeOS: Phase 2 - Household System Schema
+
+## Relational Structure
+Building on the Phase 1 foundation, Phase 2 introduces the core multi-tenant structure of HomeOS.
+
+### Table: `households`
+- `id`: uuid (PK)
+- `name`: string
+- `invite_code`: string (unique, 8-character alphanumeric)
+- `owner_id`: uuid (FK -> users.id)
+- `created_at`: timestamp
+
+### Table: `household_members`
+- `id`: uuid (PK)
+- `household_id`: uuid (FK -> households.id)
+- `user_id`: uuid (FK -> users.id)
+- `role`: enum ('OWNER', 'ADMIN', 'MEMBER')
+- `joined_at`: timestamp
+
+### Security Rules (InsForge RLS)
+- **Households:** Users can only view households they are members of. Only `OWNER` can delete.
+- **Members:** Only `ADMIN` or `OWNER` can invite or remove members.
+
+## UI Plan
+1. **Household Onboarding:** For new users or those not in a home.
+2. **Member Management:** A dedicated view within Settings or a new "Household" tab.
+3. **Invite Dialog:** Generating and sharing codes.

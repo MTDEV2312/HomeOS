@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HomeOS - Maintenance Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#27313f",
+                        "surface-variant": "#d9e3f6",
+                        "on-surface": "#121c2a",
+                        "on-primary-fixed-variant": "#124a6f",
+                        "tertiary-fixed": "#e1e2e4",
+                        "surface": "#f8f9ff",
+                        "primary": "#074469",
+                        "on-surface-variant": "#41474e",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#dce2f3",
+                        "secondary": "#585f6c",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#d0dbed",
+                        "primary-fixed-dim": "#9ccbf7",
+                        "tertiary": "#3e4143",
+                        "surface-container": "#e6eeff",
+                        "on-tertiary-container": "#cdced0",
+                        "on-secondary-fixed-variant": "#404754",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#cde5ff",
+                        "on-background": "#121c2a",
+                        "secondary-fixed-dim": "#c0c7d6",
+                        "secondary-fixed": "#dce2f3",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed-dim": "#c5c6c8",
+                        "surface-container-highest": "#d9e3f6",
+                        "on-primary-fixed": "#001d32",
+                        "primary-container": "#2a5c82",
+                        "inverse-primary": "#9ccbf7",
+                        "outline-variant": "#c1c7cf",
+                        "on-tertiary-fixed": "#191c1e",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-container": "#5e6572",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-secondary-fixed": "#151c27",
+                        "surface-container-low": "#eff4ff",
+                        "surface-container-high": "#dee9fc",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "outline": "#72787f",
+                        "surface-bright": "#f8f9ff",
+                        "surface-tint": "#316289",
+                        "background": "#f8f9ff",
+                        "tertiary-container": "#56585a",
+                        "on-primary-container": "#a5d4ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "48px",
+                        "unit": "4px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "max_width": "1440px",
+                        "md": "16px",
+                        "gutter": "20px",
+                        "margin": "32px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "h2": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "h3": ["Inter"],
+                        "h1": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["12px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "h2": ["28px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "h3": ["20px", { "lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600" }],
+                        "h1": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); color: theme('colors.on-background'); }
+    </style>
+</head>
+<body class="flex min-h-screen bg-background text-on-background font-body-md antialiased">
+<!-- SideNavBar -->
+<nav class="bg-surface-container-low dark:bg-on-background text-primary dark:text-primary-fixed-dim font-label-md text-label-md docked h-full w-64 left-0 border-r border-outline-variant dark:border-outline flat no shadows flex flex-col h-screen fixed left-0 top-0 py-lg z-40 hidden md:flex">
+<div class="px-md mb-xl flex items-center gap-sm">
+<img alt="Household avatar" class="w-10 h-10 rounded-full object-cover border border-outline-variant" data-alt="A close-up photograph of a modern, sleek smart home hub device sitting on a clean, light wood kitchen counter. The device has a soft glowing blue indicator ring. The background is softly blurred showing a bright, contemporary kitchen with white cabinets. The lighting is bright and natural, creating a warm, inviting, and highly organized domestic atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOtz5ZR9AY6A3AF9JXcaRmfenotdaTdBNZtFPCJHUSOE7h9nT46T6CGmVR2L2OP0-J59Qo6r6lvST91fYbvYvnrIZwJj6R7ecUSFFX15sbFYHXAx2GcP8j5F0iBlRTGEHiUaU9omSXAfXfx1I0bQnQa2ufbU2XW7Q8MmyWdyArTR8o95kz7Zs8OTia46LGq9MGN7tvFEssZmcm_MPvjMcPtVW_bmzuMoMxaNFQpNemJ5Ov8x39ONFFrSqDav97jvYOdWOtnc9MLqY"/>
+<div>
+<h1 class="font-h2 text-h2 font-bold text-primary dark:text-primary-fixed">HomeOS</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Digital Sanctuary</p>
+</div>
+</div>
+<button class="mx-md mb-lg bg-primary text-on-primary py-sm px-md rounded-lg font-label-md text-label-md font-bold hover:bg-primary-container transition-colors flex items-center justify-center gap-sm shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
+            New Entry
+        </button>
+<div class="flex-1 overflow-y-auto flex flex-col gap-xs px-sm">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-surface-variant opacity-80 hover:bg-secondary-container dark:hover:bg-on-secondary-fixed-variant transition-colors Active: scale-[0.99] transition-transform" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-surface-variant opacity-80 hover:bg-secondary-container dark:hover:bg-on-secondary-fixed-variant transition-colors Active: scale-[0.99] transition-transform" href="#">
+<span class="material-symbols-outlined">check_circle</span>
+<span>Tasks</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-surface-variant opacity-80 hover:bg-secondary-container dark:hover:bg-on-secondary-fixed-variant transition-colors Active: scale-[0.99] transition-transform" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span>Shopping</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-surface-variant opacity-80 hover:bg-secondary-container dark:hover:bg-on-secondary-fixed-variant transition-colors Active: scale-[0.99] transition-transform" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span>Expenses</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant dark:text-surface-variant opacity-80 hover:bg-secondary-container dark:hover:bg-on-secondary-fixed-variant transition-colors Active: scale-[0.99] transition-transform" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span>Inventory</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-primary dark:text-primary-fixed-dim font-bold border-r-4 border-primary hover:bg-secondary-container dark:hover:bg-on-secondary-fixed-variant transition-colors Active: scale-[0.99] transition-transform bg-secondary-container/50" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">build</span>
+<span>Maintenance</span>
+</a>
+</div>
+<div class="mt-auto flex flex-col gap-xs px-sm pt-md border-t border-outline-variant/50">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant opacity-80 hover:bg-secondary-container transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant opacity-80 hover:bg-secondary-container transition-colors" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+<span>Help</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<div class="flex-1 md:ml-64 flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-on-background text-primary dark:text-primary-fixed font-label-md text-label-md docked full-width top-0 border-b border-outline-variant dark:border-outline flat no shadows flex justify-between items-center w-full px-margin py-sm sticky top-0 z-30">
+<div class="flex items-center gap-md">
+<button class="md:hidden text-on-surface-variant hover:bg-surface-container-high p-sm rounded-full transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h2 class="font-h3 text-h3 font-bold text-primary dark:text-primary-fixed md:hidden">HomeOS</h2>
+<div class="hidden md:flex relative Focus-within: ring-2 ring-primary-container transition-all rounded-lg overflow-hidden border border-outline-variant bg-surface-container-lowest">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="pl-xl pr-md py-sm border-none bg-transparent focus:ring-0 text-body-md text-on-surface w-64 placeholder:text-on-surface-variant/70" placeholder="Search maintenance logs..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<button class="p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">calendar_today</span>
+</button>
+<img alt="User avatar" class="w-8 h-8 rounded-full ml-sm object-cover border border-outline-variant cursor-pointer hover:ring-2 ring-primary-container transition-all" data-alt="A close-up portrait of a cheerful person with short dark hair, smiling warmly. The background is a soft, solid light gray, keeping the focus entirely on the person's face. The lighting is bright and even, creating a professional yet approachable appearance suitable for a user profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYnjUKRXRYt--HOdoPwRSptpMOfBtoZnDYKG6j7LDoz9Y3erm_GcDCIfomscYyQTQx82osoqzHcyC-jTYAtvAoyzI_wthBK21zwsqKEfQ0pPbrRiOTGY5d7DFP1NDdH_b6ceTkKfcKlSDBqAnDZeWmGLcCmohx5vtvv9yPSV5G5nN3oZdwZpPVMogQEQTUwIRtI7pwasKmhObUSj02EZ_9xus06fiGfAVpjDljlYlQibJwqMRDRn87hhgSpY6WikNZn9TTFarkdGU"/>
+</div>
+</header>
+<!-- Page Content -->
+<main class="flex-1 p-margin bg-background flex flex-col gap-lg max-w-[max_width] mx-auto w-full">
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md">
+<div>
+<h1 class="font-h1 text-h1 text-on-surface">Maintenance</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-xs">Track home health and upcoming service needs.</p>
+</div>
+<div class="flex gap-sm w-full sm:w-auto">
+<button class="flex-1 sm:flex-none border border-outline-variant bg-surface-container-lowest text-on-surface py-sm px-md rounded-lg font-label-md text-label-md hover:bg-surface-container-low transition-colors flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">add_box</span>
+                        Add Asset
+                    </button>
+<button class="flex-1 sm:flex-none bg-primary text-on-primary py-sm px-md rounded-lg font-label-md text-label-md font-bold hover:bg-primary-container transition-colors flex items-center justify-center gap-xs shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">build</span>
+                        Log Maintenance
+                    </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Home Health Score (Span 4) -->
+<div class="md:col-span-4 bg-surface-container-lowest rounded-xl p-lg border border-outline-variant shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col">
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-h3 text-h3 text-on-surface">Home Health</h3>
+<button class="text-primary hover:text-primary-container"><span class="material-symbols-outlined">more_horiz</span></button>
+</div>
+<div class="flex-1 flex flex-col items-center justify-center py-md relative">
+<!-- Pseudo Progress Circle -->
+<div class="w-32 h-32 rounded-full border-8 border-surface-container-highest flex items-center justify-center relative">
+<div class="absolute inset-0 rounded-full border-8 border-primary border-t-transparent border-l-transparent rotate-45"></div>
+<div class="text-center">
+<span class="font-h1 text-h1 text-primary block leading-none">85</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">/ 100</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant mt-md text-center">Overall system status is Good. 2 systems require attention soon.</p>
+</div>
+<div class="flex flex-col gap-sm mt-auto border-t border-outline-variant/50 pt-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-xs text-on-surface"><span class="material-symbols-outlined text-outline">air</span> <span class="font-label-md text-label-md">HVAC</span></div>
+<span class="bg-surface-container-low text-primary px-sm py-xs rounded-full font-label-sm text-label-sm border border-outline-variant/50">Optimal</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-xs text-on-surface"><span class="material-symbols-outlined text-outline">water_drop</span> <span class="font-label-md text-label-md">Plumbing</span></div>
+<span class="bg-error-container/30 text-error px-sm py-xs rounded-full font-label-sm text-label-sm border border-error/20 flex items-center gap-xs"><span class="w-1.5 h-1.5 rounded-full bg-error"></span> Attention</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-xs text-on-surface"><span class="material-symbols-outlined text-outline">electrical_services</span> <span class="font-label-md text-label-md">Electrical</span></div>
+<span class="bg-surface-container-low text-primary px-sm py-xs rounded-full font-label-sm text-label-sm border border-outline-variant/50">Optimal</span>
+</div>
+</div>
+</div>
+<!-- Upcoming Maintenance (Span 8) -->
+<div class="md:col-span-8 bg-surface-container-lowest rounded-xl p-lg border border-outline-variant shadow-[0_4px_20px_rgba(0,0,0,0.05)] flex flex-col">
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-h3 text-h3 text-on-surface">Upcoming Scheduled</h3>
+<a class="font-label-md text-label-md text-primary hover:underline" href="#">View Calendar</a>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-md mt-sm">
+<!-- Task Card 1 -->
+<div class="border border-outline-variant rounded-lg p-md hover:bg-surface-container-low transition-colors group cursor-pointer relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-error"></div>
+<div class="flex justify-between items-start mb-sm">
+<span class="font-label-sm text-label-sm text-error bg-error-container/30 px-sm py-xs rounded-md">Overdue</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">filter_alt</span>
+</div>
+<h4 class="font-body-lg text-body-lg font-semibold text-on-surface mb-xs">HVAC Filter Change</h4>
+<p class="font-label-md text-label-md text-on-surface-variant mb-md flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]">calendar_month</span> Oct 12, 2023</p>
+<div class="flex justify-between items-center mt-auto">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Est: $25.00</span>
+<button class="text-primary font-label-sm text-label-sm hover:underline">Mark Done</button>
+</div>
+</div>
+<!-- Task Card 2 -->
+<div class="border border-outline-variant rounded-lg p-md hover:bg-surface-container-low transition-colors group cursor-pointer relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary-container"></div>
+<div class="flex justify-between items-start mb-sm">
+<span class="font-label-sm text-label-sm text-primary-container bg-surface-container px-sm py-xs rounded-md">This Week</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">directions_car</span>
+</div>
+<h4 class="font-body-lg text-body-lg font-semibold text-on-surface mb-xs">Car Oil Change</h4>
+<p class="font-label-md text-label-md text-on-surface-variant mb-md flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]">calendar_month</span> Oct 28, 2023</p>
+<div class="flex justify-between items-center mt-auto">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Est: $65.00</span>
+<button class="text-primary font-label-sm text-label-sm hover:underline">Mark Done</button>
+</div>
+</div>
+<!-- Task Card 3 -->
+<div class="border border-outline-variant rounded-lg p-md hover:bg-surface-container-low transition-colors group cursor-pointer relative overflow-hidden hidden sm:block">
+<div class="absolute top-0 left-0 w-1 h-full bg-outline-variant"></div>
+<div class="flex justify-between items-start mb-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-variant px-sm py-xs rounded-md">Next Month</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">opacity</span>
+</div>
+<h4 class="font-body-lg text-body-lg font-semibold text-on-surface mb-xs">Flush Water Heater</h4>
+<p class="font-label-md text-label-md text-on-surface-variant mb-md flex items-center gap-xs"><span class="material-symbols-outlined text-[16px]">calendar_month</span> Nov 15, 2023</p>
+<div class="flex justify-between items-center mt-auto">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Est: $0.00</span>
+<button class="text-primary font-label-sm text-label-sm hover:underline">Mark Done</button>
+</div>
+</div>
+<!-- Task Card 4 -->
+<div class="border border-outline-variant border-dashed rounded-lg p-md hover:bg-surface-container-low transition-colors flex flex-col items-center justify-center text-center gap-sm cursor-pointer min-h-[140px]">
+<span class="material-symbols-outlined text-outline text-[32px]">add_circle</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Schedule New Task</span>
+</div>
+</div>
+</div>
+<!-- Recent Service Logs (Span 12) -->
+<div class="md:col-span-12 bg-surface-container-lowest rounded-xl p-lg border border-outline-variant shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
+<div class="flex justify-between items-center mb-md border-b border-outline-variant/50 pb-sm">
+<h3 class="font-h3 text-h3 text-on-surface">Recent Service Logs</h3>
+<button class="flex items-center gap-xs text-on-surface-variant hover:text-on-surface transition-colors font-label-md text-label-md border border-outline-variant px-sm py-xs rounded-md">
+<span class="material-symbols-outlined text-[18px]">filter_list</span> Filter
+                        </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[600px]">
+<thead>
+<tr class="text-on-surface-variant font-label-sm text-label-sm border-b border-outline-variant/50">
+<th class="py-sm px-md font-medium">Date</th>
+<th class="py-sm px-md font-medium">Asset</th>
+<th class="py-sm px-md font-medium">Service Performed</th>
+<th class="py-sm px-md font-medium">Provider</th>
+<th class="py-sm px-md font-medium text-right">Cost</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-on-surface">
+<tr class="border-b border-outline-variant/20 hover:bg-surface-container-low transition-colors">
+<td class="py-md px-md whitespace-nowrap text-on-surface-variant font-label-md text-label-md">Oct 05, 2023</td>
+<td class="py-md px-md font-medium">Refrigerator</td>
+<td class="py-md px-md">Replaced Water Filter</td>
+<td class="py-md px-md text-on-surface-variant">DIY</td>
+<td class="py-md px-md text-right font-medium text-on-surface">$45.00</td>
+</tr>
+<tr class="border-b border-outline-variant/20 hover:bg-surface-container-low transition-colors">
+<td class="py-md px-md whitespace-nowrap text-on-surface-variant font-label-md text-label-md">Sep 22, 2023</td>
+<td class="py-md px-md font-medium">Main HVAC</td>
+<td class="py-md px-md">Annual Inspection &amp; Tune-up</td>
+<td class="py-md px-md text-on-surface-variant">CoolAir Pros</td>
+<td class="py-md px-md text-right font-medium text-on-surface">$150.00</td>
+</tr>
+<tr class="border-b border-outline-variant/20 hover:bg-surface-container-low transition-colors">
+<td class="py-md px-md whitespace-nowrap text-on-surface-variant font-label-md text-label-md">Aug 10, 2023</td>
+<td class="py-md px-md font-medium">Lawn Mower</td>
+<td class="py-md px-md">Blade Sharpening &amp; Oil</td>
+<td class="py-md px-md text-on-surface-variant">Local Hardware</td>
+<td class="py-md px-md text-right font-medium text-on-surface">$35.00</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-md px-md whitespace-nowrap text-on-surface-variant font-label-md text-label-md">Jul 18, 2023</td>
+<td class="py-md px-md font-medium">Guest Bathroom</td>
+<td class="py-md px-md">Fixed Leaky Faucet</td>
+<td class="py-md px-md text-on-surface-variant">DIY</td>
+<td class="py-md px-md text-right font-medium text-on-surface">$12.50</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-md pt-sm border-t border-outline-variant/50 text-center">
+<button class="text-primary font-label-md text-label-md hover:underline font-medium">View All Logs</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

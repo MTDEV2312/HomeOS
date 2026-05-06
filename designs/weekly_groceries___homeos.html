@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Weekly Groceries - HomeOS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-container": "#cdced0",
+                      "surface-container-highest": "#d9e3f6",
+                      "primary-fixed": "#cde5ff",
+                      "on-primary-container": "#a5d4ff",
+                      "error": "#ba1a1a",
+                      "surface-variant": "#d9e3f6",
+                      "secondary-container": "#dce2f3",
+                      "inverse-primary": "#9ccbf7",
+                      "outline-variant": "#c1c7cf",
+                      "on-secondary-fixed": "#151c27",
+                      "surface": "#f8f9ff",
+                      "on-error-container": "#93000a",
+                      "on-tertiary": "#ffffff",
+                      "primary-container": "#2a5c82",
+                      "on-surface": "#121c2a",
+                      "on-tertiary-fixed": "#191c1e",
+                      "on-primary-fixed-variant": "#124a6f",
+                      "on-secondary-fixed-variant": "#404754",
+                      "error-container": "#ffdad6",
+                      "on-surface-variant": "#41474e",
+                      "on-secondary-container": "#5e6572",
+                      "surface-container-high": "#dee9fc",
+                      "on-primary-fixed": "#001d32",
+                      "surface-dim": "#d0dbed",
+                      "secondary-fixed": "#dce2f3",
+                      "on-primary": "#ffffff",
+                      "tertiary": "#3e4143",
+                      "on-tertiary-fixed-variant": "#444749",
+                      "inverse-surface": "#27313f",
+                      "tertiary-container": "#56585a",
+                      "secondary": "#585f6c",
+                      "primary": "#074469",
+                      "on-background": "#121c2a",
+                      "surface-tint": "#316289",
+                      "secondary-fixed-dim": "#c0c7d6",
+                      "outline": "#72787f",
+                      "on-secondary": "#ffffff",
+                      "primary-fixed-dim": "#9ccbf7",
+                      "tertiary-fixed-dim": "#c5c6c8",
+                      "surface-container-lowest": "#ffffff",
+                      "background": "#f8f9ff",
+                      "on-error": "#ffffff",
+                      "surface-bright": "#f8f9ff",
+                      "tertiary-fixed": "#e1e2e4",
+                      "inverse-on-surface": "#eaf1ff",
+                      "surface-container-low": "#eff4ff",
+                      "surface-container": "#e6eeff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "xl": "48px",
+                      "sm": "8px",
+                      "margin": "32px",
+                      "lg": "24px",
+                      "unit": "4px",
+                      "gutter": "20px",
+                      "md": "16px",
+                      "xs": "4px",
+                      "max_width": "1440px"
+              },
+              "fontFamily": {
+                      "label-sm": ["Inter"],
+                      "h2": ["Inter"],
+                      "h3": ["Inter"],
+                      "body-md": ["Inter"],
+                      "label-md": ["Inter"],
+                      "h1": ["Inter"],
+                      "body-lg": ["Inter"]
+              },
+              "fontSize": {
+                      "label-sm": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "h2": ["28px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "h3": ["20px", {"lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400"}],
+                      "label-md": ["14px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                      "h1": ["36px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        /* Tonal Layer 1 - Cards */
+        .shadow-soft {
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
+        }
+        /* Custom checkbox styles */
+        .fat-finger-checkbox {
+            width: 24px;
+            height: 24px;
+            border-width: 2px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex">
+<!-- SideNavBar (Hidden on Mobile) -->
+<nav class="hidden md:flex bg-surface-container-low border-r border-outline-variant fixed left-0 top-0 h-full flex-col pt-20 pb-md px-sm z-30 w-64">
+<div class="px-md mb-lg">
+<div class="flex items-center gap-sm mb-xs">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-h3">
+                    H
+                </div>
+<div>
+<h2 class="font-h3 text-h3 font-bold text-primary">Our Home</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Family Hub</p>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto space-y-unit">
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="checklist">checklist</span>
+<span class="font-label-md text-label-md">Tasks</span>
+</a>
+<!-- Active State -->
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-primary font-bold border-r-4 border-primary bg-primary-fixed/10 scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="shopping_cart" style="font-variation-settings: 'FILL' 1;">shopping_cart</span>
+<span class="font-label-md text-label-md">Shopping</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-label-md text-label-md">Expenses</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-md text-label-md">Inventory</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="handyman">handyman</span>
+<span class="font-label-md text-label-md">Maintenance</span>
+</a>
+</div>
+<div class="mt-auto space-y-unit pt-md">
+<button class="w-full flex items-center justify-center gap-sm py-sm px-md rounded-full bg-primary text-on-primary font-label-md text-label-md hover:bg-primary/90 transition-colors mb-md">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                Add Member
+            </button>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-md text-label-md">Sign Out</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 md:ml-64 flex flex-col min-h-screen relative">
+<!-- TopAppBar -->
+<header class="bg-surface border-b border-outline-variant fixed top-0 left-0 md:left-64 right-0 z-40 flex justify-between items-center px-lg h-16">
+<div class="flex items-center gap-md">
+<!-- Mobile Menu Button -->
+<button class="md:hidden text-on-surface-variant p-sm rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-h3 text-h3 font-bold text-primary">HomeOS</h1>
+</div>
+<!-- Search Bar (on_left as per JSON, but pushed to right flex for layout balance) -->
+<div class="hidden md:flex flex-1 max-w-md mx-lg">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-xl pr-md py-sm rounded-full bg-surface-container-low border-transparent focus:border-primary focus:bg-surface focus:ring-1 focus:ring-primary transition-all font-body-md text-on-surface placeholder:text-on-surface-variant outline-none" placeholder="Search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<button class="text-on-surface-variant p-sm rounded-full hover:bg-surface-container-low transition-colors relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="text-on-surface-variant p-sm rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<img alt="User profile" class="w-8 h-8 rounded-full ml-sm border border-outline-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBrDCQfqgfD0O9G2uHT3Wx9usUNFRT74UGYBg-w1ZIjdETRyA64yfXnJvp9Qfr2Cur9uyQOYRO7pnR0bpwolhUI0E0CeFDEotwm5jHf-8P2shLGAsp9T6U8TyOl9mw5CFnBXu20A_Ic09Xn1HCYlzL2Wpal6QiiqyYbzznyMdDrRoGGMCgq2igmeFL3o_eRk80YkOWqgjxcTRnHDaQ3qHdO3L_lke0pq_vBPsY32PV2Gulw2NHMfgq4ZNqZm_TmoBD1k9pI5XBz_hI"/>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 pt-[88px] pb-xl px-md md:px-margin max-w-max_width mx-auto w-full">
+<!-- Page Header & Summary -->
+<div class="mb-lg flex flex-col md:flex-row md:items-end justify-between gap-md">
+<div>
+<div class="flex items-center gap-sm mb-xs">
+<a class="text-on-surface-variant hover:text-primary transition-colors flex items-center" href="#">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+</a>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Shopping Lists</span>
+</div>
+<h2 class="font-h2 text-h2 text-on-surface">Weekly Groceries</h2>
+</div>
+<!-- Summary Chips -->
+<div class="flex gap-sm">
+<div class="bg-surface-container-high px-md py-xs rounded-full flex items-center gap-xs">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Total:</span>
+<span class="font-label-md text-label-md text-on-surface font-bold">12</span>
+</div>
+<div class="bg-primary-fixed/20 px-md py-xs rounded-full flex items-center gap-xs border border-primary-fixed">
+<span class="font-label-sm text-label-sm text-primary">Remaining:</span>
+<span class="font-label-md text-label-md text-primary font-bold">5</span>
+</div>
+</div>
+</div>
+<!-- Add Item Input -->
+<div class="bg-surface-container-lowest rounded-xl shadow-soft border border-outline-variant/30 p-sm mb-lg flex items-center gap-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<button class="w-10 h-10 rounded-lg bg-primary text-on-primary flex items-center justify-center hover:bg-primary/90 transition-colors shrink-0">
+<span class="material-symbols-outlined">add</span>
+</button>
+<input class="flex-1 bg-transparent border-none focus:ring-0 font-body-md text-on-surface placeholder:text-on-surface-variant outline-none px-sm" placeholder="Add new item (e.g., Organic Milk 1gal)" type="text"/>
+<button class="p-sm text-on-surface-variant hover:text-primary transition-colors shrink-0 hidden md:block">
+<span class="material-symbols-outlined">mic</span>
+</button>
+</div>
+<!-- List Layout (Bento-ish Grid of Categories) -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-lg items-start">
+<!-- Category: Produce -->
+<div class="bg-surface-container-lowest rounded-xl shadow-soft border border-outline-variant/30 overflow-hidden flex flex-col h-full">
+<div class="bg-surface-container-low px-lg py-md border-b border-outline-variant/30 flex justify-between items-center">
+<h3 class="font-h3 text-h3 text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">nutrition</span>
+                            Produce
+                        </h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-2 py-1 rounded">3 items</span>
+</div>
+<div class="p-0 flex-1">
+<!-- Pending Item -->
+<div class="flex items-center justify-between p-md border-b border-outline-variant/10 hover:bg-surface-container-lowest/50 transition-colors group">
+<label class="flex items-center gap-md cursor-pointer flex-1">
+<input class="fat-finger-checkbox text-primary focus:ring-primary border-outline-variant bg-surface rounded" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface group-hover:text-primary transition-colors">Honeycrisp Apples</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">6 loose</span>
+</div>
+</label>
+<div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+<button class="p-xs text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+<!-- Pending Item -->
+<div class="flex items-center justify-between p-md border-b border-outline-variant/10 hover:bg-surface-container-lowest/50 transition-colors group">
+<label class="flex items-center gap-md cursor-pointer flex-1">
+<input class="fat-finger-checkbox text-primary focus:ring-primary border-outline-variant bg-surface rounded" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface group-hover:text-primary transition-colors">Baby Spinach</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">1 large tub</span>
+</div>
+</label>
+<div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+<button class="p-xs text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+<!-- Completed Item -->
+<div class="flex items-center justify-between p-md bg-surface-container/30 hover:bg-surface-container/50 transition-colors group">
+<label class="flex items-center gap-md cursor-pointer flex-1">
+<input checked="" class="fat-finger-checkbox text-primary focus:ring-primary border-primary bg-primary rounded" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface-variant line-through opacity-70">Avocados</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-70">3 ripe</span>
+</div>
+</label>
+<div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Category: Dairy & Fridge -->
+<div class="bg-surface-container-lowest rounded-xl shadow-soft border border-outline-variant/30 overflow-hidden flex flex-col h-full">
+<div class="bg-surface-container-low px-lg py-md border-b border-outline-variant/30 flex justify-between items-center">
+<h3 class="font-h3 text-h3 text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">egg</span>
+                            Dairy &amp; Fridge
+                        </h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-2 py-1 rounded">2 items</span>
+</div>
+<div class="p-0 flex-1">
+<!-- Pending Item -->
+<div class="flex items-center justify-between p-md border-b border-outline-variant/10 hover:bg-surface-container-lowest/50 transition-colors group">
+<label class="flex items-center gap-md cursor-pointer flex-1">
+<input class="fat-finger-checkbox text-primary focus:ring-primary border-outline-variant bg-surface rounded" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface group-hover:text-primary transition-colors">Oat Milk</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">2 cartons</span>
+</div>
+</label>
+<div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+<button class="p-xs text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+<!-- Completed Item -->
+<div class="flex items-center justify-between p-md bg-surface-container/30 hover:bg-surface-container/50 transition-colors group">
+<label class="flex items-center gap-md cursor-pointer flex-1">
+<input checked="" class="fat-finger-checkbox text-primary focus:ring-primary border-primary bg-primary rounded" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface-variant line-through opacity-70">Large Eggs</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-70">1 dozen</span>
+</div>
+</label>
+<div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Category: Pantry -->
+<div class="bg-surface-container-lowest rounded-xl shadow-soft border border-outline-variant/30 overflow-hidden flex flex-col h-full lg:col-span-2">
+<div class="bg-surface-container-low px-lg py-md border-b border-outline-variant/30 flex justify-between items-center">
+<h3 class="font-h3 text-h3 text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">kitchen</span>
+                            Pantry
+                        </h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-2 py-1 rounded">4 items</span>
+</div>
+<div class="p-0 grid grid-cols-1 md:grid-cols-2 gap-x-lg">
+<!-- Pending Item -->
+<div class="flex items-center justify-between p-md border-b md:border-r border-outline-variant/10 hover:bg-surface-container-lowest/50 transition-colors group">
+<label class="flex items-center gap-md cursor-pointer flex-1">
+<input class="fat-finger-checkbox text-primary focus:ring-primary border-outline-variant bg-surface rounded" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface group-hover:text-primary transition-colors">Olive Oil</span>
+<span class="font-label-sm text-label-sm text-error bg-error/10 px-1 rounded inline-block w-fit mt-1">High Priority - Out</span>
+</div>
+</label>
+<div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+<button class="p-xs text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+<!-- Pending Item -->
+<div class="flex items-center justify-between p-md border-b border-outline-variant/10 hover:bg-surface-container-lowest/50 transition-colors group">
+<label class="flex items-center gap-md cursor-pointer flex-1">
+<input class="fat-finger-checkbox text-primary focus:ring-primary border-outline-variant bg-surface rounded" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface group-hover:text-primary transition-colors">Whole Wheat Pasta</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">2 boxes</span>
+</div>
+</label>
+<div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+<button class="p-xs text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+<!-- Completed Item -->
+<div class="flex items-center justify-between p-md border-b md:border-b-0 md:border-r border-outline-variant/10 bg-surface-container/30 hover:bg-surface-container/50 transition-colors group">
+<label class="flex items-center gap-md cursor-pointer flex-1">
+<input checked="" class="fat-finger-checkbox text-primary focus:ring-primary border-primary bg-primary rounded" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface-variant line-through opacity-70">Coffee Beans</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-70">1 bag (Espresso roast)</span>
+</div>
+</label>
+<div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+<!-- Completed Item -->
+<div class="flex items-center justify-between p-md bg-surface-container/30 hover:bg-surface-container/50 transition-colors group">
+<label class="flex items-center gap-md cursor-pointer flex-1">
+<input checked="" class="fat-finger-checkbox text-primary focus:ring-primary border-primary bg-primary rounded" type="checkbox"/>
+<div class="flex flex-col">
+<span class="font-body-md text-body-md text-on-surface-variant line-through opacity-70">Canned Black Beans</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-70">3 cans</span>
+</div>
+</label>
+<div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-xs text-on-surface-variant hover:text-error transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

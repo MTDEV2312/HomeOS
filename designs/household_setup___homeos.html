@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Setup - HomeOS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-high": "#dee9fc",
+                      "on-secondary": "#ffffff",
+                      "inverse-surface": "#27313f",
+                      "surface-container-low": "#eff4ff",
+                      "surface-variant": "#d9e3f6",
+                      "on-primary-container": "#a5d4ff",
+                      "secondary": "#585f6c",
+                      "on-error": "#ffffff",
+                      "surface": "#f8f9ff",
+                      "outline-variant": "#c1c7cf",
+                      "tertiary-fixed": "#e1e2e4",
+                      "tertiary-container": "#56585a",
+                      "tertiary": "#3e4143",
+                      "secondary-container": "#dce2f3",
+                      "on-background": "#121c2a",
+                      "inverse-primary": "#9ccbf7",
+                      "on-error-container": "#93000a",
+                      "background": "#f8f9ff",
+                      "primary": "#074469",
+                      "on-tertiary": "#ffffff",
+                      "secondary-fixed": "#dce2f3",
+                      "surface-bright": "#f8f9ff",
+                      "primary-fixed": "#cde5ff",
+                      "surface-dim": "#d0dbed",
+                      "tertiary-fixed-dim": "#c5c6c8",
+                      "surface-container-highest": "#d9e3f6",
+                      "on-surface": "#121c2a",
+                      "on-tertiary-fixed-variant": "#444749",
+                      "on-secondary-fixed-variant": "#404754",
+                      "on-tertiary-container": "#cdced0",
+                      "surface-tint": "#316289",
+                      "surface-container": "#e6eeff",
+                      "primary-container": "#2a5c82",
+                      "on-secondary-container": "#5e6572",
+                      "primary-fixed-dim": "#9ccbf7",
+                      "on-primary-fixed-variant": "#124a6f",
+                      "on-primary": "#ffffff",
+                      "on-tertiary-fixed": "#191c1e",
+                      "outline": "#72787f",
+                      "on-secondary-fixed": "#151c27",
+                      "secondary-fixed-dim": "#c0c7d6",
+                      "on-primary-fixed": "#001d32",
+                      "error-container": "#ffdad6",
+                      "surface-container-lowest": "#ffffff",
+                      "on-surface-variant": "#41474e",
+                      "inverse-on-surface": "#eaf1ff",
+                      "error": "#ba1a1a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "max_width": "1440px",
+                      "sm": "8px",
+                      "xs": "4px",
+                      "margin": "32px",
+                      "md": "16px",
+                      "lg": "24px",
+                      "gutter": "20px",
+                      "xl": "48px",
+                      "unit": "4px"
+              },
+              "fontFamily": {
+                      "h2": [
+                              "Inter"
+                      ],
+                      "h1": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "h3": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "h2": [
+                              "28px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "h1": [
+                              "36px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "letterSpacing": "0",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "letterSpacing": "0",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "h3": [
+                              "20px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "letterSpacing": "0",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-md">
+<main class="w-full max-w-4xl mx-auto flex flex-col md:flex-row gap-lg bg-surface-container-lowest rounded-xl shadow-[0px_4px_20px_rgba(0,0,0,0.05)] border border-outline-variant overflow-hidden">
+<!-- Welcome Section -->
+<div class="flex-1 p-xl flex flex-col justify-center bg-surface-container-low border-b md:border-b-0 md:border-r border-outline-variant relative">
+<div class="mb-xl">
+<h1 class="font-h1 text-h1 text-primary mb-sm">HomeOS</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Your Digital Sanctuary awaits.</p>
+</div>
+<div class="space-y-lg">
+<div class="flex items-start gap-md">
+<span class="material-symbols-outlined text-primary bg-primary-fixed p-sm rounded-full mt-xs">home</span>
+<div>
+<h3 class="font-h3 text-h3 text-on-surface mb-xs">Create a Space</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Set up a new household and invite your family members or roommates to join.</p>
+</div>
+</div>
+<div class="flex items-start gap-md">
+<span class="material-symbols-outlined text-primary bg-primary-fixed p-sm rounded-full mt-xs">group_add</span>
+<div>
+<h3 class="font-h3 text-h3 text-on-surface mb-xs">Join an Existing</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Have an invite code? Enter it to seamlessly join your shared digital home.</p>
+</div>
+</div>
+</div>
+<div class="mt-auto pt-xl">
+<p class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+                    Powered by InsForge
+                </p>
+</div>
+</div>
+<!-- Action Section -->
+<div class="flex-1 p-xl flex flex-col gap-xl">
+<!-- Create Household -->
+<div class="bg-surface rounded-lg p-lg border border-outline-variant hover:border-primary transition-colors duration-200">
+<h2 class="font-h3 text-h3 text-on-surface mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">add_circle</span>
+                    Create a Household
+                </h2>
+<form class="space-y-md">
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-xs" for="householdName">Household Name</label>
+<input class="w-full rounded border-outline-variant bg-surface-container-lowest text-on-surface focus:border-primary focus:ring-primary font-body-md text-body-md placeholder-on-surface-variant" id="householdName" placeholder="e.g. The Smith Residence" type="text"/>
+</div>
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-md rounded hover:bg-primary-container hover:text-on-primary-container transition-colors duration-200" type="button">
+                        Create
+                    </button>
+</form>
+</div>
+<div class="relative flex py-sm items-center">
+<div class="flex-grow border-t border-outline-variant"></div>
+<span class="flex-shrink-0 mx-md text-on-surface-variant font-label-md text-label-md">or</span>
+<div class="flex-grow border-t border-outline-variant"></div>
+</div>
+<!-- Join Household -->
+<div class="bg-surface rounded-lg p-lg border border-outline-variant hover:border-primary transition-colors duration-200">
+<h2 class="font-h3 text-h3 text-on-surface mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">login</span>
+                    Join a Household
+                </h2>
+<form class="space-y-md">
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-xs" for="inviteCode">Invite Code</label>
+<input class="w-full rounded border-outline-variant bg-surface-container-lowest text-on-surface focus:border-primary focus:ring-primary font-body-md text-body-md placeholder-on-surface-variant tracking-widest uppercase" id="inviteCode" maxlength="8" placeholder="8-CHAR-CODE" type="text"/>
+<p class="mt-xs font-label-sm text-label-sm text-on-surface-variant">Ask a household admin for this code.</p>
+</div>
+<button class="w-full bg-surface-container-high text-on-surface font-label-md text-label-md py-md rounded border border-outline-variant hover:bg-surface-variant transition-colors duration-200" type="button">
+                        Join
+                    </button>
+</form>
+</div>
+</div>
+</main>
+</body></html>

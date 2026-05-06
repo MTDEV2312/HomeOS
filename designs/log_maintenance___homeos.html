@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HomeOS - Log Maintenance</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#27313f",
+                        "surface-variant": "#d9e3f6",
+                        "on-surface": "#121c2a",
+                        "on-primary-fixed-variant": "#124a6f",
+                        "tertiary-fixed": "#e1e2e4",
+                        "surface": "#f8f9ff",
+                        "primary": "#074469",
+                        "on-surface-variant": "#41474e",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#dce2f3",
+                        "secondary": "#585f6c",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#d0dbed",
+                        "primary-fixed-dim": "#9ccbf7",
+                        "tertiary": "#3e4143",
+                        "surface-container": "#e6eeff",
+                        "on-tertiary-container": "#cdced0",
+                        "on-secondary-fixed-variant": "#404754",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#cde5ff",
+                        "on-background": "#121c2a",
+                        "secondary-fixed-dim": "#c0c7d6",
+                        "secondary-fixed": "#dce2f3",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed-dim": "#c5c6c8",
+                        "surface-container-highest": "#d9e3f6",
+                        "on-primary-fixed": "#001d32",
+                        "primary-container": "#2a5c82",
+                        "inverse-primary": "#9ccbf7",
+                        "outline-variant": "#c1c7cf",
+                        "on-tertiary-fixed": "#191c1e",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-container": "#5e6572",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-secondary-fixed": "#151c27",
+                        "surface-container-low": "#eff4ff",
+                        "surface-container-high": "#dee9fc",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "outline": "#72787f",
+                        "surface-bright": "#f8f9ff",
+                        "surface-tint": "#316289",
+                        "background": "#f8f9ff",
+                        "tertiary-container": "#56585a",
+                        "on-primary-container": "#a5d4ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "48px",
+                        "unit": "4px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "max_width": "1440px",
+                        "md": "16px",
+                        "gutter": "20px",
+                        "margin": "32px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "h2": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "h3": ["Inter"],
+                        "h1": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["12px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "h2": ["28px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "h3": ["20px", { "lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600" }],
+                        "h1": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background min-h-screen text-on-background antialiased flex items-center justify-center p-md">
+<!-- Modal Overlay -->
+<div class="fixed inset-0 bg-on-background/30 backdrop-blur-sm z-40 flex items-center justify-center p-md">
+<!-- Modal Container (Level 2 Elevation) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0px_8px_32px_rgba(0,0,0,0.08)] w-full max-w-[600px] flex flex-col overflow-hidden z-50">
+<!-- Modal Header -->
+<div class="flex items-center justify-between px-lg py-md border-b border-outline-variant/50 bg-surface-bright">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">build</span>
+<h2 class="font-h3 text-h3 text-on-surface">Log Maintenance</h2>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant p-xs rounded-full transition-colors flex items-center justify-center" type="button">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Modal Body -->
+<div class="p-lg overflow-y-auto max-h-[716px]">
+<form class="flex flex-col gap-lg">
+<!-- Asset Selection -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface" for="asset">Asset</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface border border-outline text-on-surface font-body-md text-body-md rounded-DEFAULT px-md py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="asset">
+<option disabled="" selected="" value="">Select an asset...</option>
+<option value="hvac">Main HVAC System</option>
+<option value="fridge">Kitchen Refrigerator</option>
+<option value="water_heater">Water Heater</option>
+<option value="vehicle_1">Primary Vehicle</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-sm text-on-surface-variant">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Task Name -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface" for="task_name">Task Name</label>
+<input class="w-full bg-surface border border-outline text-on-surface font-body-md text-body-md rounded-DEFAULT px-md py-sm placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="task_name" placeholder="e.g., Filter Replacement" type="text"/>
+</div>
+<!-- Date and Cost Row -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface" for="service_date">Service Date</label>
+<div class="relative">
+<input class="w-full bg-surface border border-outline text-on-surface font-body-md text-body-md rounded-DEFAULT pl-md pr-[40px] py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="service_date" type="date"/>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-sm text-outline">
+<span class="material-symbols-outlined">calendar_today</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface" for="cost">Total Cost</label>
+<div class="relative">
+<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-sm text-outline font-body-md text-body-md">$</div>
+<input class="w-full bg-surface border border-outline text-on-surface font-body-md text-body-md rounded-DEFAULT pl-[28px] pr-md py-sm placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="cost" placeholder="0.00" type="number"/>
+</div>
+</div>
+</div>
+<!-- Performed By Segmented Control -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface">Performed By</label>
+<div class="flex bg-surface-variant p-unit rounded-lg">
+<label class="flex-1 text-center cursor-pointer">
+<input class="peer sr-only" name="performed_by" type="radio" value="self"/>
+<div class="py-sm rounded-DEFAULT font-label-md text-label-md text-on-surface-variant peer-checked:bg-surface-container-lowest peer-checked:text-primary peer-checked:shadow-sm transition-all flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">person</span>
+                                    Self
+                                </div>
+</label>
+<label class="flex-1 text-center cursor-pointer">
+<input checked="" class="peer sr-only" name="performed_by" type="radio" value="professional"/>
+<div class="py-sm rounded-DEFAULT font-label-md text-label-md text-on-surface-variant peer-checked:bg-surface-container-lowest peer-checked:text-primary peer-checked:shadow-sm transition-all flex items-center justify-center gap-xs">
+<span class="material-symbols-outlined text-[18px]">engineering</span>
+                                    Professional
+                                </div>
+</label>
+</div>
+</div>
+<!-- Notes -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface" for="notes">Notes</label>
+<textarea class="w-full bg-surface border border-outline text-on-surface font-body-md text-body-md rounded-DEFAULT px-md py-sm placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all resize-none" id="notes" placeholder="Add any specific details, vendor names, or observations..." rows="3"></textarea>
+</div>
+<!-- Next Service Reminder -->
+<div class="bg-surface-container-low border border-outline-variant/50 rounded-lg p-md flex flex-col gap-sm">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">update</span>
+<span class="font-label-md text-label-md text-on-surface">Schedule Next Service</span>
+</div>
+<div class="relative w-full md:w-1/2">
+<input class="w-full bg-surface border border-outline text-on-surface font-body-md text-body-md rounded-DEFAULT pl-md pr-[40px] py-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all" id="next_service_date" type="date"/>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-sm text-outline">
+<span class="material-symbols-outlined">event</span>
+</div>
+</div>
+</div>
+</form>
+</div>
+<!-- Modal Footer -->
+<div class="px-lg py-md border-t border-outline-variant bg-surface-bright flex justify-end gap-md">
+<button class="px-md py-sm rounded-DEFAULT font-label-md text-label-md text-on-surface-variant border border-outline-variant hover:bg-surface-variant transition-colors" type="button">
+                    Cancel
+                </button>
+<button class="px-md py-sm rounded-DEFAULT font-label-md text-label-md bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm" type="button">
+                    Save Log
+                </button>
+</div>
+</div>
+</div>
+</body></html>

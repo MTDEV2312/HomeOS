@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HomeOS - Document Vault</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "on-primary-fixed-variant": "#124a6f",
+                            "inverse-surface": "#27313f",
+                            "primary": "#074469",
+                            "on-tertiary-container": "#cdced0",
+                            "on-surface-variant": "#41474e",
+                            "on-secondary-fixed-variant": "#404754",
+                            "surface-container": "#e6eeff",
+                            "outline-variant": "#c1c7cf",
+                            "error": "#ba1a1a",
+                            "on-surface": "#121c2a",
+                            "inverse-primary": "#9ccbf7",
+                            "surface-container-highest": "#d9e3f6",
+                            "on-error-container": "#93000a",
+                            "on-background": "#121c2a",
+                            "on-primary": "#ffffff",
+                            "error-container": "#ffdad6",
+                            "secondary-fixed-dim": "#c0c7d6",
+                            "secondary-fixed": "#dce2f3",
+                            "background": "#f8f9ff",
+                            "tertiary-fixed": "#e1e2e4",
+                            "tertiary-container": "#56585a",
+                            "surface-container-lowest": "#ffffff",
+                            "on-tertiary-fixed-variant": "#444749",
+                            "surface-container-high": "#dee9fc",
+                            "secondary-container": "#dce2f3",
+                            "primary-container": "#2a5c82",
+                            "tertiary-fixed-dim": "#c5c6c8",
+                            "surface-variant": "#d9e3f6",
+                            "secondary": "#585f6c",
+                            "primary-fixed": "#cde5ff",
+                            "on-secondary": "#ffffff",
+                            "on-secondary-fixed": "#151c27",
+                            "on-secondary-container": "#5e6572",
+                            "surface": "#f8f9ff",
+                            "outline": "#72787f",
+                            "on-tertiary": "#ffffff",
+                            "surface-tint": "#316289",
+                            "on-primary-fixed": "#001d32",
+                            "inverse-on-surface": "#eaf1ff",
+                            "surface-dim": "#d0dbed",
+                            "tertiary": "#3e4143",
+                            "surface-bright": "#f8f9ff",
+                            "on-tertiary-fixed": "#191c1e",
+                            "surface-container-low": "#eff4ff",
+                            "primary-fixed-dim": "#9ccbf7",
+                            "on-primary-container": "#a5d4ff",
+                            "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                            "DEFAULT": "0.25rem",
+                            "lg": "0.5rem",
+                            "xl": "0.75rem",
+                            "full": "9999px"
+                    },
+                    "spacing": {
+                            "md": "16px",
+                            "margin": "32px",
+                            "sm": "8px",
+                            "xl": "48px",
+                            "unit": "4px",
+                            "max_width": "1440px",
+                            "lg": "24px",
+                            "gutter": "20px",
+                            "xs": "4px"
+                    },
+                    "fontFamily": {
+                            "label-sm": [
+                                    "Inter"
+                            ],
+                            "label-md": [
+                                    "Inter"
+                            ],
+                            "h3": [
+                                    "Inter"
+                            ],
+                            "h2": [
+                                    "Inter"
+                            ],
+                            "body-lg": [
+                                    "Inter"
+                            ],
+                            "h1": [
+                                    "Inter"
+                            ],
+                            "body-md": [
+                                    "Inter"
+                            ]
+                    },
+                    "fontSize": {
+                            "label-sm": [
+                                    "12px",
+                                    {
+                                            "lineHeight": "1.2",
+                                            "letterSpacing": "0.05em",
+                                            "fontWeight": "600"
+                                    }
+                            ],
+                            "label-md": [
+                                    "14px",
+                                    {
+                                            "lineHeight": "1.4",
+                                            "letterSpacing": "0.01em",
+                                            "fontWeight": "500"
+                                    }
+                            ],
+                            "h3": [
+                                    "20px",
+                                    {
+                                            "lineHeight": "1.4",
+                                            "letterSpacing": "0",
+                                            "fontWeight": "600"
+                                    }
+                            ],
+                            "h2": [
+                                    "28px",
+                                    {
+                                            "lineHeight": "1.3",
+                                            "letterSpacing": "-0.01em",
+                                            "fontWeight": "600"
+                                    }
+                            ],
+                            "body-lg": [
+                                    "18px",
+                                    {
+                                            "lineHeight": "1.6",
+                                            "letterSpacing": "0",
+                                            "fontWeight": "400"
+                                    }
+                            ],
+                            "h1": [
+                                    "36px",
+                                    {
+                                            "lineHeight": "1.2",
+                                            "letterSpacing": "-0.02em",
+                                            "fontWeight": "700"
+                                    }
+                            ],
+                            "body-md": [
+                                    "16px",
+                                    {
+                                            "lineHeight": "1.5",
+                                            "letterSpacing": "0",
+                                            "fontWeight": "400"
+                                    }
+                            ]
+                    }
+                },
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex flex-col md:flex-row">
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant p-md gap-sm z-40">
+<div class="mb-lg px-md">
+<h1 class="font-h2 text-h2 text-primary">HomeOS</h1>
+</div>
+<div class="flex items-center gap-md px-md mb-xl">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-high shrink-0">
+<img alt="Household Avatar" class="w-full h-full object-cover" data-alt="A small circular avatar image showing a stylized icon of a cozy house with a subtly warm light mode color palette, primarily using soft blues and warm grays. The house is centered and clearly defined against a light background. The overall style is clean, modern, and corporate." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbnBDeOAFLbNC4tTkfFgF2bNmdyHDjL0qcwynQpo8Li5Hx65QKogtMGJkddyIcfOrXJBCiaX7BgSIJsyTb_i0rKfQQLIXvlc8wy5_Bo-bq2xRNx-FVm479VAfBnHSpBtAxybHTbH-pLUaC3SBGskta81oTo0TCo4VUclGsqJLKwDE7BOZI5K9mzUzNNKIVp0QHTeVPQIzEog7ym1z3Oy7eRouhaJ0ezN-O3oFLdB1s64kbj4agdrRYAshlE4oo-vW9qq2iGkrZM7w"/>
+</div>
+<div>
+<p class="font-label-md text-label-md font-bold">Our Home</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Management Hub</p>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto space-y-xs">
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-label-md text-label-md">Tasks</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="font-label-md text-label-md">Shopping</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-label-md text-label-md">Expenses</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-label-md text-label-md">Inventory</span>
+</a>
+<!-- Active State -->
+<a class="flex items-center gap-md px-md py-sm bg-secondary-container text-on-secondary-container rounded-lg font-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">folder</span>
+<span class="font-label-md text-label-md">Documents</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">build</span>
+<span class="font-label-md text-label-md">Maintenance</span>
+</a>
+</div>
+<button class="mt-auto w-full py-sm px-md bg-primary text-on-primary rounded-full font-label-md text-label-md font-bold hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm">
+            Add Member
+        </button>
+<div class="mt-lg pt-md border-t border-outline-variant space-y-xs">
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 flex flex-col min-h-screen max-w-[1440px] mx-auto w-full bg-background">
+<!-- TopAppBar (Mobile & Desktop) -->
+<header class="flex justify-between items-center px-margin py-md w-full sticky top-0 z-50 bg-background border-b border-outline-variant/30">
+<div class="flex items-center gap-md md:hidden">
+<span class="material-symbols-outlined text-on-surface">menu</span>
+<span class="text-h3 font-h3 font-bold text-primary">HomeOS</span>
+</div>
+<div class="hidden md:flex flex-1 items-center gap-lg">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-xl pr-sm py-sm rounded-full bg-surface-container border-none text-body-md focus:ring-2 focus:ring-primary focus:bg-surface-container-lowest transition-colors" placeholder="Search documents..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-highest md:hidden">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A small circular avatar image showing a stylized icon of a cozy house with a subtly warm light mode color palette, primarily using soft blues and warm grays. The house is centered and clearly defined against a light background. The overall style is clean, modern, and corporate." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_yWCxQ0oFTIVcdHLAzK5fDNDYxKhLuN5nNg3JOkqBo9DY4wSG-b2qmuBvZ_SYv1bxYGkwNUOvuJCFCVcFwuc96ASEH3UkyvDdvvfZrKSHzI_jYEk73C-h9bZcoBsFWzTuTvveEdBpgkDf9NtnA3Ts7RTzj43C3SyzZ1OVmZvcqM4bLSR1SkXTcLo4GCrrVSAIPU2H257lGO2WJOUDifJ_KtafV7g8onFKwKRShyuu4BeO61PTc9IhirFiN9TK4Pw2csCfROWy6gI"/>
+</div>
+</div>
+</header>
+<!-- Page Canvas -->
+<div class="p-gutter md:p-margin flex-1 flex flex-col gap-lg">
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md">
+<div>
+<h2 class="font-h1 text-h1 text-on-surface mb-xs">Document Vault</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Secure storage for all your household records.</p>
+</div>
+<button class="flex items-center gap-sm bg-primary text-on-primary px-lg py-sm rounded-full font-label-md text-label-md font-bold shadow-sm hover:shadow-md transition-shadow">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">upload_file</span>
+                    Upload Document
+                </button>
+</div>
+<!-- Mobile Search (Visible only on small screens) -->
+<div class="md:hidden relative w-full mb-sm">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-xl pr-sm py-sm rounded-full bg-surface-container border-none text-body-md focus:ring-2 focus:ring-primary focus:bg-surface-container-lowest transition-colors" placeholder="Search documents..." type="text"/>
+</div>
+<!-- Filters -->
+<div class="flex flex-nowrap overflow-x-auto gap-sm pb-xs no-scrollbar border-b border-outline-variant/30">
+<button class="px-md py-sm border-b-2 border-primary text-primary font-label-md text-label-md font-bold whitespace-nowrap shrink-0">All Documents</button>
+<button class="px-md py-sm border-b-2 border-transparent text-on-surface-variant font-label-md text-label-md hover:text-on-surface hover:border-outline-variant transition-colors whitespace-nowrap shrink-0">Financial</button>
+<button class="px-md py-sm border-b-2 border-transparent text-on-surface-variant font-label-md text-label-md hover:text-on-surface hover:border-outline-variant transition-colors whitespace-nowrap shrink-0">Legal</button>
+<button class="px-md py-sm border-b-2 border-transparent text-on-surface-variant font-label-md text-label-md hover:text-on-surface hover:border-outline-variant transition-colors whitespace-nowrap shrink-0">Manuals &amp; Warranties</button>
+<button class="px-md py-sm border-b-2 border-transparent text-on-surface-variant font-label-md text-label-md hover:text-on-surface hover:border-outline-variant transition-colors whitespace-nowrap shrink-0">Medical</button>
+<button class="px-md py-sm border-b-2 border-transparent text-on-surface-variant font-label-md text-label-md hover:text-on-surface hover:border-outline-variant transition-colors whitespace-nowrap shrink-0">Identification</button>
+</div>
+<!-- Main Content Area - Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-gutter mt-sm">
+<!-- Urgent Alerts Card (Spans 2 columns on larger screens) -->
+<div class="md:col-span-2 lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col justify-between shadow-sm">
+<div>
+<div class="flex items-center gap-sm text-error mb-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">warning</span>
+<span class="font-label-md text-label-md font-bold">Action Required</span>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface mb-xs">Expiring Documents</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-md">2 items require your attention soon.</p>
+</div>
+<div class="space-y-sm">
+<div class="flex justify-between items-center bg-surface-container p-sm rounded-lg border border-outline-variant/30">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded bg-surface-container-high flex items-center justify-center text-on-surface-variant shrink-0">
+<span class="material-symbols-outlined">directions_car</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-bold">Auto Insurance Policy</p>
+<p class="font-label-sm text-label-sm text-error">Expires in 14 days</p>
+</div>
+</div>
+<button class="text-primary font-label-sm text-label-sm font-bold hover:underline px-sm py-xs rounded hover:bg-primary-container/10 transition-colors">Renew</button>
+</div>
+<div class="flex justify-between items-center bg-surface-container p-sm rounded-lg border border-outline-variant/30">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded bg-surface-container-high flex items-center justify-center text-on-surface-variant shrink-0">
+<span class="material-symbols-outlined">home</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-bold">Home Warranty</p>
+<p class="font-label-sm text-label-sm text-error">Expires in 30 days</p>
+</div>
+</div>
+<button class="text-primary font-label-sm text-label-sm font-bold hover:underline px-sm py-xs rounded hover:bg-primary-container/10 transition-colors">Review</button>
+</div>
+</div>
+</div>
+<!-- Quick Access Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
+<div class="flex items-center gap-sm text-on-surface-variant mb-md">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">Starred</span>
+</div>
+<ul class="space-y-md">
+<li class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded bg-primary-container/20 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div class="truncate">
+<p class="font-label-md text-label-md text-on-surface font-bold truncate">Property Deed.pdf</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Added Oct 2023</p>
+</div>
+</li>
+<li class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded bg-secondary-container/50 flex items-center justify-center text-on-secondary-container shrink-0">
+<span class="material-symbols-outlined">picture_as_pdf</span>
+</div>
+<div class="truncate">
+<p class="font-label-md text-label-md text-on-surface font-bold truncate">2023 Tax Return.pdf</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Added Apr 2024</p>
+</div>
+</li>
+</ul>
+</div>
+<!-- Storage Stats Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm flex flex-col justify-between">
+<div class="flex items-center gap-sm text-on-surface-variant mb-md">
+<span class="material-symbols-outlined">cloud</span>
+<span class="font-label-md text-label-md font-bold text-on-surface">Vault Storage</span>
+</div>
+<div class="flex-1 flex flex-col justify-center items-center">
+<div class="relative w-24 h-24 mb-sm">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 100 100">
+<circle class="text-surface-container" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-primary" cx="50" cy="50" fill="transparent" r="40" stroke="currentColor" stroke-dasharray="251.2" stroke-dashoffset="100.48" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center flex-col">
+<span class="font-h3 text-h3 font-bold text-on-surface">60%</span>
+</div>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant text-center">3GB of 5GB used</p>
+</div>
+</div>
+<!-- Document Gallery (Standard Cards) -->
+<div class="md:col-span-3 lg:col-span-4 mt-md">
+<div class="flex justify-between items-center mb-md">
+<h3 class="font-h3 text-h3 text-on-surface">Recent Documents</h3>
+<button class="text-primary font-label-md text-label-md font-bold hover:underline">View All</button>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-md">
+<!-- Doc Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col">
+<div class="h-32 bg-surface-container rounded-lg mb-md flex items-center justify-center text-primary-container relative overflow-hidden">
+<span class="material-symbols-outlined text-4xl text-primary/60">inventory_2</span>
+<div class="absolute top-sm right-sm bg-surface-container-lowest rounded-full p-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 18px;">more_vert</span>
+</div>
+</div>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface font-bold truncate mb-xs">Samsung Fridge Manual.pdf</p>
+<div class="flex items-center gap-xs text-on-surface-variant font-label-sm text-label-sm">
+<span class="px-xs py-[2px] bg-surface-container-high rounded text-xs">Manuals</span>
+<span>•</span>
+<span>2.4 MB</span>
+</div>
+</div>
+</div>
+<!-- Doc Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col">
+<div class="h-32 bg-surface-container rounded-lg mb-md flex items-center justify-center text-secondary relative overflow-hidden">
+<span class="material-symbols-outlined text-4xl text-primary/60">folder</span>
+<div class="absolute top-sm right-sm bg-surface-container-lowest rounded-full p-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 18px;">more_vert</span>
+</div>
+</div>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface font-bold truncate mb-xs">Medical Records 2023</p>
+<div class="flex items-center gap-xs text-on-surface-variant font-label-sm text-label-sm">
+<span class="px-xs py-[2px] bg-surface-container-high rounded text-xs">Folder</span>
+<span>•</span>
+<span>5 items</span>
+</div>
+</div>
+</div>
+<!-- Doc Card 3 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col">
+<div class="h-32 bg-surface-container rounded-lg mb-md flex items-center justify-center text-primary relative overflow-hidden">
+<span class="material-symbols-outlined text-4xl text-primary/60">receipt_long</span>
+<div class="absolute top-sm right-sm bg-surface-container-lowest rounded-full p-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 18px;">more_vert</span>
+</div>
+</div>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface font-bold truncate mb-xs">Plumbing Repair Invoice.jpg</p>
+<div class="flex items-center gap-xs text-on-surface-variant font-label-sm text-label-sm">
+<span class="px-xs py-[2px] bg-surface-container-high rounded text-xs">Financial</span>
+<span>•</span>
+<span>1.1 MB</span>
+</div>
+</div>
+</div>
+<!-- Doc Card 4 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col">
+<div class="h-32 bg-surface-container rounded-lg mb-md flex items-center justify-center text-primary-container relative overflow-hidden">
+<span class="material-symbols-outlined text-4xl text-primary/60">policy</span>
+<div class="absolute top-sm right-sm bg-surface-container-lowest rounded-full p-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 18px;">more_vert</span>
+</div>
+</div>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface font-bold truncate mb-xs">Life Insurance Policy 2024.pdf</p>
+<div class="flex items-center gap-xs text-on-surface-variant font-label-sm text-label-sm">
+<span class="px-xs py-[2px] bg-surface-container-high rounded text-xs">Legal</span>
+<span>•</span>
+<span>4.5 MB</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

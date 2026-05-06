@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HomeOS - Task Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed": "#191c1e",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "on-secondary-container": "#5e6572",
+                        "surface-bright": "#f8f9ff",
+                        "on-tertiary-container": "#cdced0",
+                        "surface-container": "#e6eeff",
+                        "surface-container-highest": "#d9e3f6",
+                        "surface-variant": "#d9e3f6",
+                        "on-secondary-fixed-variant": "#404754",
+                        "on-secondary-fixed": "#151c27",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#41474e",
+                        "on-primary-fixed-variant": "#124a6f",
+                        "surface-dim": "#d0dbed",
+                        "outline": "#72787f",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed": "#e1e2e4",
+                        "secondary-container": "#dce2f3",
+                        "inverse-on-surface": "#eaf1ff",
+                        "outline-variant": "#c1c7cf",
+                        "inverse-primary": "#9ccbf7",
+                        "secondary-fixed-dim": "#c0c7d6",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-high": "#dee9fc",
+                        "on-surface": "#121c2a",
+                        "primary-container": "#2a5c82",
+                        "background": "#f8f9ff",
+                        "on-background": "#121c2a",
+                        "inverse-surface": "#27313f",
+                        "on-primary-container": "#a5d4ff",
+                        "secondary-fixed": "#dce2f3",
+                        "surface-container-low": "#eff4ff",
+                        "tertiary": "#3e4143",
+                        "on-error-container": "#93000a",
+                        "primary": "#074469",
+                        "surface-tint": "#316289",
+                        "error-container": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "primary-fixed": "#cde5ff",
+                        "tertiary-fixed-dim": "#c5c6c8",
+                        "surface": "#f8f9ff",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#001d32",
+                        "tertiary-container": "#56585a",
+                        "primary-fixed-dim": "#9ccbf7",
+                        "secondary": "#585f6c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "xs": "4px",
+                        "md": "16px",
+                        "max_width": "1440px",
+                        "gutter": "20px",
+                        "sm": "8px",
+                        "lg": "24px",
+                        "margin": "32px",
+                        "xl": "48px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "h2": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "h3": ["Inter"],
+                        "h1": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "h2": ["28px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "h3": ["20px", { "lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "600" }],
+                        "h1": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md text-body-md antialiased min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="bg-surface-container-low dark:bg-on-tertiary-fixed h-screen w-64 fixed left-0 top-0 border-r border-outline-variant dark:border-on-tertiary-fixed-variant flex flex-col h-full p-md space-y-sm z-50 hidden md:flex">
+<div class="mb-lg px-sm">
+<h1 class="font-h2 text-h3 text-primary dark:text-primary-fixed mb-xs">HomeOS</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Family Hub</p>
+</div>
+<button class="bg-primary text-on-primary font-label-md text-label-md rounded-lg py-sm px-md flex items-center justify-center gap-sm w-full mb-md hover:bg-surface-tint transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+            New Entry
+        </button>
+<div class="space-y-unit flex-1">
+<a class="text-on-secondary-fixed-variant dark:text-on-tertiary-container hover:bg-surface-container-highest dark:hover:bg-tertiary-container rounded-lg px-md py-sm flex items-center gap-md transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="bg-primary-fixed text-on-primary-fixed font-bold rounded-lg px-md py-sm flex items-center gap-md translate-x-1 duration-200 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="checklist" style="font-variation-settings: 'FILL' 1;">checklist</span>
+                Tasks
+            </a>
+<a class="text-on-secondary-fixed-variant dark:text-on-tertiary-container hover:bg-surface-container-highest dark:hover:bg-tertiary-container rounded-lg px-md py-sm flex items-center gap-md transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="shopping_cart">shopping_cart</span>
+                Shopping
+            </a>
+<a class="text-on-secondary-fixed-variant dark:text-on-tertiary-container hover:bg-surface-container-highest dark:hover:bg-tertiary-container rounded-lg px-md py-sm flex items-center gap-md transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="payments">payments</span>
+                Expenses
+            </a>
+<a class="text-on-secondary-fixed-variant dark:text-on-tertiary-container hover:bg-surface-container-highest dark:hover:bg-tertiary-container rounded-lg px-md py-sm flex items-center gap-md transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="inventory_2">inventory_2</span>
+                Inventory
+            </a>
+<a class="text-on-secondary-fixed-variant dark:text-on-tertiary-container hover:bg-surface-container-highest dark:hover:bg-tertiary-container rounded-lg px-md py-sm flex items-center gap-md transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="build">build</span>
+                Maintenance
+            </a>
+</div>
+<div class="mt-auto pt-md border-t border-outline-variant">
+<div class="flex items-center gap-md px-sm py-sm cursor-pointer hover:bg-surface-container-highest rounded-lg transition-colors">
+<img alt="Household Avatar" class="w-8 h-8 rounded-full object-cover border border-outline-variant" data-alt="A small, circular avatar image showing a smiling family of three posing casually outdoors in bright, soft sunlight. The photo is vibrant and warm, framed tightly around their faces against a blurred green park background, fitting a modern, clean UI aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD26l_5Z8XEiw6FKE0Yhq6TIrGb-QLopTaYHnFSOPFjApTadPTgTW-K5Yb54aQw8GoGE-cSZYIY-37StfjvVyvGrEToIGFA688EI0g7cKdqjgxTU7h1nzyfwTs6zSbIsnb5CM0XrDwyc1mb1YsBbgsZIbYfNI5h-MFENxNSt9faJ5qU0FW8_BLq-RevAKwbL6qXY4OwN5O7X4p7A5SP2HrgzQ62sWoAd1QQyeGuukjFo8_pWXjfZHdAbucywzbeGBwe9EmRmyeAM9s"/>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface">Smith Family</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">4 Members</p>
+</div>
+</div>
+<div class="mt-sm px-sm flex items-center gap-xs text-on-surface-variant font-label-sm text-label-sm opacity-60">
+<span class="material-symbols-outlined text-[14px]">bolt</span> Powered by InsForge
+            </div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 md:ml-64 flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<header class="bg-surface/95 backdrop-blur-sm border-b border-outline-variant dark:border-on-tertiary-fixed-variant flex justify-between items-center px-lg py-sm w-full sticky top-0 z-40">
+<div class="flex items-center gap-md">
+<button class="md:hidden text-on-surface-variant hover:text-primary transition-colors p-sm rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-[24px]">menu</span>
+</button>
+<div class="md:hidden">
+<span class="font-h1 text-h3 text-primary dark:text-primary-fixed tracking-tight">HomeOS</span>
+</div>
+</div>
+<div class="flex-1 max-w-xl mx-lg hidden sm:block">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-full py-2 pl-xl pr-4 font-body-md text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-outline shadow-sm" placeholder="Search tasks, items, or members..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<button class="text-on-surface-variant dark:text-on-tertiary-container hover:text-primary hover:bg-surface-container-low dark:hover:bg-tertiary-container transition-colors p-2 rounded-full relative active:scale-95 duration-150 ease-in-out">
+<span class="material-symbols-outlined text-[24px]" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border border-surface"></span>
+</button>
+<button class="text-on-surface-variant dark:text-on-tertiary-container hover:text-primary hover:bg-surface-container-low dark:hover:bg-tertiary-container transition-colors p-2 rounded-full active:scale-95 duration-150 ease-in-out">
+<span class="material-symbols-outlined text-[24px]" data-icon="settings">settings</span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-outline-variant ml-sm cursor-pointer sm:hidden">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" data-alt="A small, circular avatar portrait of a young woman with a soft smile. She has dark hair and is wearing a light-colored top. The background is a clean, neutral studio backdrop. The lighting is soft and flattering, suitable for a professional yet approachable UI profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB77I6UDmu24Hfpiw21Xoe6ZigEkg-6rb86IqriyAfO7QKyYYFIyRrS_fhC_JYkB46tkSiJHoVLHO9XU5SRHkiAo7D8IA5EkoLoHeFEH72NQUEXxx8ojKZnK5g1tCeT3pk24LCAhL0e9i55drl1KtEO5G1owe8BsL-nojbUY1lwqUtaig5mTocNRZ1huZyFwo8quq4gDcRf7PtMYvwlmRvNCxq1rV0AMaAYaI1jWAIYBg_x10lx3GdgU-jg3HzLqMl92YMe_WnBSCs"/>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<main class="flex-1 p-md md:p-lg lg:p-margin bg-surface-bright">
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between mb-lg gap-md">
+<div>
+<h2 class="font-h1 text-h1 text-on-surface">Task Management</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-unit">Organize, assign, and track household chores.</p>
+</div>
+<button class="bg-primary text-on-primary font-label-md text-label-md rounded-lg py-sm px-lg flex items-center justify-center gap-sm hover:bg-surface-tint transition-colors shadow-sm self-start sm:self-auto">
+<span class="material-symbols-outlined text-[20px]">add_task</span>
+                    New Task
+                </button>
+</div>
+<!-- Controls (Tabs & Filter) -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-lg gap-md bg-surface-container-lowest p-sm rounded-xl border border-outline-variant shadow-sm">
+<div class="flex items-center gap-unit overflow-x-auto w-full md:w-auto pb-2 md:pb-0 hide-scrollbar">
+<button class="bg-primary-container text-on-primary-container font-label-md text-label-md px-md py-2 rounded-lg whitespace-nowrap">Today</button>
+<button class="text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-label-md text-label-md px-md py-2 rounded-lg whitespace-nowrap transition-colors">Upcoming</button>
+<button class="text-on-surface-variant hover:bg-surface-container hover:text-on-surface font-label-md text-label-md px-md py-2 rounded-lg whitespace-nowrap transition-colors">Completed</button>
+</div>
+<div class="flex items-center gap-sm w-full md:w-auto">
+<div class="relative flex-1 md:w-64">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline text-[18px]">filter_list</span>
+<select class="w-full bg-surface border border-outline-variant rounded-lg py-2 pl-xl pr-lg font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none cursor-pointer">
+<option>All Priorities</option>
+<option>Urgent</option>
+<option>High</option>
+<option>Medium</option>
+<option>Low</option>
+</select>
+<span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Tasks List (Bento-style Grid of Cards instead of a plain table) -->
+<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-md">
+<!-- Task Card 1 (Urgent) -->
+<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-[0px_4px_20px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-error"></div>
+<div class="flex justify-between items-start mb-sm pl-sm">
+<div class="flex items-center gap-sm">
+<div class="w-5 h-5 rounded border border-outline flex items-center justify-center cursor-pointer hover:border-primary transition-colors bg-surface"></div>
+<h3 class="font-h3 text-h3 text-on-surface line-clamp-1">Fix Leaking Kitchen Sink</h3>
+</div>
+<span class="bg-error-container text-on-error-container font-label-sm text-label-sm px-2 py-1 rounded-full whitespace-nowrap">Urgent</span>
+</div>
+<div class="pl-xl mb-md">
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2">The trap under the sink is dripping. Need to replace the O-ring or tighten the PVC joint before it damages the cabinet.</p>
+</div>
+<div class="pl-xl flex items-center justify-between border-t border-outline-variant/30 pt-sm mt-auto">
+<div class="flex items-center gap-sm">
+<div class="flex -space-x-2">
+<img alt="Assignee Avatar" class="w-7 h-7 rounded-full border-2 border-surface-container-lowest object-cover" data-alt="A small circular avatar portrait of a young man with short brown hair and glasses, smiling gently. The background is a blurred, light-colored urban setting. The image is bright and clear, fitting a modern app profile picture style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4WA4iagQ8TSn8n4cT0OIkXfWYAFzN0umvpKJBgk_jobiFcqworTS_PKXWNXyDYYIJ9PEhUWzZ84bROMPfaoliKV6OuefL9xcNLJrWv6ucvcL_TdrrTlbCBdPrDKf1kEXl2HllypC8JESnvXzmLfb9hgNDKsJWDzhywfi437_wJbZFx6C6qOLfNCcRvcVGJLGIfw3q_viQbB2neVATNEkTlt2FRqKl5DkiUEnDRMMGFX8hObmSpR0Ptimx0o8kqRdQQeCDk6yj8Qg"/>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Today, 2:00 PM</span>
+</div>
+<button class="text-on-surface-variant hover:text-primary p-1 rounded-full hover:bg-surface-container-low transition-colors opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Task Card 2 (High) -->
+<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-[0px_4px_20px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-surface-tint"></div>
+<div class="flex justify-between items-start mb-sm pl-sm">
+<div class="flex items-center gap-sm">
+<div class="w-5 h-5 rounded border border-outline flex items-center justify-center cursor-pointer hover:border-primary transition-colors bg-surface"></div>
+<h3 class="font-h3 text-h3 text-on-surface line-clamp-1">Pay Utility Bills</h3>
+</div>
+<span class="bg-primary-container/30 text-primary font-label-sm text-label-sm px-2 py-1 rounded-full whitespace-nowrap">High</span>
+</div>
+<div class="pl-xl mb-md">
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2">Electric and water bills are due tomorrow. Log into the portal to complete payment.</p>
+</div>
+<div class="pl-xl flex items-center justify-between border-t border-outline-variant/30 pt-sm mt-auto">
+<div class="flex items-center gap-sm">
+<div class="flex -space-x-2">
+<img alt="Assignee Avatar" class="w-7 h-7 rounded-full border-2 border-surface-container-lowest object-cover" data-alt="A small circular avatar portrait of a young woman with blonde hair, smiling at the camera. The background is a blurred brick wall. The lighting is natural and bright, suitable for a clean UI profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKbuzX3MjUR1VOl1i1PTSo-j0y7CzG6F3fo4nc8rGmoF6vgdTZu6gq3QmkHfdiaY4L75jwpBcQBpTAAJjq53oamkUxxIytEF3lsP4zDIcLLktwlJO-74lZPXanlXEbgRgRLbcKg_PJrbhLouH3LlqNzvXsujwq2akAW4Eh9p-d3HraCTHKj5thXdTx-MZwG-0JQMquGU_t8fzlTC4YwVnmT3B2e6iWVbEQ7DhnUgCyT_JNYwuZKjf4VC_sRiaR501IRY60e40zUdY"/>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-error">Today, 5:00 PM</span>
+</div>
+<button class="text-on-surface-variant hover:text-primary p-1 rounded-full hover:bg-surface-container-low transition-colors opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Task Card 3 (Medium) -->
+<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-[0px_4px_20px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow relative overflow-hidden group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-outline"></div>
+<div class="flex justify-between items-start mb-sm pl-sm">
+<div class="flex items-center gap-sm">
+<div class="w-5 h-5 rounded border border-outline flex items-center justify-center cursor-pointer hover:border-primary transition-colors bg-surface"></div>
+<h3 class="font-h3 text-h3 text-on-surface line-clamp-1">Grocery Run</h3>
+</div>
+<span class="bg-surface-variant text-on-surface-variant font-label-sm text-label-sm px-2 py-1 rounded-full whitespace-nowrap">Medium</span>
+</div>
+<div class="pl-xl mb-md">
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2">Pick up milk, eggs, bread, and vegetables for the week from Trader Joe's.</p>
+</div>
+<div class="pl-xl flex items-center justify-between border-t border-outline-variant/30 pt-sm mt-auto">
+<div class="flex items-center gap-sm">
+<div class="flex -space-x-2">
+<div class="w-7 h-7 rounded-full border-2 border-surface-container-lowest bg-secondary-container flex items-center justify-center text-on-secondary-container font-label-sm text-[10px]">
+                                    Anyone
+                                </div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Tomorrow</span>
+</div>
+<button class="text-on-surface-variant hover:text-primary p-1 rounded-full hover:bg-surface-container-low transition-colors opacity-0 group-hover:opacity-100">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
