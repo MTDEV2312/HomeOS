@@ -122,3 +122,26 @@ export const updateMemberRole = async (householdId: string, userIdToUpdate: stri
 
   if (error) throw error;
 };
+
+export const leaveHousehold = async (householdId: string, userId: string) => {
+  // Verify user is not the owner (owners can't leave, they must transfer or delete)
+  const { data: membership, error: checkError } = await insforge.database
+    .from('household_members')
+    .select('role')
+    .eq('household_id', householdId)
+    .eq('user_id', userId)
+    .single();
+
+  if (checkError) throw checkError;
+  if (membership?.role === 'OWNER') {
+    throw new Error('El propietario no puede abandonar el hogar. Debés transferir la propiedad o eliminar el hogar primero.');
+  }
+
+  const { error } = await insforge.database
+    .from('household_members')
+    .delete()
+    .eq('household_id', householdId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+};
