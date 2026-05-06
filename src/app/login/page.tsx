@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +26,8 @@ export default function LoginPage() {
       setError(signInError.message || 'Credenciales inválidas');
       setLoading(false);
     } else {
-      router.push('/dashboard');
+      const redirectTo = searchParams.get('redirect') || '/dashboard';
+      router.push(redirectTo);
     }
   };
   return (
