@@ -2,15 +2,14 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useHousehold } from '@/lib/household-context';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { activeHousehold } = useHousehold();
 
   const navItems = [
     { name: 'Inicio', path: '/dashboard', icon: 'dashboard' },
-    { name: 'Mi Hogar', path: '/dashboard/household', icon: 'home' },
+    { name: 'Mi Residencia', path: '/dashboard/household', icon: 'home' },
+    { name: 'Miembros', path: '/dashboard/members', icon: 'group' },
     { name: 'Tareas', path: '/dashboard/tasks', icon: 'task_alt' },
     { name: 'Compras', path: '/dashboard/shopping', icon: 'shopping_basket' },
     { name: 'Gastos', path: '/dashboard/expenses', icon: 'payments' },
@@ -19,13 +18,13 @@ export function Sidebar() {
   ];
 
   return (
-    <nav className="flex flex-col h-full py-lg px-md gap-sm bg-surface-container-low border-r border-outline-variant shadow-sm w-64 hidden md:flex shrink-0">
+    <nav className="hidden md:flex flex-col h-full py-lg px-md gap-sm bg-surface-container-low border-r border-outline-variant shadow-sm w-64 shrink-0">
       <div className="flex items-center gap-md px-md mb-lg">
         <div className="w-12 h-12 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container overflow-hidden">
           <span className="material-symbols-outlined">home</span>
         </div>
         <div>
-          <div className="font-h3 text-h3 font-bold text-primary truncate max-w-[160px]">{activeHousehold?.name || 'Mi Hogar'}</div>
+          <div className="font-h3 text-h3 font-bold text-primary">Nuestro Hogar</div>
           <div className="font-label-sm text-label-sm text-on-surface-variant">Panel de Control</div>
         </div>
       </div>
