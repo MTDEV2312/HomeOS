@@ -3,22 +3,26 @@
 import React, { useEffect, useState } from 'react';
 import { useHousehold } from '@/lib/household-context';
 import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
 import {
   getHouseholdMembers,
   removeMember,
   updateMemberRole,
   updateHousehold,
   regenerateInviteCode,
+  leaveHousehold,
   HouseholdMemberDetails,
 } from '@/services/householdService';
 import {
   Copy, Shield, ShieldAlert, Trash2, User, Loader2, Users,
   Pencil, Check, X, RefreshCw, Home, Calendar, KeyRound, Crown,
+  LogOut, Link, Share2,
 } from 'lucide-react';
 
 export default function HouseholdAdminPage() {
   const { activeHousehold, activeRole, refreshHousehold } = useHousehold();
   const { user } = useAuth();
+  const router = useRouter();
 
   const [members, setMembers] = useState<HouseholdMemberDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +37,9 @@ export default function HouseholdAdminPage() {
   const [copied, setCopied] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [localInviteCode, setLocalInviteCode] = useState('');
+
+  const [leaving, setLeaving] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const isOwner = activeRole === 'OWNER';
   const isAdmin = activeRole === 'ADMIN';
@@ -93,6 +100,28 @@ export default function HouseholdAdminPage() {
     navigator.clipboard.writeText(localInviteCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyLink = () => {
+    const link = `${window.location.origin}/invite/${localInviteCode}`;
+    navigator.clipboard.writeText(link);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const handleLeaveHousehold = async () => {
+    if (!user) return;
+    if (!confirm('¿Estás seguro de que querés abandonar este hogar? Perderás acceso a toda su información.')) return;
+    try {
+      setLeaving(true);
+      await leaveHousehold(activeHousehold.id, user.id);
+      await refreshHousehold();
+      router.push('/household-setup');
+    } catch (err: any) {
+      alert(err.message || 'Error al abandonar el hogar.');
+    } finally {
+      setLeaving(false);
+    }
   };
 
   const handleRemoveMember = async (userIdToRemove: string) => {
@@ -268,13 +297,20 @@ export default function HouseholdAdminPage() {
                   {localInviteCode}
                 </span>
               </div>
-              <div className="flex gap-sm">
+              <div className="flex flex-wrap gap-sm">
                 <button
                   onClick={handleCopyCode}
                   className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors font-label-md text-label-md"
                 >
                   <Copy className="w-4 h-4" />
-                  {copied ? '¡Copiado!' : 'Copiar'}
+                  {copied ? '¡Copiado!' : 'Código'}
+                </button>
+                <button
+                  onClick={handleCopyLink}
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-secondary-container text-on-secondary-container hover:bg-secondary-container/80 transition-colors font-label-md text-label-md"
+                >
+                  <Share2 className="w-4 h-4" />
+                  {linkCopied ? '¡Enlace copiado!' : 'Enlace'}
                 </button>
                 {isOwner && (
                   <button
@@ -396,6 +432,31 @@ export default function HouseholdAdminPage() {
           </p>
         </div>
       </div>
+
+      {/* ─── Leave Household (Danger Zone) ─── */}
+      {!isOwner && (
+        <div className="bg-error-container/20 rounded-xl border border-error/30 p-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-md">
+          <div className="flex items-center gap-md">
+            <div className="w-10 h-10 rounded-full bg-error/10 text-error flex items-center justify-center shrink-0">
+              <LogOut className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-label-md text-label-md text-on-surface">Abandonar este hogar</p>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                Perderás acceso a toda la información y actividades de este hogar.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleLeaveHousehold}
+            disabled={leaving}
+            className="px-4 py-2 rounded-lg bg-error text-on-error hover:bg-error/90 transition-colors font-label-md text-label-md disabled:opacity-50 flex items-center gap-2 shrink-0"
+          >
+            {leaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+            Abandonar
+          </button>
+        </div>
+      )}
     </div>
   );
 }
