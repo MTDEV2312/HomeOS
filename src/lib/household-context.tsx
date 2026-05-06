@@ -45,7 +45,7 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
         
         // Check if there's a stored preference
         const storedId = localStorage.getItem('homeos-active-household');
-        let selected = households.find((h: any) => h.households.id === storedId);
+        let selected: any = households.find((h: any) => h.households.id === storedId);
         
         if (!selected) {
           selected = households[0];

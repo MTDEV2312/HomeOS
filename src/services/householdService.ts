@@ -45,28 +45,21 @@ export const createHousehold = async (name: string, userId: string): Promise<Hou
   return household as Household;
 };
 
-export const joinHousehold = async (inviteCode: string, userId: string): Promise<Household> => {
-  const { data: household, error: householdError } = await insforge.database
-    .from('households')
-    .select('*')
-    .eq('invite_code', inviteCode.toUpperCase())
-    .maybeSingle();
+export const joinHousehold = async (inviteCode: string, _userId: string): Promise<Household> => {
+  const { data, error } = await insforge.database
+    .rpc('join_household_by_invite_code', { code: inviteCode.toUpperCase() });
 
-  if (householdError) throw householdError;
-  if (!household) throw new Error('Código de invitación no válido o hogar no encontrado');
-
-  const { error: memberError } = await insforge.database
-    .from('household_members')
-    .insert([{ household_id: household.id, user_id: userId, role: 'MEMBER' }]);
-
-  if (memberError) {
-    if (memberError.message.includes('unique')) {
-        throw new Error('Ya eres miembro de este hogar');
+  if (error) {
+    if (error.message.includes('Ya sos miembro')) {
+      throw new Error('Ya sos miembro de este hogar');
     }
-    throw memberError;
+    if (error.message.includes('no válido')) {
+      throw new Error('Código de invitación no válido o hogar no encontrado');
+    }
+    throw error;
   }
 
-  return household as Household;
+  return data as Household;
 };
 
 export const getHouseholdMembers = async (householdId: string): Promise<HouseholdMemberDetails[]> => {
@@ -87,6 +80,29 @@ export const getUserHouseholds = async (userId: string) => {
   return data;
 };
 
+export const updateHousehold = async (householdId: string, updates: { name?: string }): Promise<Household> => {
+  const { data, error } = await insforge.database
+    .from('households')
+    .update(updates)
+    .eq('id', householdId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Household;
+};
+
+export const regenerateInviteCode = async (householdId: string): Promise<string> => {
+  const newCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+  const { error } = await insforge.database
+    .from('households')
+    .update({ invite_code: newCode })
+    .eq('id', householdId);
+
+  if (error) throw error;
+  return newCode;
+};
+
 export const removeMember = async (householdId: string, userIdToRemove: string) => {
   const { error } = await insforge.database
     .from('household_members')
@@ -103,41 +119,6 @@ export const updateMemberRole = async (householdId: string, userIdToUpdate: stri
     .update({ role: newRole })
     .eq('household_id', householdId)
     .eq('user_id', userIdToUpdate);
-
-  if (error) throw error;
-};
-
-export const updateHousehold = async (householdId: string, updates: { name?: string }) => {
-  const { data, error } = await insforge.database
-    .from('households')
-    .update(updates)
-    .eq('id', householdId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as Household;
-};
-
-export const regenerateInviteCode = async (householdId: string) => {
-  const newCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-  const { data, error } = await insforge.database
-    .from('households')
-    .update({ invite_code: newCode })
-    .eq('id', householdId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data as Household;
-};
-
-export const leaveHousehold = async (householdId: string, userId: string) => {
-  const { error } = await insforge.database
-    .from('household_members')
-    .delete()
-    .eq('household_id', householdId)
-    .eq('user_id', userId);
 
   if (error) throw error;
 };
