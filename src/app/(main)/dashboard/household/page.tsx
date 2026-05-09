@@ -13,10 +13,11 @@ import {
   leaveHousehold,
   HouseholdMemberDetails,
 } from '@/services/householdService';
+import { QRCode } from '@/components/QRCode';
 import {
   Copy, Shield, ShieldAlert, Trash2, User, Loader2, Users,
   Pencil, Check, X, RefreshCw, Home, Calendar, KeyRound, Crown,
-  LogOut, Link, Share2,
+  LogOut, Link, Share2, QrCode,
 } from 'lucide-react';
 
 export default function HouseholdAdminPage() {
@@ -40,6 +41,7 @@ export default function HouseholdAdminPage() {
 
   const [leaving, setLeaving] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   const isOwner = activeRole === 'OWNER';
   const isAdmin = activeRole === 'ADMIN';
@@ -299,6 +301,13 @@ export default function HouseholdAdminPage() {
               </div>
               <div className="flex flex-wrap gap-sm">
                 <button
+                  onClick={() => setShowQR(true)}
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-tertiary text-on-tertiary hover:bg-tertiary-container transition-colors font-label-md text-label-md"
+                >
+                  <QrCode className="w-4 h-4" />
+                  QR
+                </button>
+                <button
                   onClick={handleCopyCode}
                   className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors font-label-md text-label-md"
                 >
@@ -324,6 +333,40 @@ export default function HouseholdAdminPage() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Modal */}
+      {showQR && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-md" onClick={() => setShowQR(false)}>
+          <div className="bg-surface-container rounded-xl p-lg shadow-2xl border border-outline-variant max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-md">
+              <h3 className="font-h3 text-h3 text-on-surface">Invitar al Hogar</h3>
+              <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">
+                Escaneá el código para unirte a {activeHousehold.name}
+              </p>
+            </div>
+            <div className="flex justify-center p-md bg-white rounded-lg">
+              <QRCode 
+                value={`${window.location.origin}/invite/${localInviteCode}`} 
+                size={200}
+              />
+            </div>
+            <div className="mt-md text-center">
+              <p className="font-mono text-lg font-bold tracking-wider text-primary mb-sm">
+                {localInviteCode}
+              </p>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                O compartí el código manualmente
+              </p>
+            </div>
+            <button 
+              onClick={() => setShowQR(false)}
+              className="mt-md w-full bg-primary text-on-primary font-label-md py-sm rounded-lg hover:bg-primary-container transition-colors"
+            >
+              Cerrar
+            </button>
           </div>
         </div>
       )}

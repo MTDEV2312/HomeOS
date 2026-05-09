@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useHousehold } from '@/lib/household-context';
 import { useAuth } from '@/lib/auth-context';
 import { getHouseholdMembers, removeMember, updateMemberRole, HouseholdMemberDetails } from '@/services/householdService';
-import { Copy, Shield, ShieldAlert, Trash2, User, Loader2, Users } from 'lucide-react';
+import { Copy, Shield, ShieldAlert, Trash2, User, Loader2, Users, QrCode } from 'lucide-react';
+import { QRCode } from '@/components/QRCode';
 
 export default function MembersPage() {
   const { activeHousehold, activeRole } = useHousehold();
@@ -14,6 +15,7 @@ export default function MembersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
     if (activeHousehold) {
@@ -36,7 +38,7 @@ export default function MembersPage() {
 
   const handleCopyCode = () => {
     if (activeHousehold?.invite_code) {
-      navigator.clipboard.writeText(activeHousehold.invite_code);
+      navigator.clipboard.writeText(window.location.origin + '/invite/' + activeHousehold.invite_code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -95,13 +97,55 @@ export default function MembersPage() {
               </p>
             </div>
             <button 
+              onClick={() => setShowQR(true)}
+              className="p-sm rounded bg-surface border border-outline hover:border-primary hover:text-primary transition-colors text-on-surface-variant flex flex-col items-center"
+              title="Ver Código QR"
+            >
+              <QrCode className="w-5 h-5" />
+              <span className="text-[10px] mt-1 font-medium">QR</span>
+            </button>
+            <button 
               onClick={handleCopyCode}
               className="p-sm rounded bg-surface border border-outline hover:border-primary hover:text-primary transition-colors text-on-surface-variant flex flex-col items-center"
-              title="Copiar Código"
+              title="Copiar Enlace"
             >
               <Copy className="w-5 h-5" />
               <span className="text-[10px] mt-1 font-medium">{copied ? '¡Copiado!' : 'Copiar'}</span>
             </button>
+          </div>
+        )}
+
+        {/* QR Modal */}
+        {showQR && activeHousehold && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-md" onClick={() => setShowQR(false)}>
+            <div className="bg-surface-container rounded-xl p-lg shadow-2xl border border-outline-variant max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+              <div className="text-center mb-md">
+                <h3 className="font-h3 text-h3 text-on-surface">Invitar al Hogar</h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs">
+                  Escaneá el código para unirte a {activeHousehold.name}
+                </p>
+              </div>
+              <div className="flex justify-center p-md bg-white rounded-lg">
+                <QRCode 
+                  value={`${window.location.origin}/invite/${activeHousehold.invite_code}`} 
+                  size={200}
+                />
+              </div>
+              <div className="mt-md text-center">
+                <p className="font-mono text-lg font-bold tracking-wider text-primary mb-sm">
+                  {activeHousehold.invite_code}
+                </p>
+                <p className="font-body-sm text-body-sm text-on-surface-variant">
+                  O compartí el código manualmente
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowQR(false)}
+                className="mt-md w-full bg-primary text-on-primary font-label-md py-sm rounded-lg hover:bg-primary-container transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         )}
       </div>
