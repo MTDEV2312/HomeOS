@@ -47,19 +47,21 @@ src/
     cd Erp_Personal
     ```
 
-2.  **Instalar dependencias**:
+2.  **Usar Node 24.15.0** (ver `.nvmrc`).
+
+3.  **Instalar dependencias**:
     ```bash
     npm install
     ```
 
-3.  **Configurar variables de entorno**:
+4.  **Configurar variables de entorno**:
     Crea un archivo `.env` en la raíz con tus credenciales de InsForge:
     ```env
     NEXT_PUBLIC_INSFORGE_URL=URL_DE_INSFORGE
     NEXT_PUBLIC_INSFORGE_ANON_KEY=TU_ANON_KEY
     ```
 
-4.  **Correr en desarrollo**:
+5.  **Correr en desarrollo**:
     ```bash
     npm run dev
     ```
@@ -76,4 +78,3 @@ Este proyecto se desarrolla bajo una metodología de **entrega por fases**, gara
 - [ ] **Fase 4**: Listas de Compras Colaborativas.
 - [ ] **Fase 5**: Gastos, Presupuestos y Analíticas.
 - [ ] ... *Ver `plan.md` para el detalle completo.*
-
