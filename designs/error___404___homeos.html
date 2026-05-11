@@ -1,0 +1,425 @@
+---
+name: 404_error_page
+description: Premium 404 error page for HomeOS
+colors:
+  light:
+    background: '#f8f9ff'
+    surface: '#ffffff'
+    primary: '#074469'
+    primary-light: '#2a5c82'
+    on-primary: '#ffffff'
+    on-surface: '#121c2a'
+    on-surface-variant: '#41474e'
+    outline: '#72787f'
+  dark:
+    background: '#051424'
+    surface: '#0d1c2d'
+    primary: '#8fcdff'
+    primary-light: '#5197ca'
+    on-primary: '#003450'
+    on-surface: '#d4e4fa'
+    on-surface-variant: '#c0c7d0'
+    outline: '#8a919a'
+typography:
+  '404': 180px, 700, -0.04em
+  headline: 32px, 600, -0.01em
+  body: 18px, 400, 0
+components:
+  - oversized 404 typography (centerpiece)
+  - geometric floating shapes
+  - subtle gradient orbs
+  - CTA button
+  - animated elements
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 - Página no encontrada | HomeOS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --background: #f8f9ff;
+      --surface: #ffffff;
+      --primary: #074469;
+      --primary-light: #2a5c82;
+      --on-primary: #ffffff;
+      --on-surface: #121c2a;
+      --on-surface-variant: #41474e;
+      --outline: #72787f;
+      --outline-variant: #c1c7cf;
+    }
+
+    .dark {
+      --background: #051424;
+      --surface: #0d1c2d;
+      --primary: #8fcdff;
+      --primary-light: #5197ca;
+      --on-primary: #003450;
+      --on-surface: #d4e4fa;
+      --on-surface-variant: #c0c7d0;
+      --outline: #8a919a;
+      --outline-variant: #40484f;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--background);
+      color: var(--on-surface);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ═══ Background Geometry ═══ */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image: 
+        linear-gradient(var(--outline-variant) 1px, transparent 1px),
+        linear-gradient(90deg, var(--outline-variant) 1px, transparent 1px);
+      background-size: 80px 80px;
+      opacity: 0.3;
+      mask-image: radial-gradient(ellipse 80% 50% at 50% 50%, black 40%, transparent 100%);
+      pointer-events: none;
+    }
+
+    .floating-shape {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(80px);
+    }
+
+    .shape-1 {
+      width: 600px;
+      height: 600px;
+      background: var(--primary);
+      opacity: 0.08;
+      top: -200px;
+      right: -150px;
+      animation: float-slow 20s ease-in-out infinite;
+    }
+
+    .shape-2 {
+      width: 400px;
+      height: 400px;
+      background: var(--primary-light);
+      opacity: 0.1;
+      bottom: -100px;
+      left: -100px;
+      animation: float-slow 25s ease-in-out infinite reverse;
+    }
+
+    .shape-3 {
+      width: 300px;
+      height: 300px;
+      background: var(--outline);
+      opacity: 0.05;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: pulse-soft 8s ease-in-out infinite;
+    }
+
+    @keyframes float-slow {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(30px, -30px) scale(1.05); }
+    }
+
+    @keyframes pulse-soft {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.05; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.08; }
+    }
+
+    /* ═══ Geometric Accents ═══ */
+    .geo-accent {
+      position: fixed;
+      pointer-events: none;
+    }
+
+    .geo-ring {
+      width: 120px;
+      height: 120px;
+      border: 1px solid var(--outline-variant);
+      border-radius: 50%;
+      top: 15%;
+      right: 10%;
+      animation: rotate-slow 30s linear infinite;
+    }
+
+    .geo-ring::before {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .geo-dots {
+      width: 80px;
+      height: 80px;
+      bottom: 20%;
+      left: 8%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .geo-dots span {
+      width: 6px;
+      height: 6px;
+      background: var(--outline);
+      border-radius: 50%;
+      opacity: 0.6;
+    }
+
+    .geo-line {
+      width: 1px;
+      height: 150px;
+      background: linear-gradient(to bottom, transparent, var(--outline-variant), transparent);
+      top: 10%;
+      left: 15%;
+    }
+
+    .geo-line-h {
+      height: 1px;
+      width: 120px;
+      background: linear-gradient(to right, transparent, var(--outline-variant), transparent);
+      bottom: 30%;
+      right: 15%;
+    }
+
+    @keyframes rotate-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* ═══ Main Content ═══ */
+    .content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 24px;
+      max-width: 700px;
+    }
+
+    /* ═══ 404 Typography ═══ */
+    .error-code {
+      font-size: clamp(100px, 20vw, 180px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 0.9;
+      color: var(--primary);
+      position: relative;
+      display: inline-block;
+      opacity: 0.15;
+      user-select: none;
+    }
+
+    .error-code::after {
+      content: '404';
+      position: absolute;
+      inset: 0;
+      color: var(--primary);
+      opacity: 1;
+      background: linear-gradient(180deg, var(--primary) 0%, transparent 60%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+
+    /* ═══ Headline ═══ */
+    .headline {
+      font-size: clamp(24px, 5vw, 32px);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--on-surface);
+      margin-top: 32px;
+      margin-bottom: 12px;
+    }
+
+    .subtext {
+      font-size: clamp(14px, 2.5vw, 18px);
+      font-weight: 400;
+      color: var(--on-surface-variant);
+      line-height: 1.6;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    /* ═══ CTA Button ═══ */
+    .cta-wrapper {
+      margin-top: 48px;
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      background: var(--primary);
+      color: var(--on-primary);
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      box-shadow: 0 4px 20px rgba(7, 68, 105, 0.2);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(7, 68, 105, 0.3);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      background: transparent;
+      color: var(--on-surface);
+      border: 1px solid var(--outline);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface);
+      border-color: var(--on-surface);
+    }
+
+    /* ═══ Icon in button ═══ */
+    .btn-icon {
+      font-size: 18px;
+      font-weight: 400;
+    }
+
+    /* ═══ Theme Toggle (for demo) ═══ */
+    .theme-toggle {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 100;
+      padding: 10px 16px;
+      background: var(--surface);
+      border: 1px solid var(--outline-variant);
+      border-radius: 8px;
+      color: var(--on-surface);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--primary);
+    }
+
+    /* ═══ Responsive ═══ */
+    @media (max-width: 640px) {
+      .geo-ring { display: none; }
+      .geo-line { display: none; }
+      .geo-dots { width: 60px; height: 60px; gap: 8px; }
+      .cta-wrapper { flex-direction: column; align-items: center; }
+      .btn-primary, .btn-secondary { width: 100%; justify-content: center; max-width: 280px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Grid -->
+  <div class="bg-grid"></div>
+
+  <!-- Floating Gradient Orbs -->
+  <div class="floating-shape shape-1"></div>
+  <div class="floating-shape shape-2"></div>
+  <div class="floating-shape shape-3"></div>
+
+  <!-- Geometric Accents -->
+  <div class="geo-accent geo-ring"></div>
+  <div class="geo-accent geo-dots">
+    <span></span><span></span><span></span>
+    <span></span><span></span><span></span>
+    <span></span><span></span><span></span>
+  </div>
+  <div class="geo-accent geo-line"></div>
+  <div class="geo-accent geo-line-h"></div>
+
+  <!-- Main Content -->
+  <main class="content">
+    <div class="error-code" aria-hidden="true">404</div>
+    <h1 class="headline">Esta página se perdió en el camino</h1>
+    <p class="subtext">
+      Lo sentimos, la página que buscas no existe o fue movida. 
+      Volvamos a la seguridad de tu hogar.
+    </p>
+    <div class="cta-wrapper">
+      <a href="/" class="btn-primary">
+        <span class="btn-icon">⌂</span>
+        Volver al inicio
+      </a>
+      <a href="/dashboard" class="btn-secondary">
+        <span class="btn-icon">→</span>
+        Ir al dashboard
+      </a>
+    </div>
+  </main>
+
+  <!-- Theme Toggle -->
+  <button class="theme-toggle" onclick="document.body.classList.toggle('dark')">
+    <span>◐</span>
+    <span id="theme-label">Cambiar tema</span>
+  </button>
+
+  <script>
+    // Smooth theme transition
+    document.documentElement.style.transition = 'background-color 0.3s ease, color 0.3s ease';
+  </script>
+</body>
+</html>
