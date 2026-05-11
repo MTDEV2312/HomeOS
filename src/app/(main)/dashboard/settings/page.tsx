@@ -4,11 +4,21 @@ import React, { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { Loader2 } from 'lucide-react';
 
+type ChangePasswordStep = 'start' | 'verify-code' | 'new-password';
+
 export default function SettingsPage() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, sendResetPasswordEmail, exchangeResetPasswordToken, resetPassword } = useAuth();
   const [name, setName] = useState((user?.profile?.name as string) || '');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+
+  const [passwordStep, setPasswordStep] = useState<ChangePasswordStep>('start');
+  const [code, setCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +32,62 @@ export default function SettingsPage() {
       setMessage('Error al actualizar el perfil.');
     } else {
       setMessage('Perfil actualizado con éxito.');
+    }
+  };
+
+  const handleSendCode = async () => {
+    if (!user?.email) return;
+    setPasswordLoading(true);
+    setPasswordError('');
+    
+    const { error } = await sendResetPasswordEmail(user.email);
+    
+    setPasswordLoading(false);
+    if (error) {
+      setPasswordError(error.message || 'Error al enviar el código');
+    } else {
+      setPasswordStep('verify-code');
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!user?.email || code.length !== 6) return;
+    setPasswordLoading(true);
+    setPasswordError('');
+    
+    const { error, token } = await exchangeResetPasswordToken(user.email, code);
+    
+    setPasswordLoading(false);
+    if (error) {
+      setPasswordError(error.message || 'Código inválido o expirado');
+    } else if (token) {
+      setPasswordStep('new-password');
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!user?.email || !code) return;
+    
+    if (newPassword.length < 6) {
+      setPasswordError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Las contraseñas no coinciden');
+      return;
+    }
+
+    setPasswordLoading(true);
+    setPasswordError('');
+
+    const { error } = await resetPassword(newPassword, code);
+
+    setPasswordLoading(false);
+    if (error) {
+      setPasswordError(error.message || 'Error al cambiar la contraseña');
+    } else {
+      setPasswordSuccess(true);
+      setPasswordStep('start');
     }
   };
 
@@ -74,6 +140,110 @@ export default function SettingsPage() {
             </button>
           </div>
         </form>
+      </div>
+
+      <div className="bg-surface-container-low rounded-xl border border-outline-variant p-lg max-w-2xl">
+        <div className="flex items-center gap-sm mb-md">
+          <span className="material-symbols-outlined text-[24px] text-primary">lock</span>
+          <h2 className="font-h3 text-h3 text-on-surface">Seguridad</h2>
+        </div>
+
+        {passwordSuccess && (
+          <div className="p-3 rounded-lg mb-4 text-sm bg-green-100/10 text-green-400 border border-green-500/50">
+            Contraseña cambiada exitosamente.
+          </div>
+        )}
+
+        {passwordError && (
+          <div className="p-3 rounded-lg mb-4 text-sm bg-red-100/10 text-red-400 border border-red-500/50">
+            {passwordError}
+          </div>
+        )}
+
+        {passwordStep === 'start' && (
+          <div className="flex flex-col gap-md">
+            <p className="text-on-surface-variant text-sm">
+              ¿Deseas cambiar tu contraseña? Te enviaremos un código de verificación a tu correo.
+            </p>
+            <button 
+              onClick={handleSendCode}
+              disabled={passwordLoading}
+              className="w-fit bg-secondary text-on-secondary font-label-sm text-label-sm py-sm px-lg rounded-lg hover:bg-secondary-container hover:text-on-secondary-container transition-colors shadow-sm flex items-center justify-center gap-sm disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {passwordLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Cambiar Contraseña'}
+              {!passwordLoading && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
+            </button>
+          </div>
+        )}
+
+        {passwordStep === 'verify-code' && (
+          <div className="flex flex-col gap-md">
+            <p className="text-on-surface-variant text-sm">
+              Ingresa el código de 6 dígitos que enviamos a <span className="text-primary font-medium">{user?.email}</span>
+            </p>
+            <div className="flex flex-col gap-sm">
+              <input 
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="000000"
+                className="w-full max-w-[200px] pl-md pr-md py-sm rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors font-body-md text-body-md text-center tracking-[0.5em] font-mono"
+              />
+              <button 
+                onClick={handleVerifyCode}
+                disabled={passwordLoading || code.length !== 6}
+                className="w-fit bg-primary text-on-primary font-label-sm text-label-sm py-sm px-lg rounded-lg hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm flex items-center justify-center gap-sm disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {passwordLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verificar Código'}
+              </button>
+            </div>
+            <button 
+              onClick={() => setPasswordStep('start')}
+              className="text-on-surface-variant text-sm hover:text-primary transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+
+        {passwordStep === 'new-password' && (
+          <div className="flex flex-col gap-md">
+            <p className="text-on-surface-variant text-sm">
+              Ingresa tu nueva contraseña
+            </p>
+            <div className="flex flex-col gap-sm">
+              <input 
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Nueva contraseña"
+                className="w-full pl-md pr-md py-sm rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors font-body-md text-body-md"
+              />
+              <input 
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirmar contraseña"
+                className="w-full pl-md pr-md py-sm rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors font-body-md text-body-md"
+              />
+              <button 
+                onClick={handleChangePassword}
+                disabled={passwordLoading || newPassword.length < 6 || !confirmPassword}
+                className="w-fit bg-primary text-on-primary font-label-sm text-label-sm py-sm px-lg rounded-lg hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm flex items-center justify-center gap-sm disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {passwordLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar Nueva Contraseña'}
+              </button>
+            </div>
+            <button 
+              onClick={() => { setPasswordStep('start'); setCode(''); setNewPassword(''); setConfirmPassword(''); setPasswordSuccess(false); }}
+              className="text-on-surface-variant text-sm hover:text-primary transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
