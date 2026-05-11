@@ -144,6 +144,205 @@
 /* ═══ Focus visible ═══ */
 
 *:focus-visible {
-  outline: 2px solid #074469; /* primary */
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+/* ═══ 404 Error Page ═══ */
+
+.error-grid-bg {
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(var(--outline-variant) 1px, transparent 1px),
+    linear-gradient(90deg, var(--outline-variant) 1px, transparent 1px);
+  background-size: 80px 80px;
+  opacity: 0.25;
+  mask-image: radial-gradient(ellipse 80% 50% at 50% 50%, black 40%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.error-shape {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(80px);
+  z-index: 0;
+}
+
+.error-shape-primary {
+  width: min(500px, 60vw);
+  height: min(500px, 60vw);
+  background: var(--primary);
+  opacity: 0.1;
+  top: -15%;
+  right: -10%;
+  animation: float-slow 20s ease-in-out infinite;
+}
+
+.error-shape-secondary {
+  width: min(400px, 50vw);
+  height: min(400px, 50vw);
+  background: var(--tertiary);
+  opacity: 0.08;
+  bottom: -10%;
+  left: -10%;
+  animation: float-slow 25s ease-in-out infinite reverse;
+}
+
+.error-shape-accent {
+  width: min(300px, 40vw);
+  height: min(300px, 40vw);
+  background: var(--outline);
+  opacity: 0.05;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulse-soft 8s ease-in-out infinite;
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -30px) scale(1.05); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.05; }
+  50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.08; }
+}
+
+.error-geo-ring {
+  width: 100px;
+  height: 100px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 50%;
+  top: 18%;
+  right: 12%;
+  animation: rotate-slow 35s linear infinite;
+  position: fixed;
+  pointer-events: none;
+}
+
+.error-geo-ring::before {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 50%;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 0 12px var(--primary);
+}
+
+.error-geo-ring-inner {
+  width: 60px;
+  height: 60px;
+  border: 1px solid var(--outline);
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.4;
+}
+
+.error-geo-dots {
+  width: 70px;
+  height: 70px;
+  bottom: 22%;
+  left: 10%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  align-content: center;
+  justify-items: center;
+  position: fixed;
+  pointer-events: none;
+}
+
+.error-geo-dots span {
+  width: 6px;
+  height: 6px;
+  background: var(--outline);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.error-geo-dots span:nth-child(5) {
+  background: var(--primary);
+  opacity: 0.7;
+  width: 8px;
+  height: 8px;
+}
+
+.error-geo-line-v {
+  width: 1px;
+  height: 120px;
+  background: linear-gradient(to bottom, transparent, var(--outline-variant), transparent);
+  top: 12%;
+  left: 18%;
+  position: fixed;
+  pointer-events: none;
+}
+
+.error-geo-line-h {
+  height: 1px;
+  width: 100px;
+  background: linear-gradient(to right, transparent, var(--outline-variant), transparent);
+  bottom: 35%;
+  right: 18%;
+  position: fixed;
+  pointer-events: none;
+}
+
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.error-code-text {
+  font-size: clamp(120px, 22vw, 200px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.85;
+  color: var(--primary);
+  position: relative;
+  display: inline-block;
+  user-select: none;
+  opacity: 0.12;
+}
+
+.error-code-fill {
+  position: absolute;
+  inset: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  background: linear-gradient(180deg, var(--primary) 0%, transparent 70%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 640px) {
+  .error-geo-ring,
+  .error-geo-line-v,
+  .error-geo-line-h {
+    display: none;
+  }
+  .error-geo-dots {
+    width: 50px;
+    height: 50px;
+    gap: 10px;
+  }
 }
