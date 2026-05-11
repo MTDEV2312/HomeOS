@@ -16,6 +16,26 @@
       "sourceType": "autoskills-registry",
       "computedHash": "82fb11a63fb1e35ee2469516ed02d54695f783115b1540c0e783197af4240a3a"
     },
+    "insforge": {
+      "source": "insforge/agent-skills",
+      "sourceType": "github",
+      "computedHash": "c81f435411774b94738ce6eb3560197a5fdb2541d938320e7c7161a4c0367bac"
+    },
+    "insforge-cli": {
+      "source": "insforge/agent-skills",
+      "sourceType": "github",
+      "computedHash": "57fa61bfcbdcb5bd22c90aa1c79f2ad8ecc049cac3d51e0530f30cebd842a0fc"
+    },
+    "insforge-debug": {
+      "source": "insforge/agent-skills",
+      "sourceType": "github",
+      "computedHash": "8aaa79152aa155f56d52b9ab82fe4f061a9bd6eb9833e272d89959c8e878cb4f"
+    },
+    "insforge-integrations": {
+      "source": "insforge/agent-skills",
+      "sourceType": "github",
+      "computedHash": "49625a58863f2c7330875524bffc2e7a90c2d872f7ec926a12660d0dd20302f9"
+    },
     "next-best-practices": {
       "source": "vercel-labs/next-skills",
       "sourceType": "autoskills-registry",
