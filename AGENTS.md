@@ -192,8 +192,3 @@ Dark mode via `class` strategy:
 - Toggle in `ThemeToggle.tsx`
 - CSS variables defined in `src/app/globals.css`
 
-## InsForge Integration
-
-- Client: `@/lib/insforge` — exports InsForge client instance
-- Env vars: `NEXT_PUBLIC_INSFORGE_URL`, `NEXT_PUBLIC_INSFORGE_ANON_KEY`
-- Project config: `.insforge/project.json`
