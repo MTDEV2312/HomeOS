@@ -5,6 +5,7 @@ import { useHousehold } from '@/lib/household-context';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Home, PlusCircle } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 
 export function Topbar() {
   const { user, signOut } = useAuth();
@@ -21,6 +22,9 @@ export function Topbar() {
   return (
     <header className="flex justify-between items-center h-16 px-md w-full bg-surface-container-lowest border-b border-outline-variant shadow-sm z-40 shrink-0 relative">
       <div className="flex items-center gap-md">
+        <div className="w-8 h-8 hidden md:block relative text-primary">
+          <Logo size={32} />
+        </div>
         <span className="font-h3 text-h3 font-bold text-primary hidden md:block mr-2">HomeOS</span>
         
         {/* Household Switcher */}

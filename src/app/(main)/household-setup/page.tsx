@@ -7,6 +7,7 @@ import { useHousehold } from '@/lib/household-context';
 import { createHousehold, joinHousehold } from '@/services/householdService';
 import { householdSchema, inviteCodeSchema, getFieldErrors } from '@/lib/validations';
 import { Home, UserPlus, ShieldCheck, PlusCircle, LogIn, Loader2 } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 
 export default function HouseholdSetupPage() {
   const router = useRouter();
@@ -90,6 +91,9 @@ export default function HouseholdSetupPage() {
         
         <div className="flex-1 p-xl flex flex-col justify-center bg-surface-container-low border-b md:border-b-0 md:border-r border-outline-variant relative">
           <div className="mb-xl">
+            <div className="w-20 h-20 relative mb-md">
+              <Logo size={80} />
+            </div>
             <h1 className="font-h1 text-h1 text-primary mb-sm">HomeOS</h1>
             <p className="font-body-lg text-body-lg text-on-surface-variant">Tu santuario digital te espera.</p>
           </div>

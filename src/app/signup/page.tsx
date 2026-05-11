@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { signupSchema, getFieldErrors } from '@/lib/validations';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { Logo } from '@/components/Logo';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -51,7 +52,9 @@ export default function SignupPage() {
     <div className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
       <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg">
         <div className="text-center flex flex-col items-center gap-sm">
-          <span className="material-symbols-outlined text-[48px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>home</span>
+          <div className="w-16 h-16 relative">
+            <Logo size={64} />
+          </div>
           <h1 className="font-h1 text-h1 text-primary">HomeOS</h1>
           <p className="font-body-md text-body-md text-on-surface-variant">Comienza tu refugio digital</p>
         </div>

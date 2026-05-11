@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { loginSchema, getFieldErrors } from '@/lib/validations';
 import { Loader2 } from 'lucide-react';
+import { Logo } from '@/components/Logo';
 
 export default function LoginClient() {
   const router = useRouter();
@@ -51,7 +52,9 @@ export default function LoginClient() {
     <div className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
       <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg">
         <div className="text-center flex flex-col items-center gap-sm">
-          <span className="material-symbols-outlined text-[48px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>home</span>
+          <div className="w-16 h-16 relative">
+            <Logo size={64} />
+          </div>
           <h1 className="font-h1 text-h1 text-primary">HomeOS</h1>
           <p className="font-body-md text-body-md text-on-surface-variant">Inicia sesión en tu refugio</p>
         </div>
@@ -85,7 +88,7 @@ export default function LoginClient() {
           <div className="flex flex-col gap-xs">
             <div className="flex justify-between items-center">
               <label className="font-label-sm text-label-sm text-on-surface" htmlFor="password">Contraseña</label>
-              <a className="font-label-sm text-label-sm text-primary hover:text-primary-fixed-dim transition-colors" href="#">¿Olvidaste tu contraseña?</a>
+              <Link href="/forgot-password" className="font-label-sm text-label-sm text-primary hover:text-primary-fixed-dim transition-colors">¿Olvidaste tu contraseña?</Link>
             </div>
             <div className="relative">
               <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline">lock</span>

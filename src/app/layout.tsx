@@ -13,7 +13,8 @@ export default function RootLayout({
         <title>HomeOS - Gestión familiar integrada</title>
         <meta name="description" content="HomeOS - Tu mini ERP familiar para gestión del hogar" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/images/logo.ico" type="image/x-icon" />
+        <link rel="apple-touch-icon" href="/images/logo.png" />
       </head>
       <body className="bg-background text-on-background font-body-md text-body-md antialiased overflow-hidden flex flex-col h-screen transition-colors duration-200">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>

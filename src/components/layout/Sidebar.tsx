@@ -2,6 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Logo } from '@/components/Logo';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -20,11 +21,11 @@ export function Sidebar() {
   return (
     <nav className="hidden md:flex flex-col h-full py-lg px-md gap-sm bg-surface-container-low border-r border-outline-variant shadow-sm w-64 shrink-0">
       <div className="flex items-center gap-md px-md mb-lg">
-        <div className="w-12 h-12 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container overflow-hidden">
-          <span className="material-symbols-outlined">home</span>
+        <div className="w-12 h-12 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container overflow-hidden p-1">
+          <Logo size={40} />
         </div>
         <div>
-          <div className="font-h3 text-h3 font-bold text-primary">Nuestro Hogar</div>
+          <div className="font-h3 text-h3 font-bold text-primary">HomeOS</div>
           <div className="font-label-sm text-label-sm text-on-surface-variant">Panel de Control</div>
         </div>
       </div>
