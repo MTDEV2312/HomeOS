@@ -52,16 +52,6 @@ export default function NotFound() {
             </span>
             Volver al inicio
           </Link>
-
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-surface border border-outline text-on-surface rounded-lg font-label-md text-label-md transition-all duration-200 hover:bg-surface-container-high hover:border-on-surface active:translate-y-0"
-          >
-            <span className="material-symbols-outlined text-xl">
-              dashboard
-            </span>
-            Ir al dashboard
-          </Link>
         </div>
       </main>
     </div>
