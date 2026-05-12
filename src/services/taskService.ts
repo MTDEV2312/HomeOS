@@ -24,10 +24,7 @@ export interface Task {
 export const getTasks = async (householdId: string): Promise<Task[]> => {
   const { data, error } = await insforge.database
     .from('tasks')
-    .select(`
-      *,
-      assigned_to:users(name, email)
-    `)
+    .select('*')
     .eq('household_id', householdId)
     .order('due_date', { ascending: true });
 

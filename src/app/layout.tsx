@@ -16,7 +16,7 @@ export default function RootLayout({
         <link rel="icon" href="/images/logo.ico" type="image/x-icon" />
         <link rel="apple-touch-icon" href="/images/logo.png" />
       </head>
-      <body className="bg-background text-on-background font-body-md text-body-md antialiased overflow-hidden flex flex-col h-screen transition-colors duration-200">
+      <body suppressHydrationWarning className="bg-background text-on-background font-body-md text-body-md antialiased overflow-hidden flex flex-col h-screen transition-colors duration-200">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
             {children}
