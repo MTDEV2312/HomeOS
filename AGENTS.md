@@ -33,7 +33,7 @@ Use the `download-template` MCP tool to create a new project with your backend U
 ### Step 2: Install SDK
 
 ```bash
-npm install @insforge/sdk@latest
+pnpm add @insforge/sdk@latest
 ```
 
 ### Step 3: Create SDK Client
