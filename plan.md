@@ -40,7 +40,7 @@ Crear una plataforma práctica de gestión del hogar para uso diario, optimizada
    * Barra superior del dashboard.
 5. Implementar página de perfil/configuración de usuario.
 
-## FASE 2: SISTEMA DE HOGARES
+## FASE 2: SISTEMA DE HOGARES (Completada)
 1. Crear esquema:
    * `users`
    * `households`
@@ -55,7 +55,7 @@ Crear una plataforma práctica de gestión del hogar para uso diario, optimizada
    * Miembro (Member).
 4. Agregar verificaciones de permisos (RLS y políticas).
 
-## FASE 3: GESTIÓN DE TAREAS
+## FASE 3: GESTIÓN DE TAREAS (En Proceso)
 1. Esquema de tareas:
    * `title`, `description`, `due_date`, `priority`, `assigned_member`, `status`, `recurrence`.
 2. Construir vistas de tareas:
