@@ -162,14 +162,14 @@ export default function InventoryDashboard() {
     try {
       const payload: Partial<InventoryItem> = {
         household_id: activeHousehold.id,
-        category_id: categoryId || null,
+        category_id: categoryId || undefined,
         name,
         brand,
         current_quantity: parseFloat(quantity),
         unit,
         minimum_threshold: parseFloat(minThreshold),
         location,
-        expiration_date: expirationDate || null,
+        expiration_date: expirationDate || undefined,
         last_restocked_at: new Date().toISOString()
       };
       

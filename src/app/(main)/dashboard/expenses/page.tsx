@@ -200,7 +200,7 @@ export default function ExpensesDashboard() {
 
   const openEditModal = (expense: Expense) => {
     const currentMember = members?.find(m => m.user_id === user?.id);
-    const canEdit = expense.payer_id === user?.id || currentMember?.role === 'owner' || currentMember?.role === 'admin';
+    const canEdit = expense.payer_id === user?.id || currentMember?.role === 'OWNER' || currentMember?.role === 'ADMIN';
     if (!canEdit) return;
 
     setEditingExpense(expense);
