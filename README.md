@@ -51,7 +51,7 @@ src/
 
 3.  **Instalar dependencias**:
     ```bash
-    npm install
+    pnpm install
     ```
 
 4.  **Configurar variables de entorno**:
@@ -63,7 +63,7 @@ src/
 
 5.  **Correr en desarrollo**:
     ```bash
-    npm run dev
+    pnpm dev
     ```
 
 ---
