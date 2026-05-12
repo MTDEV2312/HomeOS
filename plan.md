@@ -55,7 +55,7 @@ Crear una plataforma práctica de gestión del hogar para uso diario, optimizada
    * Miembro (Member).
 4. Agregar verificaciones de permisos (RLS y políticas).
 
-## FASE 3: GESTIÓN DE TAREAS (En Proceso)
+## FASE 3: GESTIÓN DE TAREAS (Completada)
 1. Esquema de tareas:
    * `title`, `description`, `due_date`, `priority`, `assigned_member`, `status`, `recurrence`.
 2. Construir vistas de tareas:
@@ -65,7 +65,7 @@ Crear una plataforma práctica de gestión del hogar para uso diario, optimizada
 3. Sincronización en tiempo real.
 4. Automatizar tareas recurrentes.
 
-## FASE 4: LISTAS DE COMPRAS
+## FASE 4: LISTAS DE COMPRAS (Completada)
 1. Crear esquema para listas de compras.
 2. Funcionalidades:
    * Múltiples listas.
@@ -75,7 +75,7 @@ Crear una plataforma práctica de gestión del hogar para uso diario, optimizada
 3. Colaboración en tiempo real.
 4. Optimizar experiencia de usuario (UX) en móviles.
 
-## FASE 5: GASTOS Y PRESUPUESTOS
+## FASE 5: GASTOS Y PRESUPUESTOS (Completada)
 1. Esquema:
    * `expenses`
    * `budgets`
@@ -87,7 +87,7 @@ Crear una plataforma práctica de gestión del hogar para uso diario, optimizada
    * Presupuestos mensuales.
    * Analíticas de gastos.
 
-## FASE 6: INVENTARIO
+## FASE 6: INVENTARIO (Completada)
 1. Esquema de inventario:
    * `item_name`, `quantity`, `unit`, `expiration_date`, `location`, `min_threshold`.
 2. Alertas de bajo stock.
