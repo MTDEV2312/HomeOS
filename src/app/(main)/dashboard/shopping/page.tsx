@@ -11,7 +11,9 @@ import {
   createShoppingList,
   addShoppingListItem,
   updateShoppingListItem,
-  deleteShoppingList
+  updateShoppingList,
+  deleteShoppingList,
+  deleteShoppingListItem
 } from '@/services/shoppingService';
 import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService';
 import { formatDistanceToNow, parseISO } from 'date-fns';
@@ -35,6 +37,17 @@ export default function ShoppingDashboard() {
   const [newItemQuantity, setNewItemQuantity] = useState('');
   const [newItemCategory, setNewItemCategory] = useState('');
   const [newItemAssignedTo, setNewItemAssignedTo] = useState('unassigned');
+
+  // Edit states
+  const [isEditingListName, setIsEditingListName] = useState(false);
+  const [editedListName, setEditedListName] = useState('');
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editItemForm, setEditItemForm] = useState({
+    item_name: '',
+    quantity: '',
+    category: '',
+    assigned_to: 'unassigned'
+  });
 
   useEffect(() => {
     if (!activeHousehold) return;
@@ -159,11 +172,68 @@ export default function ShoppingDashboard() {
       const updated = await updateShoppingListItem(item.id, { 
         is_purchased: !item.is_purchased,
         purchased_at: !item.is_purchased ? new Date().toISOString() : null,
-        // purchased_by could be set here
       });
       setItems(items.map(i => i.id === item.id ? updated : i));
     } catch (err: any) {
       showError('Error actualizando item', err.message || 'Error desconocido');
+    }
+  };
+
+  // Edit list name
+  const startEditListName = () => {
+    if (activeList) {
+      setEditedListName(activeList.name);
+      setIsEditingListName(true);
+    }
+  };
+
+  const handleSaveListName = async () => {
+    if (!activeListId || !editedListName.trim()) return;
+    try {
+      const updated = await updateShoppingList(activeListId, { name: editedListName });
+      setLists(lists.map(l => l.id === activeListId ? updated : l));
+      setIsEditingListName(false);
+    } catch (err: any) {
+      showError('Error actualizando lista', err.message || 'Error desconocido');
+    }
+  };
+
+  // Start editing item
+  const startEditItem = (item: ShoppingListItem) => {
+    setEditingItemId(item.id);
+    setEditItemForm({
+      item_name: item.item_name,
+      quantity: item.quantity || '',
+      category: item.category || '',
+      assigned_to: item.assigned_to || 'unassigned'
+    });
+  };
+
+  // Save item edit
+  const handleSaveItem = async () => {
+    if (!editingItemId) return;
+    try {
+      const updated = await updateShoppingListItem(editingItemId, {
+        item_name: editItemForm.item_name,
+        quantity: editItemForm.quantity || undefined,
+        category: editItemForm.category || undefined,
+        assigned_to: editItemForm.assigned_to === 'unassigned' ? undefined : editItemForm.assigned_to
+      });
+      setItems(items.map(i => i.id === editingItemId ? updated : i));
+      setEditingItemId(null);
+    } catch (err: any) {
+      showError('Error actualizando item', err.message || 'Error desconocido');
+    }
+  };
+
+  // Delete item
+  const handleDeleteItem = async (itemId: string) => {
+    if (!window.confirm('¿Eliminar este item?')) return;
+    try {
+      await deleteShoppingListItem(itemId);
+      setItems(items.filter(i => i.id !== itemId));
+    } catch (err: any) {
+      showError('Error eliminando item', err.message || 'Error desconocido');
     }
   };
 
@@ -315,66 +385,175 @@ export default function ShoppingDashboard() {
       {activeListId && activeList && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
           <div className="bg-surface-container-lowest rounded-xl max-w-2xl w-full p-3 sm:p-lg shadow-xl flex flex-col max-h-[85vh]">
+            {/* Header with editable list name */}
             <div className="flex justify-between items-center border-b border-outline-variant/30 pb-md mb-md shrink-0">
-              <h2 className="font-h2 text-h2 flex items-center gap-sm text-primary">
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>local_mall</span>
-                {activeList.name}
-              </h2>
-              <button onClick={() => setActiveListId(null)} className="text-on-surface-variant hover:text-on-surface rounded-full p-1 hover:bg-surface-container-high">
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            {/* List Items */}
-            <div className="overflow-y-auto flex-1 mb-md pr-2">
-              <ul className="flex flex-col gap-2">
-                {activeListItems.map(item => (
-                  <li key={item.id} className="flex items-center gap-sm p-3 rounded-lg border border-outline-variant/30 hover:bg-surface-container-low transition-colors">
+              <div className="flex items-center gap-sm flex-1">
+                <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>local_mall</span>
+                {isEditingListName ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <input
+                      type="text"
+                      value={editedListName}
+                      onChange={(e) => setEditedListName(e.target.value)}
+                      className="flex-1 bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-1.5 text-on-surface font-h3 text-h3 focus:border-primary outline-none"
+                      autoFocus
+                    />
                     <button 
-                      onClick={() => handleToggleItem(item)}
-                      className={`material-symbols-outlined text-[24px] ${item.is_purchased ? 'text-primary' : 'text-outline-variant hover:text-primary'}`}
+                      onClick={handleSaveListName}
+                      className="p-1.5 rounded-lg bg-primary text-on-primary hover:bg-primary/90"
                     >
-                      {item.is_purchased ? 'check_circle' : 'radio_button_unchecked'}
+                      <span className="material-symbols-outlined text-[20px]">check</span>
                     </button>
-                    <div className="flex-1 flex justify-between items-center flex-wrap gap-2">
-                      <div className="flex flex-col">
-                        <span className={`font-body-md text-body-md ${item.is_purchased ? 'text-on-surface-variant line-through' : 'text-on-surface font-medium'}`}>
-                          {item.item_name}
-                        </span>
-                        {(item.category || item.assigned_to) && (
-                          <div className="flex gap-2 mt-1">
-                            {item.category && <span className="text-[10px] bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded-full">{item.category}</span>}
-                            {item.assigned_to && <span className="text-[10px] bg-primary-container text-on-primary-container px-2 py-0.5 rounded-full">{members.find(m => m.user_id === item.assigned_to)?.name || 'Asignado'}</span>}
-                          </div>
-                        )}
-                      </div>
-                      {item.quantity && (
-                        <span className="font-label-sm text-on-surface-variant bg-surface-container px-2 py-1 rounded whitespace-nowrap">
-                          {item.quantity}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                ))}
-                {activeListItems.length === 0 && (
-                  <div className="text-center p-8 text-on-surface-variant">
-                    <span className="material-symbols-outlined text-[48px] opacity-50 mb-2">production_quantity_limits</span>
-                    <p>No hay items en esta lista aún.</p>
+                    <button 
+                      onClick={() => setIsEditingListName(false)}
+                      className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">close</span>
+                    </button>
                   </div>
+                ) : (
+                  <h2 className="font-h2 text-h2 text-on-surface flex-1">{activeList.name}</h2>
                 )}
-              </ul>
+              </div>
+              <div className="flex items-center gap-1">
+                {!isEditingListName && (
+                  <button 
+                    onClick={startEditListName}
+                    className="text-on-surface-variant hover:text-primary p-1.5 rounded-lg hover:bg-surface-container transition-colors"
+                    title="Editar nombre"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">edit</span>
+                  </button>
+                )}
+                <button onClick={() => { setActiveListId(null); setIsEditingListName(false); }} className="text-on-surface-variant hover:text-on-surface rounded-full p-1 hover:bg-surface-container-high">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
             </div>
 
-            {/* Add Item Form */}
-            <form onSubmit={handleAddItem} className="mt-auto shrink-0 bg-surface-container-low p-3 sm:p-md rounded-lg border border-outline-variant/30">
-              <div className="flex flex-col gap-2">
+            {/* Section: Items List */}
+            <div className="flex-1 overflow-hidden flex flex-col mb-md">
+              <div className="flex items-center justify-between mb-sm px-1">
+                <h3 className="font-label-lg text-label-lg text-on-surface-variant">Items de la lista</h3>
+                <span className="font-label-sm text-label-sm text-on-surface-variant">{activeListItems.length} items</span>
+              </div>
+              
+              <div className="overflow-y-auto flex-1 pr-2 border border-outline-variant/30 rounded-lg bg-surface-container-low">
+                <ul className="flex flex-col gap-1 p-2">
+                  {activeListItems.map(item => (
+                    <li key={item.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-surface-container-lowest transition-colors group">
+                      <button 
+                        onClick={() => handleToggleItem(item)}
+                        className={`material-symbols-outlined text-[22px] shrink-0 ${item.is_purchased ? 'text-primary' : 'text-outline-variant hover:text-primary'}`}
+                      >
+                        {item.is_purchased ? 'check_circle' : 'radio_button_unchecked'}
+                      </button>
+                      
+                      {editingItemId === item.id ? (
+                        // Editing mode
+                        <div className="flex-1 flex flex-wrap gap-2 items-center bg-surface-container-lowest p-2 rounded border border-primary">
+                          <input
+                            type="text"
+                            value={editItemForm.item_name}
+                            onChange={(e) => setEditItemForm({...editItemForm, item_name: e.target.value})}
+                            className="flex-1 min-w-[120px] bg-surface border border-outline-variant rounded px-2 py-1 text-on-surface text-sm"
+                            placeholder="Nombre"
+                          />
+                          <input
+                            type="text"
+                            value={editItemForm.quantity}
+                            onChange={(e) => setEditItemForm({...editItemForm, quantity: e.target.value})}
+                            className="w-20 bg-surface border border-outline-variant rounded px-2 py-1 text-on-surface text-sm"
+                            placeholder="Cant."
+                          />
+                          <select
+                            value={editItemForm.category}
+                            onChange={(e) => setEditItemForm({...editItemForm, category: e.target.value})}
+                            className="bg-surface border border-outline-variant rounded px-2 py-1 text-on-surface text-sm"
+                          >
+                            <option value="">Sin cat.</option>
+                            <option value="Supermercado">Supermercado</option>
+                            <option value="Verdulería">Verdulería</option>
+                            <option value="Carnicería">Carnicería</option>
+                            <option value="Limpieza">Limpieza</option>
+                            <option value="Farmacia">Farmacia</option>
+                          </select>
+                          <button 
+                            onClick={handleSaveItem}
+                            className="p-1 rounded bg-primary text-on-primary"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">check</span>
+                          </button>
+                          <button 
+                            onClick={() => setEditingItemId(null)}
+                            className="p-1 rounded text-on-surface-variant hover:bg-surface"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">close</span>
+                          </button>
+                        </div>
+                      ) : (
+                        // Normal display
+                        <div className="flex-1 flex justify-between items-center flex-wrap gap-1 min-w-0">
+                          <div className="flex flex-col min-w-0">
+                            <span className={`font-body-md text-body-md truncate ${item.is_purchased ? 'text-on-surface-variant line-through' : 'text-on-surface'}`}>
+                              {item.item_name}
+                            </span>
+                            {(item.category || item.assigned_to) && (
+                              <div className="flex gap-1.5 mt-0.5">
+                                {item.category && <span className="text-[10px] bg-secondary-container text-on-secondary-container px-1.5 py-0.5 rounded-full">{item.category}</span>}
+                                {item.assigned_to && <span className="text-[10px] bg-primary-container text-on-primary-container px-1.5 py-0.5 rounded-full">{members.find(m => m.user_id === item.assigned_to)?.name || 'Asignado'}</span>}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {item.quantity && (
+                              <span className="font-label-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded whitespace-nowrap">
+                                {item.quantity}
+                              </span>
+                            )}
+                            <button 
+                              onClick={() => startEditItem(item)}
+                              className="p-1 rounded text-on-surface-variant hover:text-primary hover:bg-surface-container opacity-0 group-hover:opacity-100 transition-all"
+                              title="Editar"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteItem(item.id)}
+                              className="p-1 rounded text-on-surface-variant hover:text-error hover:bg-error-container opacity-0 group-hover:opacity-100 transition-all"
+                              title="Eliminar"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                  {activeListItems.length === 0 && (
+                    <div className="text-center py-8 text-on-surface-variant">
+                      <span className="material-symbols-outlined text-[40px] opacity-50 mb-2 block">shopping_cart</span>
+                      <p className="font-body-md">No hay items en esta lista.</p>
+                    </div>
+                  )}
+                </ul>
+              </div>
+            </div>
+
+            {/* Section: Add Item Form - Separated visually */}
+            <div className="shrink-0 bg-surface-container-low p-md rounded-xl border border-outline-variant/50">
+              <div className="flex items-center gap-sm mb-sm">
+                <span className="material-symbols-outlined text-primary text-[18px]">add_circle</span>
+                <h3 className="font-label-lg text-label-lg text-on-surface">Agregar nuevo item</h3>
+              </div>
+              <form onSubmit={handleAddItem} className="flex flex-col gap-2">
                 <div className="flex flex-col sm:flex-row gap-2">
                   <input 
                     type="text" 
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
                     className="flex-1 bg-surface-container-lowest rounded-lg border border-outline-variant px-3 py-2.5 text-on-surface focus:border-primary outline-none text-sm"
-                    placeholder="Nuevo item..."
+                    placeholder="Nombre del item..."
                     required
                   />
                   <input 
@@ -385,11 +564,11 @@ export default function ShoppingDashboard() {
                     placeholder="Cant."
                   />
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <select
                     value={newItemCategory}
                     onChange={(e) => setNewItemCategory(e.target.value)}
-                    className="bg-surface-container-lowest rounded-lg border border-outline-variant px-2 py-2.5 text-on-surface focus:border-primary outline-none text-sm"
+                    className="col-span-2 sm:col-span-1 bg-surface-container-lowest rounded-lg border border-outline-variant px-2 py-2.5 text-on-surface focus:border-primary outline-none text-sm"
                   >
                     <option value="">Sin categoría</option>
                     <option value="Supermercado">Supermercado</option>
@@ -404,7 +583,7 @@ export default function ShoppingDashboard() {
                   <select
                     value={newItemAssignedTo}
                     onChange={(e) => setNewItemAssignedTo(e.target.value)}
-                    className="bg-surface-container-lowest rounded-lg border border-outline-variant px-2 py-2.5 text-on-surface focus:border-primary outline-none text-sm"
+                    className="col-span-2 sm:col-span-1 bg-surface-container-lowest rounded-lg border border-outline-variant px-2 py-2.5 text-on-surface focus:border-primary outline-none text-sm"
                   >
                     <option value="unassigned">Cualquiera</option>
                     {members.map(m => (
@@ -414,14 +593,14 @@ export default function ShoppingDashboard() {
                   
                   <button 
                     type="submit"
-                    className="col-span-2 sm:col-span-1 px-4 py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary/90 flex items-center justify-center transition-colors shadow-sm font-label-md text-sm"
+                    className="col-span-2 sm:col-span-2 px-4 py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary/90 flex items-center justify-center gap-2 transition-colors shadow-sm font-label-md text-sm"
                   >
-                    <span className="material-symbols-outlined text-[18px] mr-1">add</span>
+                    <span className="material-symbols-outlined text-[18px]">add</span>
                     Agregar
                   </button>
                 </div>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}
