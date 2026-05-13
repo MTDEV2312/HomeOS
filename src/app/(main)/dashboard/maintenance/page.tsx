@@ -18,7 +18,9 @@ import {
   addMaintenanceSchedule,
   updateMaintenanceSchedule,
   deleteMaintenanceSchedule,
-  addMaintenanceLog
+  addMaintenanceLog,
+  updateMaintenanceLog,
+  deleteMaintenanceLog
 } from '@/services/maintenanceService';
 import { useToast } from '@/lib/toast-context';
 
@@ -43,7 +45,7 @@ const CATEGORY_LABELS: Record<AssetCategory, string> = {
 };
 
 export default function MaintenanceDashboard() {
-  const { activeHousehold } = useHousehold();
+  const { activeHousehold, activeRole } = useHousehold();
   const { user } = useAuth();
 
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -77,6 +79,14 @@ export default function MaintenanceDashboard() {
   const [isLogsViewModalOpen, setIsLogsViewModalOpen] = useState(false);
   const [logsViewAsset, setLogsViewAsset] = useState<Asset | null>(null);
   const [assetLogs, setAssetLogs] = useState<MaintenanceLog[]>([]);
+  const [editingLog, setEditingLog] = useState<MaintenanceLog | null>(null);
+  
+  // Edit Log Form State
+  const [editLogTaskName, setEditLogTaskName] = useState('');
+  const [editLogPerformedBy, setEditLogPerformedBy] = useState('');
+  const [editLogCost, setEditLogCost] = useState('');
+  const [editLogDate, setEditLogDate] = useState('');
+  const [editLogNotes, setEditLogNotes] = useState('');
 
   // Schedule Modal State
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -84,9 +94,16 @@ export default function MaintenanceDashboard() {
   const [scheduleTaskDesc, setScheduleTaskDesc] = useState('');
   const [scheduleFreq, setScheduleFreq] = useState('6');
   const [scheduleNextDue, setScheduleNextDue] = useState('');
+  const [editingSchedule, setEditingSchedule] = useState<MaintenanceSchedule | null>(null);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'ASSETS' | 'UPCOMING'>('ASSETS');
+
+  // Permission check: creator OR ADMIN/OWNER
+  const canEditOrDelete = (createdBy: string) => {
+    if (!user || !activeRole) return false;
+    return createdBy === user.id || activeRole === 'OWNER' || activeRole === 'ADMIN';
+  };
 
   useEffect(() => {
     if (!activeHousehold) return;
@@ -257,18 +274,116 @@ export default function MaintenanceDashboard() {
     e.preventDefault();
     if (!scheduleAsset || !user) return;
     try {
-      await addMaintenanceSchedule({
-        asset_id: scheduleAsset.id,
-        task_description: scheduleTaskDesc,
-        frequency_months: parseInt(scheduleFreq, 10),
-        next_due: scheduleNextDue || null,
-        created_by: user.id
-      });
+      if (editingSchedule) {
+        // Update existing schedule
+        await updateMaintenanceSchedule(editingSchedule.id, {
+          task_description: scheduleTaskDesc,
+          frequency_months: parseInt(scheduleFreq, 10),
+          next_due: scheduleNextDue || null
+        });
+        success('Mantenimiento actualizado', 'El mantenimiento se ha actualizado correctamente.');
+      } else {
+        // Create new schedule
+        await addMaintenanceSchedule({
+          asset_id: scheduleAsset.id,
+          task_description: scheduleTaskDesc,
+          frequency_months: parseInt(scheduleFreq, 10),
+          next_due: scheduleNextDue || null,
+          created_by: user.id
+        });
+        success('Mantenimiento programado', 'El mantenimiento se ha programado correctamente.');
+      }
       setIsScheduleModalOpen(false);
-      success('Mantenimiento programado', 'El mantenimiento se ha programado correctamente.');
+      setEditingSchedule(null);
     } catch (err: any) {
       console.error('Error scheduling maintenance:', err);
       showError('Error al programar el mantenimiento', err.message || 'Error desconocido');
+    }
+  };
+
+  // Open edit schedule modal
+  const openScheduleEditModal = (schedule: MaintenanceSchedule & { asset: Asset }) => {
+    setEditingSchedule(schedule);
+    setScheduleAsset(schedule.asset);
+    setScheduleTaskDesc(schedule.task_description);
+    setScheduleFreq(schedule.frequency_months.toString());
+    setScheduleNextDue(schedule.next_due ? schedule.next_due.split('T')[0] : '');
+    setIsScheduleModalOpen(true);
+  };
+
+  // Delete schedule
+  const handleDeleteSchedule = async (scheduleId: string) => {
+    if (!window.confirm('¿Eliminar esta programación de mantenimiento?')) return;
+    try {
+      await deleteMaintenanceSchedule(scheduleId);
+      setSchedules(schedules.filter(s => s.id !== scheduleId));
+      success('Programación eliminada', 'La programación de mantenimiento se ha eliminado.');
+    } catch (err: any) {
+      console.error('Error deleting schedule:', err);
+      showError('Error al eliminar', err.message || 'Error desconocido');
+    }
+  };
+
+  // Open edit log modal
+  const openEditLogModal = (log: MaintenanceLog) => {
+    // Need to set a temporary asset for the modal to show
+    // We'll use logsViewAsset which is the asset whose logs we're viewing
+    setEditingLog(log);
+    setEditLogTaskName(log.task_name);
+    setEditLogPerformedBy(log.performed_by || '');
+    setEditLogCost(log.cost?.toString() || '');
+    setEditLogDate(log.service_date ? log.service_date.split('T')[0] : '');
+    setEditLogNotes(log.notes || '');
+    setIsLogsViewModalOpen(false);
+    
+    // Set the asset from the logs view so modal can display
+    if (logsViewAsset) {
+      setSelectedAssetForLog(logsViewAsset);
+    }
+    setIsLogModalOpen(true);
+  };
+
+  // Save edited log
+  const handleSaveEditedLog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLog) return;
+    try {
+      await updateMaintenanceLog(editingLog.id, {
+        task_name: editLogTaskName,
+        performed_by: editLogPerformedBy || null,
+        cost: editLogCost ? parseFloat(editLogCost) : null,
+        service_date: editLogDate || null,
+        notes: editLogNotes || null
+      });
+      
+      // Refresh logs if viewing same asset
+      if (logsViewAsset) {
+        const logs = await getMaintenanceLogs(logsViewAsset.id);
+        setAssetLogs(logs);
+      }
+      // If we set a temp asset, clear it
+      if (editingLog) {
+        setSelectedAssetForLog(null);
+      }
+      setIsLogModalOpen(false);
+      setEditingLog(null);
+      success('Registro actualizado', 'El mantenimiento se ha actualizado correctamente.');
+    } catch (err: any) {
+      console.error('Error updating log:', err);
+      showError('Error al actualizar', err.message || 'Error desconocido');
+    }
+  };
+
+  // Delete log
+  const handleDeleteLog = async (logId: string) => {
+    if (!window.confirm('¿Eliminar este registro de mantenimiento?')) return;
+    try {
+      await deleteMaintenanceLog(logId);
+      setAssetLogs(assetLogs.filter(l => l.id !== logId));
+      success('Registro eliminado', 'El mantenimiento se ha eliminado.');
+    } catch (err: any) {
+      console.error('Error deleting log:', err);
+      showError('Error al eliminar', err.message || 'Error desconocido');
     }
   };
 
@@ -366,12 +481,16 @@ export default function MaintenanceDashboard() {
                     </div>
                   </div>
                   <div className="flex">
-                    <button onClick={() => openAssetModal(asset)} className="text-on-surface-variant hover:text-primary transition-colors p-1" title="Editar Activo">
-                      <span className="material-symbols-outlined text-[20px]">edit</span>
-                    </button>
-                    <button onClick={() => handleDeleteAsset(asset.id)} className="text-on-surface-variant hover:text-error transition-colors p-1" title="Eliminar Activo">
-                      <span className="material-symbols-outlined text-[20px]">delete</span>
-                    </button>
+                    {canEditOrDelete(asset.created_by) && (
+                      <>
+                        <button onClick={() => openAssetModal(asset)} className="text-on-surface-variant hover:text-primary transition-colors p-1" title="Editar Activo">
+                          <span className="material-symbols-outlined text-[20px]">edit</span>
+                        </button>
+                        <button onClick={() => handleDeleteAsset(asset.id)} className="text-on-surface-variant hover:text-error transition-colors p-1" title="Eliminar Activo">
+                          <span className="material-symbols-outlined text-[20px]">delete</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
                 
@@ -474,15 +593,35 @@ export default function MaintenanceDashboard() {
                         </span>
                       </td>
                       <td className="p-md text-right">
-                        <button 
-                          onClick={() => {
-                            setLogTaskName(schedule.task_description);
-                            openLogModal(schedule.asset);
-                          }} 
-                          className="px-3 py-1 bg-primary text-on-primary rounded-md font-label-sm text-label-sm hover:bg-primary-container hover:text-on-primary-container transition-colors"
-                        >
-                          Completar
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          {canEditOrDelete(schedule.created_by) && (
+                            <>
+                              <button 
+                                onClick={() => openScheduleEditModal(schedule)}
+                                className="text-on-surface-variant hover:text-primary p-1 rounded hover:bg-surface-container transition-colors"
+                                title="Editar programación"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteSchedule(schedule.id)}
+                                className="text-on-surface-variant hover:text-error p-1 rounded hover:bg-error-container transition-colors"
+                                title="Eliminar programación"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                              </button>
+                            </>
+                          )}
+                          <button 
+                            onClick={() => {
+                              setLogTaskName(schedule.task_description);
+                              openLogModal(schedule.asset);
+                            }} 
+                            className="px-3 py-1 bg-primary text-on-primary rounded-md font-label-sm text-label-sm hover:bg-primary-container hover:text-on-primary-container transition-colors"
+                          >
+                            Completar
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -618,11 +757,11 @@ export default function MaintenanceDashboard() {
           <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]">
             <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low shrink-0">
               <h2 className="font-h3 text-h3 text-on-surface font-semibold flex items-center gap-sm">
-                <span className="material-symbols-outlined text-primary">build</span>
-                Registrar Mantenimiento
+                <span className="material-symbols-outlined text-primary">{editingLog ? 'edit' : 'build'}</span>
+                {editingLog ? 'Editar Mantenimiento' : 'Registrar Mantenimiento'}
               </h2>
               <button 
-                onClick={() => setIsLogModalOpen(false)}
+                onClick={() => { setIsLogModalOpen(false); setEditingLog(null); }}
                 className="text-on-surface-variant hover:text-error transition-colors p-1 rounded-full hover:bg-error-container"
               >
                 <span className="material-symbols-outlined">close</span>
@@ -630,7 +769,7 @@ export default function MaintenanceDashboard() {
             </div>
             
             <div className="overflow-y-auto">
-              <form id="logForm" onSubmit={handleSaveLog} className="p-lg flex flex-col gap-md">
+              <form id="logForm" onSubmit={editingLog ? handleSaveEditedLog : handleSaveLog} className="p-lg flex flex-col gap-md">
                 <div className="bg-surface-container-low p-sm rounded-lg flex items-center gap-3">
                   <span className="material-symbols-outlined text-on-surface-variant">{CATEGORY_ICONS[selectedAssetForLog.category]}</span>
                   <div className="font-medium text-on-surface">{selectedAssetForLog.name}</div>
@@ -641,8 +780,8 @@ export default function MaintenanceDashboard() {
                   <input
                     type="text"
                     required
-                    value={logTaskName}
-                    onChange={(e) => setLogTaskName(e.target.value)}
+                    value={editingLog ? editLogTaskName : logTaskName}
+                    onChange={(e) => editingLog ? setEditLogTaskName(e.target.value) : setLogTaskName(e.target.value)}
                     className="w-full bg-surface rounded-lg border border-outline-variant px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                     placeholder="Ej. Cambio de filtros, Revisión general"
                   />
@@ -653,8 +792,8 @@ export default function MaintenanceDashboard() {
                     <label className="font-label-md text-on-surface font-medium">Realizado Por</label>
                     <input
                       type="text"
-                      value={logPerformedBy}
-                      onChange={(e) => setLogPerformedBy(e.target.value)}
+                      value={editingLog ? editLogPerformedBy : logPerformedBy}
+                      onChange={(e) => editingLog ? setEditLogPerformedBy(e.target.value) : setLogPerformedBy(e.target.value)}
                       className="w-full bg-surface rounded-lg border border-outline-variant px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                       placeholder="Ej. Juan Pérez (Técnico)"
                     />
@@ -667,8 +806,8 @@ export default function MaintenanceDashboard() {
                         type="number"
                         step="0.01"
                         min="0"
-                        value={logCost}
-                        onChange={(e) => setLogCost(e.target.value)}
+                        value={editingLog ? editLogCost : logCost}
+                        onChange={(e) => editingLog ? setEditLogCost(e.target.value) : setLogCost(e.target.value)}
                         className="w-full bg-surface rounded-lg border border-outline-variant pl-7 pr-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                         placeholder="0.00"
                       />
@@ -681,8 +820,8 @@ export default function MaintenanceDashboard() {
                   <input
                     type="date"
                     required
-                    value={logDate}
-                    onChange={(e) => setLogDate(e.target.value)}
+                    value={editingLog ? editLogDate : logDate}
+                    onChange={(e) => editingLog ? setEditLogDate(e.target.value) : setLogDate(e.target.value)}
                     className="w-full bg-surface rounded-lg border border-outline-variant px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                   />
                 </div>
@@ -691,8 +830,8 @@ export default function MaintenanceDashboard() {
                   <label className="font-label-md text-on-surface font-medium">Notas Adicionales</label>
                   <textarea
                     rows={3}
-                    value={logNotes}
-                    onChange={(e) => setLogNotes(e.target.value)}
+                    value={editingLog ? editLogNotes : logNotes}
+                    onChange={(e) => editingLog ? setEditLogNotes(e.target.value) : setLogNotes(e.target.value)}
                     className="w-full bg-surface rounded-lg border border-outline-variant px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
                     placeholder="Detalles sobre el mantenimiento, repuestos usados..."
                   />
@@ -703,7 +842,13 @@ export default function MaintenanceDashboard() {
             <div className="p-lg border-t border-outline-variant flex justify-end gap-md shrink-0 bg-surface-container-lowest">
               <button 
                 type="button" 
-                onClick={() => setIsLogModalOpen(false)}
+                onClick={() => { 
+                  setIsLogModalOpen(false); 
+                  setEditingLog(null);
+                  if (editingLog) {
+                    setSelectedAssetForLog(null);
+                  }
+                }}
                 className="px-lg py-sm rounded-lg font-label-md text-label-md text-primary hover:bg-primary-container transition-colors"
               >
                 Cancelar
@@ -713,7 +858,7 @@ export default function MaintenanceDashboard() {
                 form="logForm"
                 className="px-lg py-sm rounded-lg font-label-md text-label-md bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm"
               >
-                Guardar Registro
+                {editingLog ? 'Guardar Cambios' : 'Guardar Registro'}
               </button>
             </div>
           </div>
@@ -744,10 +889,30 @@ export default function MaintenanceDashboard() {
                 </div>
               ) : (
                 assetLogs.map(log => (
-                  <div key={log.id} className="bg-surface-container-lowest p-md rounded-lg border border-outline-variant">
+                  <div key={log.id} className="bg-surface-container-lowest p-md rounded-lg border border-outline-variant relative group">
                     <div className="flex justify-between items-start mb-2">
                       <span className="font-label-lg text-on-surface font-semibold">{log.task_name}</span>
-                      <span className="text-on-surface-variant text-sm font-medium">{log.service_date ? new Date(log.service_date).toLocaleDateString() : '-'}</span>
+                      <div className="flex items-center gap-2">
+                        {canEditOrDelete(log.created_by) && (
+                          <>
+                            <button 
+                              onClick={() => openEditLogModal(log)}
+                              className="text-on-surface-variant hover:text-primary p-1 rounded hover:bg-surface-container transition-colors"
+                              title="Editar"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteLog(log.id)}
+                              className="text-on-surface-variant hover:text-error p-1 rounded hover:bg-error-container transition-colors"
+                              title="Eliminar"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          </>
+                        )}
+                        <span className="text-on-surface-variant text-sm font-medium">{log.service_date ? new Date(log.service_date).toLocaleDateString() : '-'}</span>
+                      </div>
                     </div>
                     {log.performed_by && <div className="text-sm text-on-surface-variant mb-1">Realizado por: <span className="text-on-surface">{log.performed_by}</span></div>}
                     {log.cost !== null && <div className="text-sm text-on-surface-variant mb-1">Costo: <span className="text-on-surface">${log.cost}</span></div>}
@@ -766,11 +931,11 @@ export default function MaintenanceDashboard() {
           <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]">
             <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low shrink-0">
               <h2 className="font-h3 text-h3 text-on-surface font-semibold flex items-center gap-sm">
-                <span className="material-symbols-outlined text-tertiary">event</span>
-                Programar Mantenimiento
+                <span className="material-symbols-outlined text-tertiary">{editingSchedule ? 'edit' : 'event'}</span>
+                {editingSchedule ? 'Editar Mantenimiento' : 'Programar Mantenimiento'}
               </h2>
               <button 
-                onClick={() => setIsScheduleModalOpen(false)}
+                onClick={() => { setIsScheduleModalOpen(false); setEditingSchedule(null); }}
                 className="text-on-surface-variant hover:text-error transition-colors p-1 rounded-full hover:bg-error-container"
               >
                 <span className="material-symbols-outlined">close</span>
@@ -823,7 +988,7 @@ export default function MaintenanceDashboard() {
             <div className="p-lg border-t border-outline-variant flex justify-end gap-md shrink-0 bg-surface-container-lowest">
               <button 
                 type="button" 
-                onClick={() => setIsScheduleModalOpen(false)}
+                onClick={() => { setIsScheduleModalOpen(false); setEditingSchedule(null); }}
                 className="px-lg py-sm rounded-lg font-label-md text-label-md text-primary hover:bg-primary-container transition-colors"
               >
                 Cancelar
@@ -833,7 +998,7 @@ export default function MaintenanceDashboard() {
                 form="scheduleForm"
                 className="px-lg py-sm rounded-lg font-label-md text-label-md bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm"
               >
-                Programar
+                {editingSchedule ? 'Guardar Cambios' : 'Programar'}
               </button>
             </div>
           </div>

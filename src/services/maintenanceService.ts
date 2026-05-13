@@ -108,6 +108,29 @@ export const deleteMaintenanceLog = async (id: string): Promise<void> => {
   if (error) throw error;
 };
 
+export const updateMaintenanceLog = async (id: string, payload: Partial<MaintenanceLog>): Promise<MaintenanceLog> => {
+  // Filter out undefined values and non-updatable fields
+  const updates: Record<string, any> = {};
+  if (payload.task_name !== undefined) updates.task_name = payload.task_name;
+  if (payload.performed_by !== undefined) updates.performed_by = payload.performed_by;
+  if (payload.service_date !== undefined) updates.service_date = payload.service_date;
+  if (payload.cost !== undefined) updates.cost = payload.cost;
+  if (payload.notes !== undefined) updates.notes = payload.notes;
+  if (payload.next_service_date !== undefined) updates.next_service_date = payload.next_service_date;
+  
+  const { data, error } = await insforge.database
+    .from('maintenance_logs')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+    
+  if (error) {
+    throw new Error(error.message || 'Error al actualizar el registro');
+  }
+  return data as MaintenanceLog;
+};
+
 // --- Maintenance Schedule ---
 
 export const getMaintenanceSchedules = async (assetId: string): Promise<MaintenanceSchedule[]> => {
