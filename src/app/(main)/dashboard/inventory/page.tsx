@@ -14,7 +14,7 @@ import {
   updateInventoryItem, 
   deleteInventoryItem 
 } from '@/services/inventoryService';
-import { getShoppingLists, createShoppingList, addShoppingListItem, ShoppingList } from '@/services/shoppingService';
+import { getShoppingLists, createShoppingList, addShoppingListItem, getShoppingListItems, updateShoppingListItem, ShoppingList, ShoppingListItem } from '@/services/shoppingService';
 import { useToast } from '@/lib/toast-context';
 
 export default function InventoryDashboard() {
@@ -221,15 +221,37 @@ export default function InventoryDashboard() {
         targetListId = newList.id;
       }
       
+      // Calculate quantity needed
       const qtyNeeded = Math.max(1, Number(item.minimum_threshold) - Number(item.current_quantity));
       
-      await addShoppingListItem(targetListId, user.id, {
-        item_name: item.name,
-        quantity: `${qtyNeeded} ${item.unit}`,
-        category: item.category?.name || 'Despensa'
-      });
+      // Get current items in the shopping list to check for duplicates
+      const listItems = await getShoppingListItems(targetListId);
       
-      success('Añadido a la lista', `"${item.name}" añadido a la lista de compras.`);
+      // Check if item already exists (case-insensitive match)
+      const existingItem = listItems.find(i => 
+        i.item_name.toLowerCase() === item.name.toLowerCase() && !i.is_purchased
+      );
+      
+      if (existingItem) {
+        // Parse existing quantity and add the new needed quantity
+        const existingQty = parseFloat(existingItem.quantity?.replace(/[^0-9.]/g, '') || '0');
+        const newTotalQty = existingQty + qtyNeeded;
+        
+        await updateShoppingListItem(existingItem.id, {
+          quantity: `${newTotalQty} ${item.unit}`
+        });
+        
+        success('Cantidad actualizada', `"${item.name}" ya estaba en la lista. Se actualizó la cantidad a comprar.`);
+      } else {
+        // Add as new item
+        await addShoppingListItem(targetListId, user.id, {
+          item_name: item.name,
+          quantity: `${qtyNeeded} ${item.unit}`,
+          category: item.category?.name || 'Despensa'
+        });
+        
+        success('Añadido a la lista', `"${item.name}" añadido a la lista de compras.`);
+      }
     } catch (err: any) {
       console.error('Error adding to shopping list:', err);
       showError('Error al añadir a la lista', err.message || 'Hubo un error al añadir a la lista de compras.');
