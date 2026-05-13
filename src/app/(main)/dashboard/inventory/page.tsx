@@ -395,7 +395,9 @@ export default function InventoryDashboard() {
                         </div>
                       </td>
                       <td className="p-md" suppressHydrationWarning>
-                        {item.expiration_date ? new Date(item.expiration_date).toLocaleDateString() : '-'}
+                        {item.expiration_date 
+                          ? new Date(item.expiration_date).toLocaleDateString() 
+                          : <span className="text-on-surface-variant italic">Sin fecha</span>}
                       </td>
                       <td className="p-md text-right">
                         <div className="flex justify-end gap-2">
