@@ -415,7 +415,11 @@ export default function ExpensesDashboard() {
                             )}
                           </td>
                           <td className="p-md">
-                            <span className="w-6 h-6 rounded-full bg-tertiary-container text-on-tertiary flex items-center justify-center font-label-sm text-label-sm">
+                            <span 
+                              className="w-6 h-6 rounded-full bg-tertiary-container text-on-tertiary flex items-center justify-center font-label-sm text-label-sm"
+                              title={`Pagado por: ${payer?.name || 'Unknown'}`}
+                              aria-label={`Pagado por ${payer?.name || 'desconocido'}`}
+                            >
                               {payer?.name?.substring(0, 2).toUpperCase() || '??'}
                             </span>
                           </td>
