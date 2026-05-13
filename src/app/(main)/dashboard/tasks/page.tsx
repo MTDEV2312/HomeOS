@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useHousehold } from '@/lib/household-context';
-import { getTasks, createTask, updateTaskStatus, deleteTask, Task } from '@/services/taskService';
+import { getTasks, createTask, updateTaskStatus, deleteTask, updateTask, Task } from '@/services/taskService';
 import { useToast } from '@/lib/toast-context';
 import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService';
 import { insforge } from '@/lib/insforge';
 import { 
   CheckCircle, PlusCircle, MoreVertical, Calendar, User, 
-  Filter, Repeat, X, AlertCircle, Loader2
+  Filter, Repeat, X, AlertCircle, Loader2, Edit2, Trash2,
+  Clock, CheckSquare
 } from 'lucide-react';
 import { format, isToday, isPast, parseISO, isFuture } from 'date-fns';
 
@@ -17,7 +18,7 @@ type Tab = 'TODAY' | 'UPCOMING' | 'COMPLETED';
 
 export default function TasksPage() {
   const { user } = useAuth();
-  const { activeHousehold, isLoadingHousehold } = useHousehold();
+  const { activeHousehold, activeRole, isLoadingHousehold } = useHousehold();
   const { toast, success, error: showError } = useToast();
   
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -30,6 +31,19 @@ export default function TasksPage() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Detail & Edit Modal State
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    title: '',
+    description: '',
+    due_date: '',
+    priority: 'MEDIUM',
+    assigned_to: 'unassigned',
+    is_recurring: false
+  });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -133,6 +147,59 @@ export default function TasksPage() {
       setTasks(tasks.filter(t => t.id !== taskId));
     } catch (err: any) {
       showError('Error eliminando la tarea', err.message || 'Error desconocido');
+    }
+  };
+
+  // Permission check: creator OR ADMIN/OWNER
+  const canEditOrDelete = (task: Task) => {
+    if (!user || !activeRole) return false;
+    return task.creator_id === user.id || activeRole === 'OWNER' || activeRole === 'ADMIN';
+  };
+
+  // Open detail modal
+  const openDetailModal = (task: Task) => {
+    setSelectedTask(task);
+    setIsDetailModalOpen(true);
+  };
+
+  // Open edit modal with task data
+  const openEditModal = (task: Task) => {
+    setSelectedTask(task);
+    setEditFormData({
+      title: task.title,
+      description: task.description || '',
+      due_date: task.due_date ? task.due_date.split('T')[0] : '',
+      priority: task.priority,
+      assigned_to: task.assigned_to || 'unassigned',
+      is_recurring: task.is_recurring
+    });
+    setIsEditModalOpen(true);
+  };
+
+  // Handle edit submit
+  const handleEditTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTask) return;
+
+    try {
+      setIsSubmitting(true);
+      const updated = await updateTask(selectedTask.id, {
+        title: editFormData.title,
+        description: editFormData.description || undefined,
+        due_date: editFormData.due_date ? new Date(editFormData.due_date).toISOString() : undefined,
+        priority: editFormData.priority as any,
+        assigned_to: editFormData.assigned_to === 'unassigned' ? undefined : editFormData.assigned_to,
+        is_recurring: editFormData.is_recurring
+      });
+
+      setTasks(tasks.map(t => t.id === selectedTask.id ? updated : t));
+      setIsEditModalOpen(false);
+      setIsDetailModalOpen(false);
+      setSelectedTask(null);
+    } catch (err: any) {
+      showError('Error actualizando tarea', err.message || 'Error desconocido');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -253,7 +320,11 @@ export default function TasksPage() {
           const assigneeName = members.find(m => m.user_id === task.assigned_to)?.name || 'Cualquiera';
 
           return (
-            <div key={task.id} className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-[0px_4px_20px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div 
+              key={task.id} 
+              onClick={() => openDetailModal(task)}
+              className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-[0px_4px_20px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow relative overflow-hidden group cursor-pointer hover:border-primary/50"
+            >
               <div className={`absolute left-0 top-0 bottom-0 w-1 ${borderColor}`}></div>
               <div className="flex justify-between items-start mb-sm pl-sm">
                 <div className="flex items-center gap-sm">
@@ -294,10 +365,23 @@ export default function TasksPage() {
                   )}
                 </div>
                 
-                {user?.id === task.creator_id && (
-                  <button onClick={() => handleDelete(task.id)} className="text-on-surface-variant hover:text-error p-1 rounded-full hover:bg-error-container transition-colors opacity-0 group-hover:opacity-100">
-                    <MoreVertical className="w-5 h-5" />
-                  </button>
+                {canEditOrDelete(task) && (
+                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                    <button 
+                      onClick={() => openEditModal(task)}
+                      className="text-on-surface-variant hover:text-primary p-1 rounded-full hover:bg-primary-container transition-colors opacity-0 group-hover:opacity-100"
+                      title="Editar tarea"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(task.id)} 
+                      className="text-on-surface-variant hover:text-error p-1 rounded-full hover:bg-error-container transition-colors opacity-0 group-hover:opacity-100"
+                      title="Eliminar tarea"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -436,6 +520,291 @@ export default function TasksPage() {
                 >
                   {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   Guardar Tarea
+                </button>
+              </div>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      {/* Task Detail Modal */}
+      {isDetailModalOpen && selectedTask && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
+          <div className="relative bg-surface-container-lowest rounded-xl shadow-xl border border-outline-variant w-full max-w-2xl flex flex-col overflow-hidden max-h-[85vh]">
+            <header className="flex items-center justify-between px-lg py-md border-b border-outline-variant bg-surface-container-lowest">
+              <div className="flex items-center gap-md">
+                <div className={`w-3 h-3 rounded-full ${
+                  selectedTask.priority === 'URGENT' ? 'bg-error' :
+                  selectedTask.priority === 'HIGH' ? 'bg-primary' :
+                  selectedTask.priority === 'LOW' ? 'bg-outline-variant' : 'bg-surface-tint'
+                }`}></div>
+                <div>
+                  <h2 className="font-h3 text-h3 text-on-surface">{selectedTask.title}</h2>
+                  <p className="font-body-md text-body-md text-on-surface-variant mt-xs">
+                    {selectedTask.status === 'COMPLETED' ? 'Completada' : 
+                     selectedTask.status === 'PENDING' ? 'Pendiente' : 'En progreso'}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => { setIsDetailModalOpen(false); setSelectedTask(null); }}
+                className="p-sm text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </header>
+
+            <div className="flex-1 overflow-y-auto p-lg space-y-lg">
+              {/* Priority & Status */}
+              <div className="flex flex-wrap gap-sm">
+                <span className={`font-label-sm text-label-sm px-3 py-1 rounded-full ${
+                  selectedTask.priority === 'URGENT' ? 'bg-error-container text-on-error-container' :
+                  selectedTask.priority === 'HIGH' ? 'bg-primary-container text-primary' :
+                  selectedTask.priority === 'LOW' ? 'bg-surface-container-high text-on-surface' :
+                  'bg-surface-variant text-on-surface-variant'
+                }`}>
+                  {selectedTask.priority === 'URGENT' ? '🔴 Urgente' :
+                   selectedTask.priority === 'HIGH' ? '🟠 Alta' :
+                   selectedTask.priority === 'LOW' ? '⚪ Baja' : '🟡 Media'}
+                </span>
+                {selectedTask.is_recurring && (
+                  <span className="font-label-sm text-label-sm px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container flex items-center gap-1">
+                    <Repeat className="w-3 h-3" /> Recurrente
+                  </span>
+                )}
+              </div>
+
+              {/* Description */}
+              {selectedTask.description && (
+                <div className="bg-surface-container-low p-md rounded-xl border border-outline-variant/30">
+                  <h4 className="font-label-md text-label-md text-on-surface-variant mb-sm">Descripción</h4>
+                  <p className="font-body-md text-body-md text-on-surface whitespace-pre-wrap">{selectedTask.description}</p>
+                </div>
+              )}
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
+                {selectedTask.due_date && (
+                  <div className="bg-surface-container-low p-md rounded-xl border border-outline-variant/30">
+                    <div className="flex items-center gap-sm text-on-surface-variant mb-xs">
+                      <Calendar className="w-4 h-4" />
+                      <span className="font-label-sm text-label-sm">Fecha límite</span>
+                    </div>
+                    <p className={`font-body-md text-body-md ${
+                      isPast(parseISO(selectedTask.due_date)) && selectedTask.status !== 'COMPLETED' 
+                        ? 'text-error' : 'text-on-surface'
+                    }`}>
+                      {format(parseISO(selectedTask.due_date), 'EEEE, d MMMM yyyy')}
+                    </p>
+                  </div>
+                )}
+
+                <div className="bg-surface-container-low p-md rounded-xl border border-outline-variant/30">
+                  <div className="flex items-center gap-sm text-on-surface-variant mb-xs">
+                    <User className="w-4 h-4" />
+                    <span className="font-label-sm text-label-sm">Asignada a</span>
+                  </div>
+                  <p className="font-body-md text-body-md text-on-surface">
+                    {members.find(m => m.user_id === selectedTask.assigned_to)?.name || 'Sin asignar'}
+                  </p>
+                </div>
+
+                <div className="bg-surface-container-low p-md rounded-xl border border-outline-variant/30">
+                  <div className="flex items-center gap-sm text-on-surface-variant mb-xs">
+                    <CheckSquare className="w-4 h-4" />
+                    <span className="font-label-sm text-label-sm">Creador</span>
+                  </div>
+                  <p className="font-body-md text-body-md text-on-surface">
+                    {user?.id === selectedTask.creator_id ? 'Tú' : 
+                     members.find(m => m.user_id === selectedTask.creator_id)?.name || 'Miembro'}
+                  </p>
+                </div>
+
+                <div className="bg-surface-container-low p-md rounded-xl border border-outline-variant/30">
+                  <div className="flex items-center gap-sm text-on-surface-variant mb-xs">
+                    <Clock className="w-4 h-4" />
+                    <span className="font-label-sm text-label-sm">Creada</span>
+                  </div>
+                  <p className="font-body-md text-body-md text-on-surface">
+                    {format(parseISO(selectedTask.created_at), 'd MMM yyyy, HH:mm')}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <footer className="flex flex-col-reverse sm:flex-row items-center justify-between gap-sm px-lg py-md border-t border-outline-variant bg-surface-container-lowest shrink-0">
+              <div className="flex items-center gap-xs text-on-surface-variant">
+                <CheckCircle className="w-4 h-4" />
+                <span className="font-label-sm text-label-sm">Powered by InsForge</span>
+              </div>
+              <div className="flex gap-md w-full sm:w-auto">
+                {canEditOrDelete(selectedTask) && (
+                  <button 
+                    onClick={() => { setIsDetailModalOpen(false); openEditModal(selectedTask); }}
+                    className="flex-1 sm:flex-none px-lg py-sm rounded-lg font-label-md text-label-md text-on-surface border border-outline-variant hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Editar
+                  </button>
+                )}
+                <button 
+                  onClick={() => { 
+                    handleToggleStatus(selectedTask.id, selectedTask.status);
+                    setIsDetailModalOpen(false);
+                    setSelectedTask(null);
+                  }}
+                  className={`flex-1 sm:flex-none px-lg py-sm rounded-lg font-label-md text-label-md transition-colors flex items-center justify-center gap-2 ${
+                    selectedTask.status === 'COMPLETED'
+                      ? 'bg-surface-container-low text-on-surface border border-outline-variant hover:bg-surface-container'
+                      : 'bg-primary text-on-primary hover:bg-primary/90'
+                  }`}
+                >
+                  {selectedTask.status === 'COMPLETED' ? (
+                    <>Marcar pendiente</>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Completar
+                    </>
+                  )}
+                </button>
+              </div>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Task Modal */}
+      {isEditModalOpen && selectedTask && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
+          <div className="relative bg-surface-container-lowest rounded-xl shadow-xl border border-outline-variant w-full max-w-2xl flex flex-col overflow-hidden max-h-[85vh]">
+            <header className="flex items-center justify-between px-lg py-md border-b border-outline-variant bg-surface-container-lowest">
+              <div>
+                <h2 className="font-h3 text-h3 text-on-surface">Editar Tarea</h2>
+                <p className="font-body-md text-body-md text-on-surface-variant mt-xs">Modifica los detalles de la tarea.</p>
+              </div>
+              <button 
+                onClick={() => { setIsEditModalOpen(false); setSelectedTask(null); }}
+                className="p-sm text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </header>
+
+            <div className="flex-1 overflow-y-auto p-lg space-y-lg">
+              <form id="editTaskForm" onSubmit={handleEditTask} className="space-y-lg">
+                <div className="space-y-sm">
+                  <label className="block font-label-md text-label-md text-on-surface">Título de la Tarea</label>
+                  <input 
+                    required
+                    value={editFormData.title}
+                    onChange={e => setEditFormData({...editFormData, title: e.target.value})}
+                    className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" 
+                    placeholder="ej. Limpiar la cocina a fondo" 
+                  />
+                </div>
+
+                <div className="space-y-sm">
+                  <label className="block font-label-md text-label-md text-on-surface">Descripción</label>
+                  <textarea 
+                    value={editFormData.description}
+                    onChange={e => setEditFormData({...editFormData, description: e.target.value})}
+                    className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors resize-y" 
+                    placeholder="Añade notas o instrucciones específicas..." 
+                    rows={3}
+                  ></textarea>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  <div className="space-y-sm">
+                    <label className="block font-label-md text-label-md text-on-surface">Fecha Límite</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant w-5 h-5" />
+                      <input 
+                        type="date"
+                        value={editFormData.due_date}
+                        onChange={e => setEditFormData({...editFormData, due_date: e.target.value})}
+                        className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-xl pr-md py-sm font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-sm">
+                    <label className="block font-label-md text-label-md text-on-surface">Prioridad</label>
+                    <select 
+                      value={editFormData.priority}
+                      onChange={e => setEditFormData({...editFormData, priority: e.target.value})}
+                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                    >
+                      <option value="LOW">Baja</option>
+                      <option value="MEDIUM">Media</option>
+                      <option value="HIGH">Alta</option>
+                      <option value="URGENT">Urgente</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-sm md:col-span-2">
+                    <label className="block font-label-md text-label-md text-on-surface">Asignar a</label>
+                    <div className="relative">
+                      <User className="absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant w-5 h-5" />
+                      <select 
+                        value={editFormData.assigned_to}
+                        onChange={e => setEditFormData({...editFormData, assigned_to: e.target.value})}
+                        className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-xl pr-md py-sm font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                      >
+                        <option value="unassigned">Sin asignar (Cualquiera)</option>
+                        {members.map(m => (
+                          <option key={m.user_id} value={m.user_id}>{m.name} {m.user_id === user?.id ? '(Tú)' : ''}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recurrence Toggle */}
+                <div className="bg-surface-bright border border-outline-variant rounded-xl p-md mt-sm flex items-center justify-between">
+                  <div className="flex items-center gap-sm">
+                    <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center">
+                      <Repeat className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="block font-label-md text-label-md text-on-surface">Tarea Recurrente</span>
+                      <span className="block font-label-sm text-label-sm text-on-surface-variant">Repetir esta labor regularmente</span>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={editFormData.is_recurring}
+                      onChange={e => setEditFormData({...editFormData, is_recurring: e.target.checked})}
+                      className="sr-only peer" 
+                    />
+                    <div className="w-11 h-6 bg-surface-variant peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-container-lowest after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </div>
+              </form>
+            </div>
+
+            <footer className="flex flex-col-reverse sm:flex-row items-center justify-between gap-sm px-lg py-md border-t border-outline-variant bg-surface-container-lowest shrink-0">
+              <div className="flex items-center gap-xs text-on-surface-variant">
+                <CheckCircle className="w-4 h-4" />
+                <span className="font-label-sm text-label-sm">Powered by InsForge</span>
+              </div>
+              <div className="flex gap-md w-full sm:w-auto">
+                <button 
+                  onClick={() => { setIsEditModalOpen(false); setSelectedTask(null); }}
+                  className="flex-1 sm:flex-none px-lg py-sm rounded-lg font-label-md text-label-md text-on-surface border border-outline-variant hover:bg-surface-container-low transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  form="editTaskForm"
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 sm:flex-none px-lg py-sm rounded-lg font-label-md text-label-md text-on-primary bg-primary hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                >
+                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Guardar Cambios
                 </button>
               </div>
             </footer>
