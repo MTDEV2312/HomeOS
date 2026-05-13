@@ -80,6 +80,7 @@ export default function MaintenanceDashboard() {
   const [logsViewAsset, setLogsViewAsset] = useState<Asset | null>(null);
   const [assetLogs, setAssetLogs] = useState<MaintenanceLog[]>([]);
   const [editingLog, setEditingLog] = useState<MaintenanceLog | null>(null);
+  const [completingSchedule, setCompletingSchedule] = useState<MaintenanceSchedule & { asset: Asset } | null>(null);
   
   // Edit Log Form State
   const [editLogTaskName, setEditLogTaskName] = useState('');
@@ -243,6 +244,25 @@ export default function MaintenanceDashboard() {
         notes: logNotes || null,
         created_by: user.id
       });
+
+      // If this is completing a schedule, update the schedule's last_performed and next_due
+      if (completingSchedule) {
+        const serviceDate = logDate || new Date().toISOString().split('T')[0];
+        const nextDueDate = new Date(serviceDate);
+        nextDueDate.setMonth(nextDueDate.getMonth() + completingSchedule.frequency_months);
+        
+        await updateMaintenanceSchedule(completingSchedule.id, {
+          last_performed: serviceDate,
+          next_due: nextDueDate.toISOString()
+        });
+        
+        // Refresh schedules
+        const updatedSchedules = await getAllMaintenanceSchedules(activeHousehold.id);
+        setSchedules(updatedSchedules);
+        
+        setCompletingSchedule(null);
+      }
+
       setIsLogModalOpen(false);
       success('Mantenimiento registrado', 'El mantenimiento se ha registrado con éxito.');
     } catch (err: any) {
@@ -615,6 +635,7 @@ export default function MaintenanceDashboard() {
                           <button 
                             onClick={() => {
                               setLogTaskName(schedule.task_description);
+                              setCompletingSchedule(schedule);
                               openLogModal(schedule.asset);
                             }} 
                             className="px-3 py-1 bg-primary text-on-primary rounded-md font-label-sm text-label-sm hover:bg-primary-container hover:text-on-primary-container transition-colors"
