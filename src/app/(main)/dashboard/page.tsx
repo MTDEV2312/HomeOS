@@ -42,12 +42,14 @@ export default function DashboardPage() {
         const now = new Date();
         const nextWeek = new Date();
         nextWeek.setDate(now.getDate() + 7);
-        setUpcomingMaintenance(m.filter(sch => new Date(sch.next_due) <= nextWeek));
+        setUpcomingMaintenance(
+          m.filter(sch => sch.next_due && new Date(sch.next_due) <= nextWeek)
+        );
 
         const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         setExpenses(e.filter(exp => exp.date >= currentMonthStart));
         setBudgets(b);
-        setActiveShoppingLists(s.filter(list => list.status !== 'COMPLETED'));
+        setActiveShoppingLists(s.filter(list => !list.is_archived));
         
       } catch (error) {
         console.error("Error loading dashboard data", error);
@@ -222,7 +224,9 @@ export default function DashboardPage() {
                   <span className="material-symbols-outlined text-secondary shrink-0">build</span>
                   <div>
                     <h4 className="font-label-lg text-label-lg text-on-surface font-semibold">Mantenimiento Prox.</h4>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant">Vence: {new Date(maint.next_due).toLocaleDateString()}</p>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant">
+                      Vence: {maint.next_due ? new Date(maint.next_due).toLocaleDateString() : 'Sin fecha'}
+                    </p>
                   </div>
                 </div>
               ))}

@@ -28,7 +28,7 @@ export const getHouseholdDocuments = async (householdId: string): Promise<Househ
 };
 
 export const addHouseholdDocument = async (
-  payload: Omit<HouseholdDocument, 'id' | 'created_at' | 'updated_at'>,
+  payload: Omit<HouseholdDocument, 'id' | 'created_at' | 'updated_at' | 'file_url' | 'file_key'>,
   file: File
 ): Promise<HouseholdDocument> => {
   // 1. Upload to storage
