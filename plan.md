@@ -93,7 +93,7 @@ Crear una plataforma práctica de gestión del hogar para uso diario, optimizada
 2. Alertas de bajo stock.
 3. Flujo de trabajo "Mover a la lista de compras".
 
-## FASE 7: MANTENIMIENTO
+## FASE 7: MANTENIMIENTO (Completada)
 1. Esquema de mantenimiento:
    * `title`, `asset`, `frequency`, `last_completed`, `next_due`.
 2. Automatizar programación de fechas de vencimiento.
