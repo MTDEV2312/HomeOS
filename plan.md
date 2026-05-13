@@ -99,7 +99,7 @@ Crear una plataforma práctica de gestión del hogar para uso diario, optimizada
 2. Automatizar programación de fechas de vencimiento.
 3. Mostrar alertas en el dashboard.
 
-## FASE 8: ALMACENAMIENTO DE DOCUMENTOS
+## FASE 8: ALMACENAMIENTO DE DOCUMENTOS (Completada)
 1. Buckets de almacenamiento para:
    * Recibos/Facturas.
    * Garantías.
@@ -108,7 +108,7 @@ Crear una plataforma práctica de gestión del hogar para uso diario, optimizada
 2. Soporte para subir/descargar/eliminar.
 3. Vincular documentos a registros relacionados.
 
-## FASE 9: DASHBOARD
+## FASE 9: DASHBOARD (Completada)
 1. Widgets:
    * Tareas para hoy.
    * Próximos gastos.
