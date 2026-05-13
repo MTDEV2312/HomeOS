@@ -2,6 +2,8 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
 
+import { ToastProvider } from "@/lib/toast-context";
+
 export default function RootLayout({
   children,
 }: {
@@ -18,9 +20,11 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning className="bg-background text-on-background font-body-md text-body-md antialiased overflow-hidden flex flex-col h-screen transition-colors duration-200">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          <ToastProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

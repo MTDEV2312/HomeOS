@@ -115,11 +115,27 @@
     box-sizing: border-box;
   }
 
+  html {
+    overflow-x: hidden;
+  }
+
   body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
     /* We handle the actual background and text colors directly in layout.tsx using tailwind classes from the design system, e.g., bg-background text-on-background */
   }
+}
+
+/* ═══ Scrollbar Hide Utility ═══ */
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* ═══ Scrollbar ═══ */

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useHousehold } from '@/lib/household-context';
 import { useAuth } from '@/lib/auth-context';
 import { getHouseholdMembers, removeMember, updateMemberRole, HouseholdMemberDetails } from '@/services/householdService';
+import { useToast } from '@/lib/toast-context';
 import { Copy, Shield, ShieldAlert, Trash2, User, Loader2, Users, QrCode } from 'lucide-react';
 import { QRCode } from '@/components/QRCode';
 
@@ -14,6 +15,7 @@ export default function MembersPage() {
   const [members, setMembers] = useState<HouseholdMemberDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { toast, success, error: showError } = useToast();
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
 
@@ -40,6 +42,7 @@ export default function MembersPage() {
     if (activeHousehold?.invite_code) {
       navigator.clipboard.writeText(window.location.origin + '/invite/' + activeHousehold.invite_code);
       setCopied(true);
+      success('Enlace copiado', 'El enlace de invitación se ha copiado al portapapeles');
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -50,7 +53,7 @@ export default function MembersPage() {
       await removeMember(activeHousehold.id, userIdToRemove);
       setMembers(members.filter(m => m.user_id !== userIdToRemove));
     } catch (err: any) {
-      alert(err.message || 'Error al eliminar al miembro.');
+      showError('Error al eliminar al miembro', err.message || 'Error desconocido');
     }
   };
 
@@ -59,7 +62,7 @@ export default function MembersPage() {
       await updateMemberRole(activeHousehold.id, userIdToUpdate, newRole);
       setMembers(members.map(m => m.user_id === userIdToUpdate ? { ...m, role: newRole } : m));
     } catch (err: any) {
-      alert(err.message || 'Error al actualizar el rol.');
+      showError('Error al actualizar el rol', err.message || 'Error desconocido');
     }
   };
 
@@ -78,7 +81,7 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-xl">
+    <div className="flex flex-col gap-xl w-full min-w-0">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-md">
         <div>
           <h1 className="font-h2 text-h2 text-on-surface mb-xs">Gestión de Miembros</h1>
@@ -117,7 +120,7 @@ export default function MembersPage() {
 
         {/* QR Modal */}
         {showQR && activeHousehold && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-md" onClick={() => setShowQR(false)}>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 pb-20 md:pb-4" onClick={() => setShowQR(false)}>
             <div className="bg-surface-container rounded-xl p-lg shadow-2xl border border-outline-variant max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
               <div className="text-center mb-md">
                 <h3 className="font-h3 text-h3 text-on-surface">Invitar al Hogar</h3>

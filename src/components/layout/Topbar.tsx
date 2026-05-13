@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useHousehold } from '@/lib/household-context';
 import { useRouter } from 'next/navigation';
@@ -13,15 +13,32 @@ export function Topbar() {
   const router = useRouter();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [householdDropdownOpen, setHouseholdDropdownOpen] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+  const householdDropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
     await signOut();
     router.push('/login');
   };
 
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(e.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+      if (householdDropdownRef.current && !householdDropdownRef.current.contains(e.target as Node)) {
+        setHouseholdDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
-    <header className="flex justify-between items-center h-16 px-md w-full bg-surface-container-lowest border-b border-outline-variant shadow-sm z-40 shrink-0 relative">
-      <div className="flex items-center gap-md">
+    <header className="flex justify-between items-center h-14 sm:h-16 px-3 sm:px-md w-full bg-surface-container-lowest border-b border-outline-variant shadow-sm z-40 shrink-0 relative">
+      {/* Left side */}
+      <div className="flex items-center gap-2 sm:gap-md min-w-0">
         <div className="w-8 h-8 hidden md:block relative text-primary">
           <Logo size={32} />
         </div>
@@ -29,19 +46,19 @@ export function Topbar() {
         
         {/* Household Switcher */}
         {activeHousehold && (
-          <div className="relative">
+          <div className="relative" ref={householdDropdownRef}>
             <button 
               onClick={() => {
                 setHouseholdDropdownOpen(!householdDropdownOpen);
                 setUserDropdownOpen(false);
               }}
-              className="flex items-center gap-2 hover:bg-surface-container-high rounded-lg px-3 py-1.5 transition-colors border border-outline-variant bg-surface"
+              className="flex items-center gap-1.5 sm:gap-2 hover:bg-surface-container-high rounded-lg px-2 sm:px-3 py-1.5 transition-colors border border-outline-variant bg-surface"
             >
-              <Home className="w-4 h-4 text-primary" />
-              <span className="font-label-md text-label-md text-on-surface max-w-[120px] md:max-w-[200px] truncate">
+              <Home className="w-4 h-4 text-primary shrink-0" />
+              <span className="font-label-md text-label-md text-on-surface max-w-[100px] sm:max-w-[120px] md:max-w-[200px] truncate">
                 {activeHousehold.name}
               </span>
-              <span className="material-symbols-outlined text-[18px] text-on-surface-variant">expand_more</span>
+              <span className="material-symbols-outlined text-[16px] sm:text-[18px] text-on-surface-variant shrink-0">expand_more</span>
             </button>
             
             {householdDropdownOpen && (
@@ -88,7 +105,9 @@ export function Topbar() {
 
         <ThemeToggle />
       </div>
-      <div className="flex items-center gap-md">
+
+      {/* Right side */}
+      <div className="flex items-center gap-1 sm:gap-md">
         <div className="relative hidden md:block">
           <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">
             search
@@ -99,24 +118,24 @@ export function Topbar() {
             type="text"
           />
         </div>
-        <button className="p-sm text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors duration-200 rounded-full flex items-center justify-center">
-          <span className="material-symbols-outlined">notifications</span>
+        <button className="p-1.5 sm:p-sm text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors duration-200 rounded-full flex items-center justify-center">
+          <span className="material-symbols-outlined text-[22px]">notifications</span>
         </button>
-        <div className="relative">
+        <div className="relative" ref={userDropdownRef}>
           <button 
             onClick={() => {
               setUserDropdownOpen(!userDropdownOpen);
               setHouseholdDropdownOpen(false);
             }}
-            className="flex items-center gap-2 hover:bg-surface-container-high rounded-full pl-2 pr-4 py-1 transition-colors border border-transparent hover:border-outline-variant"
+            className="flex items-center gap-1 sm:gap-2 hover:bg-surface-container-high rounded-full pl-1.5 sm:pl-2 pr-2 sm:pr-4 py-1 transition-colors border border-transparent hover:border-outline-variant"
           >
-            <div className="w-8 h-8 rounded-full bg-surface-variant overflow-hidden border border-outline-variant flex items-center justify-center font-bold text-primary shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface-variant overflow-hidden border border-outline-variant flex items-center justify-center font-bold text-primary shrink-0 text-sm">
               {user?.profile?.name ? (user.profile.name as string).charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase()}
             </div>
             <span className="font-label-sm text-label-sm text-on-surface hidden md:block max-w-[100px] truncate">
               {user?.profile?.name || user?.email?.split('@')[0]}
             </span>
-            <span className="material-symbols-outlined text-[18px] text-on-surface-variant">expand_more</span>
+            <span className="material-symbols-outlined text-[16px] sm:text-[18px] text-on-surface-variant">expand_more</span>
           </button>
           
           {userDropdownOpen && (

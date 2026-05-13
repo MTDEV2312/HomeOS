@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useHousehold } from '@/lib/household-context';
+import { useAuth } from '@/lib/auth-context';
 import { insforge } from '@/lib/insforge';
 import {
   Asset,
@@ -19,6 +20,7 @@ import {
   deleteMaintenanceSchedule,
   addMaintenanceLog
 } from '@/services/maintenanceService';
+import { useToast } from '@/lib/toast-context';
 
 const CATEGORY_ICONS: Record<AssetCategory, string> = {
   APPLIANCE: 'kitchen',
@@ -42,10 +44,12 @@ const CATEGORY_LABELS: Record<AssetCategory, string> = {
 
 export default function MaintenanceDashboard() {
   const { activeHousehold } = useHousehold();
+  const { user } = useAuth();
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [schedules, setSchedules] = useState<(MaintenanceSchedule & { asset: Asset })[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast, success, error: showError } = useToast();
 
   // Asset Modal State
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -68,6 +72,18 @@ export default function MaintenanceDashboard() {
   const [logCost, setLogCost] = useState('');
   const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
   const [logNotes, setLogNotes] = useState('');
+
+  // View Logs State
+  const [isLogsViewModalOpen, setIsLogsViewModalOpen] = useState(false);
+  const [logsViewAsset, setLogsViewAsset] = useState<Asset | null>(null);
+  const [assetLogs, setAssetLogs] = useState<MaintenanceLog[]>([]);
+
+  // Schedule Modal State
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleAsset, setScheduleAsset] = useState<Asset | null>(null);
+  const [scheduleTaskDesc, setScheduleTaskDesc] = useState('');
+  const [scheduleFreq, setScheduleFreq] = useState('6');
+  const [scheduleNextDue, setScheduleNextDue] = useState('');
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'ASSETS' | 'UPCOMING'>('ASSETS');
@@ -163,12 +179,13 @@ export default function MaintenanceDashboard() {
       if (editingAsset) {
         await updateAsset(editingAsset.id, payload);
       } else {
-        await addAsset(payload);
+        await addAsset({ ...payload, created_by: user!.id });
       }
       setIsAssetModalOpen(false);
-    } catch (err) {
+      success('Activo guardado', 'El activo se ha guardado correctamente.');
+    } catch (err: any) {
       console.error('Error saving asset:', err);
-      alert('Error al guardar el activo.');
+      showError('Error al guardar el activo', err.message || 'Error desconocido');
     }
   };
 
@@ -176,9 +193,10 @@ export default function MaintenanceDashboard() {
     if (confirm('¿Estás seguro de que deseas eliminar este activo y todo su historial de mantenimiento?')) {
       try {
         await deleteAsset(id);
-      } catch (err) {
+        success('Activo eliminado', 'El activo se ha eliminado correctamente.');
+      } catch (err: any) {
         console.error('Error deleting asset:', err);
-        alert('Error al eliminar el activo.');
+        showError('Error al eliminar el activo', err.message || 'Error desconocido');
       }
     }
   };
@@ -196,7 +214,7 @@ export default function MaintenanceDashboard() {
 
   const handleSaveLog = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedAssetForLog) return;
+    if (!selectedAssetForLog || !user) return;
 
     try {
       await addMaintenanceLog({
@@ -205,17 +223,56 @@ export default function MaintenanceDashboard() {
         performed_by: logPerformedBy || null,
         cost: logCost ? parseFloat(logCost) : null,
         service_date: logDate || null,
-        notes: logNotes || null
+        notes: logNotes || null,
+        created_by: user.id
       });
       setIsLogModalOpen(false);
-      alert('Mantenimiento registrado con éxito.');
-    } catch (err) {
+      success('Mantenimiento registrado', 'El mantenimiento se ha registrado con éxito.');
+    } catch (err: any) {
       console.error('Error saving maintenance log:', err);
-      alert('Error al registrar el mantenimiento.');
+      showError('Error al registrar el mantenimiento', err.message || 'Error desconocido');
     }
   };
 
-  if (!activeHousehold) {
+  const handleOpenLogsView = async (asset: Asset) => {
+    setLogsViewAsset(asset);
+    setIsLogsViewModalOpen(true);
+    try {
+      const logs = await getMaintenanceLogs(asset.id);
+      setAssetLogs(logs);
+    } catch (err) {
+      console.error('Error fetching logs:', err);
+    }
+  };
+
+  const openScheduleModal = (asset: Asset) => {
+    setScheduleAsset(asset);
+    setScheduleTaskDesc('');
+    setScheduleFreq('6');
+    setScheduleNextDue('');
+    setIsScheduleModalOpen(true);
+  };
+
+  const handleSaveSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!scheduleAsset || !user) return;
+    try {
+      await addMaintenanceSchedule({
+        asset_id: scheduleAsset.id,
+        task_description: scheduleTaskDesc,
+        frequency_months: parseInt(scheduleFreq, 10),
+        next_due: scheduleNextDue || null,
+        created_by: user.id
+      });
+      setIsScheduleModalOpen(false);
+      success('Mantenimiento programado', 'El mantenimiento se ha programado correctamente.');
+    } catch (err: any) {
+      console.error('Error scheduling maintenance:', err);
+      showError('Error al programar el mantenimiento', err.message || 'Error desconocido');
+    }
+  };
+
+  if (!activeHousehold || !user) {
     return <div className="p-margin">Cargando contexto del hogar...</div>;
   }
 
@@ -224,7 +281,7 @@ export default function MaintenanceDashboard() {
   const overdueSchedules = schedules.filter(s => s.next_due && new Date(s.next_due) < new Date());
 
   return (
-    <div className="max-w-[1440px] mx-auto flex flex-col gap-xl">
+    <div className="flex flex-col gap-xl w-full min-w-0">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md">
         <div>
           <h1 className="font-h1 text-h1 text-on-surface">Mantenimiento</h1>
@@ -333,13 +390,30 @@ export default function MaintenanceDashboard() {
                   </div>
                 </div>
 
-                <div className="mt-auto pt-2 border-t border-outline-variant">
+                <div className="mt-auto pt-2 border-t border-outline-variant grid grid-cols-2 lg:grid-cols-3 gap-2">
                   <button 
                     onClick={() => openLogModal(asset)}
-                    className="w-full py-2 bg-surface-container text-primary font-label-md text-label-md rounded-lg hover:bg-surface-container-high transition-colors flex items-center justify-center gap-sm"
+                    className="py-2 bg-surface-container text-primary font-label-md text-label-md rounded-lg hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1 col-span-1 lg:col-span-1 text-xs"
+                    title="Registrar"
                   >
-                    <span className="material-symbols-outlined text-[18px]">build</span>
-                    Registrar Mantenimiento
+                    <span className="material-symbols-outlined text-[16px]">build</span>
+                    <span className="hidden sm:inline">Registrar</span>
+                  </button>
+                  <button 
+                    onClick={() => openScheduleModal(asset)}
+                    className="py-2 bg-surface-container text-tertiary font-label-md text-label-md rounded-lg hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1 col-span-1 lg:col-span-1 text-xs"
+                    title="Programar"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">event</span>
+                    <span className="hidden sm:inline">Programar</span>
+                  </button>
+                  <button 
+                    onClick={() => handleOpenLogsView(asset)}
+                    className="py-2 bg-surface-container text-secondary font-label-md text-label-md rounded-lg hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1 col-span-2 lg:col-span-1 text-xs"
+                    title="Historial"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">history</span>
+                    <span className="hidden sm:inline">Historial</span>
                   </button>
                 </div>
               </div>
@@ -359,7 +433,8 @@ export default function MaintenanceDashboard() {
               No hay mantenimientos programados.
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
                 <tr className="bg-surface-container-low border-b border-outline-variant font-label-md text-label-md text-on-surface-variant">
                   <th className="p-md font-medium">Activo</th>
@@ -414,14 +489,15 @@ export default function MaintenanceDashboard() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}
 
       {/* Asset Modal */}
       {isAssetModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
+          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]">
             <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low shrink-0">
               <h2 className="font-h3 text-h3 text-on-surface font-semibold flex items-center gap-sm">
                 <span className="material-symbols-outlined text-primary">{editingAsset ? 'edit' : 'home_repair_service'}</span>
@@ -462,7 +538,7 @@ export default function MaintenanceDashboard() {
                   </select>
                 </div>
 
-                <div className="flex gap-md">
+                <div className="flex flex-col sm:flex-row gap-md">
                   <div className="flex flex-col gap-1 flex-1">
                     <label className="font-label-md text-on-surface font-medium">Marca / Modelo</label>
                     <input
@@ -493,7 +569,7 @@ export default function MaintenanceDashboard() {
                   />
                 </div>
 
-                <div className="flex gap-md">
+                <div className="flex flex-col sm:flex-row gap-md">
                   <div className="flex flex-col gap-1 flex-1">
                     <label className="font-label-md text-on-surface font-medium">Fecha de Compra</label>
                     <input
@@ -516,18 +592,18 @@ export default function MaintenanceDashboard() {
               </form>
             </div>
             
-            <div className="p-lg border-t border-outline-variant flex justify-end gap-md shrink-0 bg-surface-container-lowest">
+            <div className="p-lg border-t border-outline-variant flex flex-col-reverse sm:flex-row justify-end gap-sm sm:gap-md shrink-0 bg-surface-container-lowest">
               <button 
                 type="button" 
                 onClick={() => setIsAssetModalOpen(false)}
-                className="px-lg py-sm rounded-lg font-label-md text-label-md text-primary hover:bg-primary-container transition-colors"
+                className="w-full sm:w-auto px-lg py-sm rounded-lg font-label-md text-label-md text-primary border border-outline-variant hover:bg-primary-container transition-colors"
               >
                 Cancelar
               </button>
               <button 
                 type="submit"
                 form="assetForm"
-                className="px-lg py-sm rounded-lg font-label-md text-label-md bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm"
+                className="w-full sm:w-auto px-lg py-sm rounded-lg font-label-md text-label-md bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm"
               >
                 Guardar
               </button>
@@ -538,8 +614,8 @@ export default function MaintenanceDashboard() {
 
       {/* Log Modal */}
       {isLogModalOpen && selectedAssetForLog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
+          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]">
             <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low shrink-0">
               <h2 className="font-h3 text-h3 text-on-surface font-semibold flex items-center gap-sm">
                 <span className="material-symbols-outlined text-primary">build</span>
@@ -638,6 +714,126 @@ export default function MaintenanceDashboard() {
                 className="px-lg py-sm rounded-lg font-label-md text-label-md bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm"
               >
                 Guardar Registro
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logs View Modal */}
+      {isLogsViewModalOpen && logsViewAsset && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
+          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-lg overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low shrink-0">
+              <h2 className="font-h3 text-h3 text-on-surface font-semibold flex items-center gap-sm">
+                <span className="material-symbols-outlined text-secondary">history</span>
+                Historial de {logsViewAsset.name}
+              </h2>
+              <button 
+                onClick={() => setIsLogsViewModalOpen(false)}
+                className="text-on-surface-variant hover:text-error transition-colors p-1 rounded-full hover:bg-error-container"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto p-md flex flex-col gap-sm bg-surface">
+              {assetLogs.length === 0 ? (
+                <div className="text-center p-xl text-on-surface-variant font-body-md">
+                  No hay mantenimientos registrados.
+                </div>
+              ) : (
+                assetLogs.map(log => (
+                  <div key={log.id} className="bg-surface-container-lowest p-md rounded-lg border border-outline-variant">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="font-label-lg text-on-surface font-semibold">{log.task_name}</span>
+                      <span className="text-on-surface-variant text-sm font-medium">{log.service_date ? new Date(log.service_date).toLocaleDateString() : '-'}</span>
+                    </div>
+                    {log.performed_by && <div className="text-sm text-on-surface-variant mb-1">Realizado por: <span className="text-on-surface">{log.performed_by}</span></div>}
+                    {log.cost !== null && <div className="text-sm text-on-surface-variant mb-1">Costo: <span className="text-on-surface">${log.cost}</span></div>}
+                    {log.notes && <div className="text-sm text-on-surface bg-surface-container-low p-2 rounded mt-2">{log.notes}</div>}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Modal */}
+      {isScheduleModalOpen && scheduleAsset && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
+          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low shrink-0">
+              <h2 className="font-h3 text-h3 text-on-surface font-semibold flex items-center gap-sm">
+                <span className="material-symbols-outlined text-tertiary">event</span>
+                Programar Mantenimiento
+              </h2>
+              <button 
+                onClick={() => setIsScheduleModalOpen(false)}
+                className="text-on-surface-variant hover:text-error transition-colors p-1 rounded-full hover:bg-error-container"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto">
+              <form id="scheduleForm" onSubmit={handleSaveSchedule} className="p-lg flex flex-col gap-md">
+                <div className="bg-surface-container-low p-sm rounded-lg flex items-center gap-3">
+                  <span className="material-symbols-outlined text-on-surface-variant">{CATEGORY_ICONS[scheduleAsset.category]}</span>
+                  <div className="font-medium text-on-surface">{scheduleAsset.name}</div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="font-label-md text-on-surface font-medium">Descripción de la Tarea *</label>
+                  <input
+                    type="text"
+                    required
+                    value={scheduleTaskDesc}
+                    onChange={(e) => setScheduleTaskDesc(e.target.value)}
+                    className="w-full bg-surface rounded-lg border border-outline-variant px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    placeholder="Ej. Limpieza de filtros mensual"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="font-label-md text-on-surface font-medium">Frecuencia (Meses) *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={scheduleFreq}
+                    onChange={(e) => setScheduleFreq(e.target.value)}
+                    className="w-full bg-surface rounded-lg border border-outline-variant px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="font-label-md text-on-surface font-medium">Próximo Vencimiento</label>
+                  <input
+                    type="date"
+                    value={scheduleNextDue}
+                    onChange={(e) => setScheduleNextDue(e.target.value)}
+                    className="w-full bg-surface rounded-lg border border-outline-variant px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  />
+                </div>
+              </form>
+            </div>
+            
+            <div className="p-lg border-t border-outline-variant flex justify-end gap-md shrink-0 bg-surface-container-lowest">
+              <button 
+                type="button" 
+                onClick={() => setIsScheduleModalOpen(false)}
+                className="px-lg py-sm rounded-lg font-label-md text-label-md text-primary hover:bg-primary-container transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit"
+                form="scheduleForm"
+                className="px-lg py-sm rounded-lg font-label-md text-label-md bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm"
+              >
+                Programar
               </button>
             </div>
           </div>

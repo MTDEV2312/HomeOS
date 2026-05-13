@@ -19,6 +19,7 @@ import {
   Pencil, Check, X, RefreshCw, Home, Calendar, KeyRound, Crown,
   LogOut, Link, Share2, QrCode,
 } from 'lucide-react';
+import { useToast } from '@/lib/toast-context';
 
 export default function HouseholdAdminPage() {
   const { activeHousehold, activeRole, refreshHousehold } = useHousehold();
@@ -28,6 +29,7 @@ export default function HouseholdAdminPage() {
   const [members, setMembers] = useState<HouseholdMemberDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { toast, success, error: showError } = useToast();
 
   // Edit state
   const [isEditingName, setIsEditingName] = useState(false);
@@ -101,6 +103,7 @@ export default function HouseholdAdminPage() {
   const handleCopyCode = () => {
     navigator.clipboard.writeText(localInviteCode);
     setCopied(true);
+    success('Código copiado', 'El código de invitación se copió al portapapeles.');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -108,6 +111,7 @@ export default function HouseholdAdminPage() {
     const link = `${window.location.origin}/invite/${localInviteCode}`;
     navigator.clipboard.writeText(link);
     setLinkCopied(true);
+    success('Enlace copiado', 'El enlace de invitación se copió al portapapeles.');
     setTimeout(() => setLinkCopied(false), 2000);
   };
 
@@ -118,9 +122,10 @@ export default function HouseholdAdminPage() {
       setLeaving(true);
       await leaveHousehold(activeHousehold.id, user.id);
       await refreshHousehold();
+      success('Hogar abandonado', 'Has abandonado el hogar correctamente.');
       router.push('/household-setup');
     } catch (err: any) {
-      alert(err.message || 'Error al abandonar el hogar.');
+      showError('Error al abandonar el hogar', err.message || 'Error desconocido');
     } finally {
       setLeaving(false);
     }
@@ -131,8 +136,9 @@ export default function HouseholdAdminPage() {
     try {
       await removeMember(activeHousehold.id, userIdToRemove);
       setMembers(members.filter(m => m.user_id !== userIdToRemove));
+      success('Miembro eliminado', 'El miembro ha sido eliminado del hogar.');
     } catch (err: any) {
-      alert(err.message || 'Error al eliminar al miembro.');
+      showError('Error al eliminar miembro', err.message || 'Error desconocido');
     }
   };
 
@@ -140,8 +146,9 @@ export default function HouseholdAdminPage() {
     try {
       await updateMemberRole(activeHousehold.id, userIdToUpdate, newRole);
       setMembers(members.map(m => m.user_id === userIdToUpdate ? { ...m, role: newRole } : m));
+      success('Rol actualizado', 'El rol del miembro ha sido actualizado correctamente.');
     } catch (err: any) {
-      alert(err.message || 'Error al actualizar el rol.');
+      showError('Error al actualizar rol', err.message || 'Error desconocido');
     }
   };
 
@@ -176,7 +183,7 @@ export default function HouseholdAdminPage() {
   const ownerMember = members.find(m => m.role === 'OWNER');
 
   return (
-    <div className="flex flex-col gap-xl max-w-4xl mx-auto">
+    <div className="flex flex-col gap-xl w-full min-w-0 max-w-4xl mx-auto">
       {/* Page Header */}
       <div>
         <h1 className="font-h2 text-h2 text-on-surface mb-xs">Mi Residencia</h1>
@@ -339,7 +346,7 @@ export default function HouseholdAdminPage() {
 
       {/* QR Modal */}
       {showQR && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-md" onClick={() => setShowQR(false)}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 pb-20 md:pb-4" onClick={() => setShowQR(false)}>
           <div className="bg-surface-container rounded-xl p-lg shadow-2xl border border-outline-variant max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <div className="text-center mb-md">
               <h3 className="font-h3 text-h3 text-on-surface">Invitar al Hogar</h3>

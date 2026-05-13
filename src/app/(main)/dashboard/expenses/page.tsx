@@ -18,6 +18,7 @@ import {
 } from '@/services/expenseService';
 
 import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService';
+import { useToast } from '@/lib/toast-context';
 
 export default function ExpensesDashboard() {
   const { activeHousehold } = useHousehold();
@@ -28,6 +29,7 @@ export default function ExpensesDashboard() {
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast, success, error: showError } = useToast();
   
   const [isLogExpenseModalOpen, setIsLogExpenseModalOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
@@ -171,8 +173,9 @@ export default function ExpensesDashboard() {
       }
       
       closeExpenseModal();
+      success('Gasto registrado', 'El gasto se ha registrado correctamente.');
     } catch (err: any) {
-      alert(err.message || "Error logging expense");
+      showError('Error al guardar el gasto', err.message || "Error desconocido");
     }
   };
 
@@ -182,8 +185,9 @@ export default function ExpensesDashboard() {
       try {
         await deleteExpense(editingExpense.id);
         closeExpenseModal();
+        success('Gasto eliminado', 'El gasto se ha eliminado correctamente.');
       } catch (err: any) {
-        alert(err.message || "Error eliminando el gasto");
+        showError('Error eliminando el gasto', err.message || "Error desconocido");
       }
     }
   };
@@ -245,7 +249,7 @@ export default function ExpensesDashboard() {
   });
 
   return (
-    <div className="max-w-[1440px] mx-auto flex flex-col gap-xl">
+    <div className="flex flex-col gap-xl w-full min-w-0">
       {/* Page Header & Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md">
         <div>
@@ -374,7 +378,7 @@ export default function ExpensesDashboard() {
                   No hay gastos registrados. ¡Anota el primero!
                 </div>
               ) : (
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse min-w-[550px]">
                   <thead>
                     <tr className="bg-surface-container-low border-b border-outline-variant font-label-md text-label-md text-on-surface-variant">
                       <th className="p-md font-medium">Fecha</th>
@@ -429,8 +433,8 @@ export default function ExpensesDashboard() {
 
       {/* Log Expense Modal */}
       {isLogExpenseModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
+          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]">
             <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
               <h2 className="font-h3 text-h3 text-on-surface font-semibold flex items-center gap-sm">
                 <span className="material-symbols-outlined text-primary">{editingExpense ? 'edit' : 'add_circle'}</span>
@@ -444,7 +448,8 @@ export default function ExpensesDashboard() {
               </button>
             </div>
             
-            <form onSubmit={handleLogExpense} className="p-lg flex flex-col gap-md">
+            <div className="overflow-y-auto">
+            <form id="expenseForm" onSubmit={handleLogExpense} className="p-lg flex flex-col gap-md">
               <div className="flex flex-col gap-1">
                 <label className="font-label-md text-on-surface font-medium">Monto</label>
                 <div className="relative">
@@ -474,8 +479,8 @@ export default function ExpensesDashboard() {
                 />
               </div>
               
-              <div className="flex gap-md">
-                <div className="flex flex-col gap-1 w-1/2">
+              <div className="flex flex-col sm:flex-row gap-md">
+                <div className="flex flex-col gap-1 flex-1">
                   <label className="font-label-md text-on-surface font-medium">Categoría</label>
                   <select
                     value={categoryId}
@@ -489,7 +494,7 @@ export default function ExpensesDashboard() {
                   </select>
                 </div>
                 
-                <div className="flex flex-col gap-1 w-1/2">
+                <div className="flex flex-col gap-1 flex-1">
                   <label className="font-label-md text-on-surface font-medium">Pagado por</label>
                   <select
                     value={expensePayerId}
@@ -516,40 +521,43 @@ export default function ExpensesDashboard() {
                 />
               </div>
               
-              <div className="pt-md mt-md border-t border-outline-variant flex justify-between gap-sm items-center">
-                {editingExpense ? (
-                  <button 
-                    type="button"
-                    onClick={handleDeleteExpense}
-                    className="px-md py-2 rounded-lg font-label-md text-error hover:bg-error-container transition-colors"
-                  >
-                    Eliminar
-                  </button>
-                ) : <div></div>}
-                <div className="flex gap-sm">
-                  <button 
-                    type="button"
-                    onClick={closeExpenseModal}
-                    className="px-md py-2 rounded-lg font-label-md text-secondary hover:bg-surface-container-high transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    type="submit"
-                    className="px-md py-2 rounded-lg font-label-md bg-primary text-on-primary hover:bg-primary/90 transition-colors shadow-sm"
-                  >
-                    {editingExpense ? 'Guardar Cambios' : 'Guardar Gasto'}
-                  </button>
-                </div>
-              </div>
             </form>
+            </div>
+
+            <div className="p-lg border-t border-outline-variant flex flex-col sm:flex-row sm:justify-between gap-sm shrink-0 bg-surface-container-lowest">
+              {editingExpense ? (
+                <button 
+                  type="button"
+                  onClick={handleDeleteExpense}
+                  className="w-full sm:w-auto px-md py-2 rounded-lg font-label-md text-error border border-error/30 hover:bg-error-container transition-colors order-last sm:order-first"
+                >
+                  Eliminar
+                </button>
+              ) : <div className="hidden sm:block"></div>}
+              <div className="flex flex-col-reverse sm:flex-row gap-sm w-full sm:w-auto">
+                <button 
+                  type="button"
+                  onClick={closeExpenseModal}
+                  className="w-full sm:w-auto px-md py-2 rounded-lg font-label-md text-on-surface-variant border border-outline-variant hover:bg-surface-container-high transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  form="expenseForm"
+                  className="w-full sm:w-auto px-md py-2 rounded-lg font-label-md bg-primary text-on-primary hover:bg-primary/90 transition-colors shadow-sm"
+                >
+                  {editingExpense ? 'Guardar Cambios' : 'Guardar Gasto'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Budget Modal */}
       {isBudgetModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
           <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col">
             <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
               <h2 className="font-h3 text-h3 text-on-surface font-semibold flex items-center gap-sm">
@@ -586,8 +594,9 @@ export default function ExpensesDashboard() {
                   }]);
                   
                 setIsBudgetModalOpen(false);
+                success('Presupuesto guardado', 'El presupuesto se ha guardado correctamente.');
               } catch (err: any) {
-                alert(err.message || "Error saving budget");
+                showError('Error guardando presupuesto', err.message || "Error desconocido");
               }
             }} className="p-lg flex flex-col gap-md">
               <div className="flex flex-col gap-1">

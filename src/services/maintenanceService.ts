@@ -15,6 +15,7 @@ export type Asset = {
   manual_url: string | null;
   created_at: string;
   updated_at: string;
+  created_by: string;
 };
 
 export type MaintenanceLog = {
@@ -27,6 +28,7 @@ export type MaintenanceLog = {
   notes: string | null;
   next_service_date: string | null;
   created_at: string;
+  created_by: string;
 };
 
 export type MaintenanceSchedule = {
@@ -38,6 +40,7 @@ export type MaintenanceSchedule = {
   next_due: string | null;
   created_at: string;
   updated_at: string;
+  created_by: string;
 };
 
 // --- Assets ---

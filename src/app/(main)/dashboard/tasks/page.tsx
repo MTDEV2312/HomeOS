@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useHousehold } from '@/lib/household-context';
 import { getTasks, createTask, updateTaskStatus, deleteTask, Task } from '@/services/taskService';
+import { useToast } from '@/lib/toast-context';
 import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService';
 import { insforge } from '@/lib/insforge';
 import { 
@@ -17,6 +18,7 @@ type Tab = 'TODAY' | 'UPCOMING' | 'COMPLETED';
 export default function TasksPage() {
   const { user } = useAuth();
   const { activeHousehold, isLoadingHousehold } = useHousehold();
+  const { toast, success, error: showError } = useToast();
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<HouseholdMemberDetails[]>([]);
@@ -108,7 +110,7 @@ export default function TasksPage() {
         title: '', description: '', due_date: '', priority: 'MEDIUM', assigned_to: 'unassigned', is_recurring: false
       });
     } catch (err: any) {
-      alert(err.message || 'Error al crear la tarea');
+      showError('Error al crear tarea', err.message || 'Error desconocido');
     } finally {
       setIsSubmitting(false);
     }
@@ -120,7 +122,7 @@ export default function TasksPage() {
       const updated = await updateTaskStatus(taskId, newStatus);
       setTasks(tasks.map(t => t.id === taskId ? { ...t, status: updated.status } : t));
     } catch (err: any) {
-      alert(err.message || 'Error actualizando tarea');
+      showError('Error actualizando tarea', err.message || 'Error desconocido');
     }
   };
 
@@ -130,7 +132,7 @@ export default function TasksPage() {
       await deleteTask(taskId);
       setTasks(tasks.filter(t => t.id !== taskId));
     } catch (err: any) {
-      alert(err.message || 'Error eliminando la tarea');
+      showError('Error eliminando la tarea', err.message || 'Error desconocido');
     }
   };
 
@@ -172,7 +174,7 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col gap-lg">
+    <div className="flex-1 flex flex-col gap-lg w-full min-w-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-lg gap-md">
         <div>
@@ -305,8 +307,8 @@ export default function TasksPage() {
 
       {/* Create Task Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-on-surface/20 backdrop-blur-sm z-50 transition-opacity flex items-center justify-center p-md">
-          <div className="relative bg-surface-container-lowest rounded-xl shadow-xl border border-outline-variant w-full max-w-2xl flex flex-col overflow-hidden max-h-[90vh]">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
+          <div className="relative bg-surface-container-lowest rounded-xl shadow-xl border border-outline-variant w-full max-w-2xl flex flex-col overflow-hidden max-h-[85vh]">
             <header className="flex items-center justify-between px-lg py-md border-b border-outline-variant bg-surface-container-lowest">
               <div>
                 <h2 className="font-h3 text-h3 text-on-surface">Nueva Tarea</h2>
@@ -414,15 +416,15 @@ export default function TasksPage() {
               </form>
             </div>
 
-            <footer className="flex items-center justify-between px-lg py-md border-t border-outline-variant bg-surface-container-lowest">
+            <footer className="flex flex-col-reverse sm:flex-row items-center justify-between gap-sm px-lg py-md border-t border-outline-variant bg-surface-container-lowest shrink-0">
               <div className="flex items-center gap-xs text-on-surface-variant">
                 <CheckCircle className="w-4 h-4" />
                 <span className="font-label-sm text-label-sm">Powered by InsForge</span>
               </div>
-              <div className="flex gap-md">
+              <div className="flex gap-md w-full sm:w-auto">
                 <button 
                   onClick={() => setIsModalOpen(false)}
-                  className="px-lg py-sm rounded-lg font-label-md text-label-md text-on-surface border border-outline-variant hover:bg-surface-container-low transition-colors"
+                  className="flex-1 sm:flex-none px-lg py-sm rounded-lg font-label-md text-label-md text-on-surface border border-outline-variant hover:bg-surface-container-low transition-colors"
                 >
                   Cancelar
                 </button>
@@ -430,7 +432,7 @@ export default function TasksPage() {
                   form="taskForm"
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-lg py-sm rounded-lg font-label-md text-label-md text-on-primary bg-primary hover:bg-primary/90 transition-colors flex items-center gap-2"
+                  className="flex-1 sm:flex-none px-lg py-sm rounded-lg font-label-md text-label-md text-on-primary bg-primary hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                 >
                   {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   Guardar Tarea

@@ -16,6 +16,7 @@ export function Sidebar() {
     { name: 'Gastos', path: '/dashboard/expenses', icon: 'payments' },
     { name: 'Inventario', path: '/dashboard/inventory', icon: 'inventory_2' },
     { name: 'Mantenimiento', path: '/dashboard/maintenance', icon: 'home_repair_service' },
+    { name: 'Documentos', path: '/dashboard/documents', icon: 'folder' },
   ];
 
   return (

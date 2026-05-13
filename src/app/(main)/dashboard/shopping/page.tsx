@@ -15,6 +15,7 @@ import {
 } from '@/services/shoppingService';
 import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService';
 import { formatDistanceToNow, parseISO } from 'date-fns';
+import { useToast } from '@/lib/toast-context';
 
 export default function ShoppingDashboard() {
   const { activeHousehold } = useHousehold();
@@ -22,6 +23,7 @@ export default function ShoppingDashboard() {
   const [items, setItems] = useState<ShoppingListItem[]>([]);
   const [members, setMembers] = useState<HouseholdMemberDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast, success, error: showError } = useToast();
 
   // Modals state
   const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
@@ -107,7 +109,7 @@ export default function ShoppingDashboard() {
       setIsCreateListModalOpen(false);
       setNewListName('');
     } catch (err: any) {
-      alert(err.message || 'Error al crear la lista');
+      showError('Error al crear la lista', err.message || 'Error desconocido');
     }
   };
 
@@ -117,7 +119,7 @@ export default function ShoppingDashboard() {
       await deleteShoppingList(listId);
       setLists(lists.filter(l => l.id !== listId));
     } catch (err: any) {
-      alert(err.message || 'Error al eliminar la lista');
+      showError('Error al eliminar la lista', err.message || 'Error desconocido');
     }
   };
 
@@ -148,7 +150,7 @@ export default function ShoppingDashboard() {
       setNewItemCategory('');
       setNewItemAssignedTo('unassigned');
     } catch (err: any) {
-      alert(err.message || 'Error al agregar item');
+      showError('Error al agregar item', err.message || 'Error desconocido');
     }
   };
 
@@ -161,7 +163,7 @@ export default function ShoppingDashboard() {
       });
       setItems(items.map(i => i.id === item.id ? updated : i));
     } catch (err: any) {
-      alert(err.message || 'Error actualizando item');
+      showError('Error actualizando item', err.message || 'Error desconocido');
     }
   };
 
@@ -177,7 +179,7 @@ export default function ShoppingDashboard() {
   const activeListItems = activeListId ? items.filter(i => i.list_id === activeListId) : [];
 
   return (
-    <div className="pt-8 pb-24 px-md md:px-lg max-w-max_width mx-auto w-full">
+    <div className="flex flex-col gap-xl w-full min-w-0">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-md mb-lg">
         <div>
@@ -274,7 +276,7 @@ export default function ShoppingDashboard() {
 
       {/* Create List Modal */}
       {isCreateListModalOpen && (
-        <div className="fixed inset-0 bg-on-surface/50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
           <div className="bg-surface-container-lowest rounded-xl max-w-md w-full p-lg shadow-xl">
             <h2 className="font-h2 text-h2 mb-md">Nueva Lista de Compras</h2>
             <form onSubmit={handleCreateList}>
@@ -311,8 +313,8 @@ export default function ShoppingDashboard() {
 
       {/* List Details Modal (View All) */}
       {activeListId && activeList && (
-        <div className="fixed inset-0 bg-on-surface/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-surface-container-lowest rounded-xl max-w-2xl w-full p-lg shadow-xl flex flex-col max-h-[85vh]">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
+          <div className="bg-surface-container-lowest rounded-xl max-w-2xl w-full p-3 sm:p-lg shadow-xl flex flex-col max-h-[85vh]">
             <div className="flex justify-between items-center border-b border-outline-variant/30 pb-md mb-md shrink-0">
               <h2 className="font-h2 text-h2 flex items-center gap-sm text-primary">
                 <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>local_mall</span>
@@ -364,14 +366,14 @@ export default function ShoppingDashboard() {
             </div>
 
             {/* Add Item Form */}
-            <form onSubmit={handleAddItem} className="mt-auto shrink-0 bg-surface-container-low p-md rounded-lg border border-outline-variant/30">
-              <div className="flex flex-col gap-sm">
-                <div className="flex gap-sm">
+            <form onSubmit={handleAddItem} className="mt-auto shrink-0 bg-surface-container-low p-3 sm:p-md rounded-lg border border-outline-variant/30">
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input 
                     type="text" 
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
-                    className="flex-1 bg-surface-container-lowest rounded-lg border border-outline-variant p-3 text-on-surface focus:border-primary outline-none"
+                    className="flex-1 bg-surface-container-lowest rounded-lg border border-outline-variant px-3 py-2.5 text-on-surface focus:border-primary outline-none text-sm"
                     placeholder="Nuevo item..."
                     required
                   />
@@ -379,15 +381,15 @@ export default function ShoppingDashboard() {
                     type="text" 
                     value={newItemQuantity}
                     onChange={(e) => setNewItemQuantity(e.target.value)}
-                    className="w-24 bg-surface-container-lowest rounded-lg border border-outline-variant p-3 text-on-surface focus:border-primary outline-none"
+                    className="w-full sm:w-24 bg-surface-container-lowest rounded-lg border border-outline-variant px-3 py-2.5 text-on-surface focus:border-primary outline-none text-sm"
                     placeholder="Cant."
                   />
                 </div>
-                <div className="flex gap-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   <select
                     value={newItemCategory}
                     onChange={(e) => setNewItemCategory(e.target.value)}
-                    className="flex-1 bg-surface-container-lowest rounded-lg border border-outline-variant p-3 text-on-surface focus:border-primary outline-none"
+                    className="bg-surface-container-lowest rounded-lg border border-outline-variant px-2 py-2.5 text-on-surface focus:border-primary outline-none text-sm"
                   >
                     <option value="">Sin categoría</option>
                     <option value="Supermercado">Supermercado</option>
@@ -402,7 +404,7 @@ export default function ShoppingDashboard() {
                   <select
                     value={newItemAssignedTo}
                     onChange={(e) => setNewItemAssignedTo(e.target.value)}
-                    className="flex-1 bg-surface-container-lowest rounded-lg border border-outline-variant p-3 text-on-surface focus:border-primary outline-none"
+                    className="bg-surface-container-lowest rounded-lg border border-outline-variant px-2 py-2.5 text-on-surface focus:border-primary outline-none text-sm"
                   >
                     <option value="unassigned">Cualquiera</option>
                     {members.map(m => (
@@ -412,9 +414,9 @@ export default function ShoppingDashboard() {
                   
                   <button 
                     type="submit"
-                    className="px-6 rounded-lg bg-primary text-on-primary hover:bg-primary/90 flex items-center justify-center transition-colors shadow-sm font-label-md"
+                    className="col-span-2 sm:col-span-1 px-4 py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary/90 flex items-center justify-center transition-colors shadow-sm font-label-md text-sm"
                   >
-                    <span className="material-symbols-outlined mr-1">add</span>
+                    <span className="material-symbols-outlined text-[18px] mr-1">add</span>
                     Agregar
                   </button>
                 </div>

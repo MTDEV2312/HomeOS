@@ -15,6 +15,7 @@ import {
   deleteInventoryItem 
 } from '@/services/inventoryService';
 import { getShoppingLists, createShoppingList, addShoppingListItem, ShoppingList } from '@/services/shoppingService';
+import { useToast } from '@/lib/toast-context';
 
 export default function InventoryDashboard() {
   const { activeHousehold } = useHousehold();
@@ -24,6 +25,7 @@ export default function InventoryDashboard() {
   const [categories, setCategories] = useState<InventoryCategory[]>([]);
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast, success, error: showError } = useToast();
   
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
@@ -179,9 +181,10 @@ export default function InventoryDashboard() {
         await addInventoryItem(payload);
       }
       closeItemModal();
-    } catch (err) {
+      success('Ítem guardado', 'El ítem se ha guardado correctamente en el inventario.');
+    } catch (err: any) {
       console.error("Error saving item:", err);
-      alert("Hubo un error al guardar el ítem.");
+      showError('Error al guardar el ítem', err.message || 'Error desconocido');
     }
   };
 
@@ -189,9 +192,10 @@ export default function InventoryDashboard() {
     if (confirm('¿Estás seguro de que quieres eliminar este ítem?')) {
       try {
         await deleteInventoryItem(id);
-      } catch (err) {
+        success('Ítem eliminado', 'El ítem se ha eliminado del inventario.');
+      } catch (err: any) {
         console.error('Error deleting item:', err);
-        alert('Error al eliminar el ítem.');
+        showError('Error al eliminar el ítem', err.message || 'Error desconocido');
       }
     }
   };
@@ -225,10 +229,10 @@ export default function InventoryDashboard() {
         category: item.category?.name || 'Despensa'
       });
       
-      alert(`"${item.name}" añadido a la lista de compras.`);
-    } catch (err) {
+      success('Añadido a la lista', `"${item.name}" añadido a la lista de compras.`);
+    } catch (err: any) {
       console.error('Error adding to shopping list:', err);
-      alert('Hubo un error al añadir a la lista de compras.');
+      showError('Error al añadir a la lista', err.message || 'Hubo un error al añadir a la lista de compras.');
     }
   };
 
@@ -251,7 +255,7 @@ export default function InventoryDashboard() {
   });
 
   return (
-    <div className="max-w-[1440px] mx-auto flex flex-col gap-xl">
+    <div className="flex flex-col gap-xl w-full min-w-0">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md">
         <div>
           <h1 className="font-h1 text-h1 text-on-surface">Inventario</h1>
@@ -337,7 +341,7 @@ export default function InventoryDashboard() {
               No hay ítems para mostrar.
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
                 <tr className="bg-surface-container-low border-b border-outline-variant font-label-md text-label-md text-on-surface-variant">
                   <th className="p-md font-medium">Producto</th>
@@ -420,8 +424,8 @@ export default function InventoryDashboard() {
       </div>
 
       {isItemModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
+          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]">
             <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low shrink-0">
               <h2 className="font-h3 text-h3 text-on-surface font-semibold flex items-center gap-sm">
                 <span className="material-symbols-outlined text-primary">{editingItem ? 'edit' : 'inventory_2'}</span>
@@ -460,7 +464,7 @@ export default function InventoryDashboard() {
                   />
                 </div>
 
-                <div className="flex gap-md">
+                <div className="flex flex-col sm:flex-row gap-md">
                   <div className="flex flex-col gap-1 flex-1">
                     <label className="font-label-md text-on-surface font-medium">Categoría</label>
                     <select
@@ -485,7 +489,7 @@ export default function InventoryDashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-md">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-md">
                   <div className="flex flex-col gap-1">
                     <label className="font-label-md text-on-surface font-medium">Stock</label>
                     <input
