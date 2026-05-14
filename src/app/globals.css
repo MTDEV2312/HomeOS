@@ -125,6 +125,37 @@
     overflow-x: hidden;
     /* We handle the actual background and text colors directly in layout.tsx using tailwind classes from the design system, e.g., bg-background text-on-background */
   }
+
+  /* ═══ Select Overflow Fix ═══ */
+  /* Force selects to respect their parent container width */
+  select {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    padding-right: 2rem !important;
+  }
+
+  /* Fix for flex containers with selects */
+  .flex > * > select,
+  .grid > * > select,
+  .flex > select,
+  .grid > select {
+    min-width: 0;
+  }
+}
+
+/* Dark mode select arrow */
+.dark select,
+[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23c0c7d0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 
 /* ═══ Scrollbar Hide Utility ═══ */

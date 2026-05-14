@@ -699,7 +699,7 @@ export default function MaintenanceDashboard() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-md">
-                  <div className="flex flex-col gap-1 flex-1">
+                  <div className="flex flex-col gap-1 flex-1 min-w-0">
                     <label className="font-label-md text-on-surface font-medium">Marca / Modelo</label>
                     <input
                       type="text"
@@ -708,7 +708,7 @@ export default function MaintenanceDashboard() {
                       className="w-full bg-surface rounded-lg border border-outline-variant px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                     />
                   </div>
-                  <div className="flex flex-col gap-1 flex-1">
+                  <div className="flex flex-col gap-1 flex-1 min-w-0">
                     <label className="font-label-md text-on-surface font-medium">Ubicación</label>
                     <input
                       type="text"
@@ -730,7 +730,7 @@ export default function MaintenanceDashboard() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-md">
-                  <div className="flex flex-col gap-1 flex-1">
+                  <div className="flex flex-col gap-1 flex-1 min-w-0">
                     <label className="font-label-md text-on-surface font-medium">Fecha de Compra</label>
                     <input
                       type="date"
@@ -739,7 +739,7 @@ export default function MaintenanceDashboard() {
                       className="w-full bg-surface rounded-lg border border-outline-variant px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                     />
                   </div>
-                  <div className="flex flex-col gap-1 flex-1">
+                  <div className="flex flex-col gap-1 flex-1 min-w-0">
                     <label className="font-label-md text-on-surface font-medium">Vencimiento Garantía</label>
                     <input
                       type="date"
@@ -809,7 +809,7 @@ export default function MaintenanceDashboard() {
                 </div>
 
                 <div className="flex gap-md">
-                  <div className="flex flex-col gap-1 flex-1">
+                  <div className="flex flex-col gap-1 flex-1 min-w-0">
                     <label className="font-label-md text-on-surface font-medium">Realizado Por</label>
                     <input
                       type="text"

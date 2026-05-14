@@ -484,7 +484,7 @@ export default function ExpensesDashboard() {
               </div>
               
               <div className="flex flex-col sm:flex-row gap-md">
-                <div className="flex flex-col gap-1 flex-1">
+                <div className="flex flex-col gap-1 flex-1 min-w-0">
                   <label className="font-label-md text-on-surface font-medium">Categoría</label>
                   <select
                     value={categoryId}
@@ -498,7 +498,7 @@ export default function ExpensesDashboard() {
                   </select>
                 </div>
                 
-                <div className="flex flex-col gap-1 flex-1">
+                <div className="flex flex-col gap-1 flex-1 min-w-0">
                   <label className="font-label-md text-on-surface font-medium">Pagado por</label>
                   <select
                     value={expensePayerId}
