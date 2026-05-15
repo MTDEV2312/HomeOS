@@ -13,7 +13,6 @@ build/
 Thumbs.db
 .vscode/
 .idea/
-
 # InsForge & AI agent skills
 .insforge
 .agent
@@ -28,6 +27,7 @@ Thumbs.db
 .roo
 .trae
 .windsurf
+.atl
 
 # Logs
 npm-debug.log*
