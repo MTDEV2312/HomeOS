@@ -8,6 +8,7 @@ import { createHousehold, joinHousehold } from '@/services/householdService';
 import { householdSchema, inviteCodeSchema, getFieldErrors } from '@/lib/validations';
 import { Home, UserPlus, ShieldCheck, PlusCircle, LogIn, Loader2 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function HouseholdSetupPage() {
   const router = useRouter();
@@ -54,8 +55,8 @@ export default function HouseholdSetupPage() {
       await refreshHousehold();
       switchHousehold(newHousehold.id);
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Error al crear el hogar');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Error al crear el hogar'));
     } finally {
       setLoadingType(null);
     }
@@ -74,12 +75,12 @@ export default function HouseholdSetupPage() {
     try {
       setLoadingType('JOIN');
       setError('');
-      const joinedHousehold = await joinHousehold(joinData.code.trim(), user.id);
+      const joinedHousehold = await joinHousehold(joinData.code.trim());
       await refreshHousehold();
       switchHousehold(joinedHousehold.id);
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Error al unirse al hogar');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Error al unirse al hogar'));
     } finally {
       setLoadingType(null);
     }

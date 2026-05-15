@@ -25,6 +25,12 @@ export type HouseholdMemberDetails = {
   name: string;
 };
 
+export type UserHousehold = {
+  household_id: string;
+  role: HouseholdMember['role'];
+  households: Household;
+};
+
 export const createHousehold = async (name: string, userId: string): Promise<Household> => {
   const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
   
@@ -45,7 +51,7 @@ export const createHousehold = async (name: string, userId: string): Promise<Hou
   return household as Household;
 };
 
-export const joinHousehold = async (inviteCode: string, _userId: string): Promise<Household> => {
+export const joinHousehold = async (inviteCode: string): Promise<Household> => {
   const { data, error } = await insforge.database
     .rpc('join_household_by_invite_code', { code: inviteCode.toUpperCase() });
 
@@ -70,14 +76,14 @@ export const getHouseholdMembers = async (householdId: string): Promise<Househol
   return data as HouseholdMemberDetails[];
 };
 
-export const getUserHouseholds = async (userId: string) => {
+export const getUserHouseholds = async (userId: string): Promise<UserHousehold[]> => {
   const { data, error } = await insforge.database
     .from('household_members')
     .select('household_id, role, households(*)')
     .eq('user_id', userId);
     
   if (error) throw error;
-  return data;
+  return (data || []) as UserHousehold[];
 };
 
 export const updateHousehold = async (householdId: string, updates: { name?: string }): Promise<Household> => {

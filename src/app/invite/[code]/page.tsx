@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useHousehold } from '@/lib/household-context';
 import { joinHousehold } from '@/services/householdService';
 import { Home, Loader2, CheckCircle, XCircle, LogIn } from 'lucide-react';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function InvitePage() {
   const params = useParams();
@@ -36,15 +37,15 @@ export default function InvitePage() {
     if (!user || !code) return;
     try {
       setStatus('joining');
-      const household = await joinHousehold(code, user.id);
+      const household = await joinHousehold(code);
       await refreshHousehold();
       switchHousehold(household.id);
       setStatus('success');
       setTimeout(() => {
         router.push('/dashboard');
       }, 1500);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Error al unirse al hogar.');
+    } catch (err: unknown) {
+      setErrorMessage(getErrorMessage(err, 'Error al unirse al hogar.'));
       setStatus('error');
     }
   };

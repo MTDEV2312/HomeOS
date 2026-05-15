@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import QRCodeLib from 'qrcode';
 
 interface QRCodeProps {
@@ -43,11 +44,13 @@ export function QRCode({ value, size = 200, className = '' }: QRCodeProps) {
   }
 
   return (
-    <img 
-      src={dataUrl} 
-      alt="Código QR" 
+    <Image
+      src={dataUrl}
+      alt="Código QR"
       className={className}
-      style={{ width: size, height: size }}
+      width={size}
+      height={size}
+      unoptimized
     />
   );
 }

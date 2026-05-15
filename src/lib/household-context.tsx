@@ -1,13 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useAuth } from './auth-context';
-import { getUserHouseholds } from '@/services/householdService';
+import { getUserHouseholds, Household, HouseholdMember, UserHousehold } from '@/services/householdService';
 
 type ActiveHouseholdContextType = {
-  activeHousehold: any | null;
-  activeRole: 'OWNER' | 'ADMIN' | 'MEMBER' | null;
-  householdsList: any[];
+  activeHousehold: Household | null;
+  activeRole: HouseholdMember['role'] | null;
+  householdsList: UserHousehold[];
   isLoadingHousehold: boolean;
   refreshHousehold: () => Promise<void>;
   switchHousehold: (householdId: string) => void;
@@ -24,12 +24,12 @@ const HouseholdContext = createContext<ActiveHouseholdContextType>({
 
 export function HouseholdProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [activeHousehold, setActiveHousehold] = useState<any | null>(null);
-  const [activeRole, setActiveRole] = useState<'OWNER' | 'ADMIN' | 'MEMBER' | null>(null);
-  const [householdsList, setHouseholdsList] = useState<any[]>([]);
+  const [activeHousehold, setActiveHousehold] = useState<Household | null>(null);
+  const [activeRole, setActiveRole] = useState<HouseholdMember['role'] | null>(null);
+  const [householdsList, setHouseholdsList] = useState<UserHousehold[]>([]);
   const [isLoadingHousehold, setIsLoadingHousehold] = useState(true);
 
-  const refreshHousehold = async () => {
+  const refreshHousehold = useCallback(async () => {
     if (!user) {
       setActiveHousehold(null);
       setActiveRole(null);
@@ -45,7 +45,7 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
         
         // Check if there's a stored preference
         const storedId = localStorage.getItem('homeos-active-household');
-        let selected: any = households.find((h: any) => h.households.id === storedId);
+        let selected = households.find((h) => h.households.id === storedId);
         
         if (!selected) {
           selected = households[0];
@@ -69,7 +69,7 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoadingHousehold(false);
     }
-  };
+  }, [user]);
 
   const switchHousehold = (householdId: string) => {
     const selected = householdsList.find(h => h.households.id === householdId);
@@ -82,7 +82,7 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshHousehold();
-  }, [user]);
+  }, [refreshHousehold]);
 
   return (
     <HouseholdContext.Provider value={{ activeHousehold, activeRole, householdsList, isLoadingHousehold, refreshHousehold, switchHousehold }}>

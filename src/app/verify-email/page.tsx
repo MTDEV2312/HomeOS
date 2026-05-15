@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { Loader2, Home, MailCheck, RefreshCw } from 'lucide-react';
+import { Loader2, MailCheck, RefreshCw } from 'lucide-react';
 import { insforge } from '@/lib/insforge';
 import Link from 'next/link';
 
