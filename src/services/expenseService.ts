@@ -33,6 +33,8 @@ export type Budget = {
   created_at: string;
 };
 
+type ExpenseRow = Expense & { expense_categories?: ExpenseCategory | null };
+
 export const getExpenseCategories = async (householdId: string): Promise<ExpenseCategory[]> => {
   const { data, error } = await insforge.database
     .from('expense_categories')
@@ -71,9 +73,10 @@ export const getExpenses = async (householdId: string): Promise<Expense[]> => {
   if (error) throw error;
   
   // Transform data to map the joined category
-  return data.map((item: any) => ({
+  const rows = (data || []) as ExpenseRow[];
+  return rows.map((item) => ({
     ...item,
-    category: item.expense_categories
+    category: item.expense_categories || undefined
   }));
 };
 

@@ -43,6 +43,8 @@ export type MaintenanceSchedule = {
   created_by: string;
 };
 
+type ScheduleWithAsset = MaintenanceSchedule & { asset: Asset };
+
 // --- Assets ---
 
 export const getAssets = async (householdId: string): Promise<Asset[]> => {
@@ -110,7 +112,7 @@ export const deleteMaintenanceLog = async (id: string): Promise<void> => {
 
 export const updateMaintenanceLog = async (id: string, payload: Partial<MaintenanceLog>): Promise<MaintenanceLog> => {
   // Filter out undefined values and non-updatable fields
-  const updates: Record<string, any> = {};
+  const updates: Partial<MaintenanceLog> = {};
   if (payload.task_name !== undefined) updates.task_name = payload.task_name;
   if (payload.performed_by !== undefined) updates.performed_by = payload.performed_by;
   if (payload.service_date !== undefined) updates.service_date = payload.service_date;
@@ -154,7 +156,8 @@ export const getAllMaintenanceSchedules = async (householdId: string): Promise<(
   if (error) throw error;
   
   // Filter locally by household_id if needed, though RLS already restricts it
-  return (data as any[]).filter(s => s.asset && s.asset.household_id === householdId);
+  const rows = (data || []) as ScheduleWithAsset[];
+  return rows.filter(s => s.asset && s.asset.household_id === householdId);
 };
 
 export const addMaintenanceSchedule = async (payload: Partial<MaintenanceSchedule>): Promise<MaintenanceSchedule> => {
