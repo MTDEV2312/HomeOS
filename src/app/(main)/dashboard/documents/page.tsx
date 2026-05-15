@@ -13,6 +13,7 @@ import {
   downloadHouseholdDocument
 } from '@/services/documentService';
 import { useToast } from '@/lib/toast-context';
+import { getErrorMessage } from '@/lib/errors';
 
 const CATEGORY_ICONS: Record<DocumentCategory, string> = {
   RECEIPT: 'receipt_long',
@@ -38,7 +39,7 @@ export default function DocumentsDashboard() {
   const [documents, setDocuments] = useState<HouseholdDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const { toast, success, error: showError } = useToast();
+  const { success, error: showError } = useToast();
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -111,9 +112,9 @@ export default function DocumentsDashboard() {
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       success('Documento subido', 'El documento se ha subido correctamente.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error uploading document:', err);
-      showError('Error al subir el documento', err.message || 'Error desconocido');
+      showError('Error al subir el documento', getErrorMessage(err));
     } finally {
       setUploading(false);
     }
@@ -124,9 +125,9 @@ export default function DocumentsDashboard() {
       try {
         await deleteHouseholdDocument(doc.id, doc.file_key);
         success('Documento eliminado', 'El documento se ha eliminado correctamente.');
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error deleting document:', err);
-        showError('Error al eliminar el documento', err.message || 'Error desconocido');
+        showError('Error al eliminar el documento', getErrorMessage(err));
       }
     }
   };
@@ -142,9 +143,9 @@ export default function DocumentsDashboard() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error downloading document:', err);
-      showError('Error al descargar el documento', err.message || 'Error desconocido');
+      showError('Error al descargar el documento', getErrorMessage(err));
     }
   };
 
