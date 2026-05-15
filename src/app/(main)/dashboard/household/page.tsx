@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useHousehold } from '@/lib/household-context';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
@@ -17,9 +17,10 @@ import { QRCode } from '@/components/QRCode';
 import {
   Copy, Shield, ShieldAlert, Trash2, User, Loader2, Users,
   Pencil, Check, X, RefreshCw, Home, Calendar, KeyRound, Crown,
-  LogOut, Link, Share2, QrCode,
+  LogOut, Share2, QrCode,
 } from 'lucide-react';
 import { useToast } from '@/lib/toast-context';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function HouseholdAdminPage() {
   const { activeHousehold, activeRole, refreshHousehold } = useHousehold();
@@ -29,7 +30,7 @@ export default function HouseholdAdminPage() {
   const [members, setMembers] = useState<HouseholdMemberDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { toast, success, error: showError } = useToast();
+  const { success, error: showError } = useToast();
 
   // Edit state
   const [isEditingName, setIsEditingName] = useState(false);
@@ -49,25 +50,26 @@ export default function HouseholdAdminPage() {
   const isAdmin = activeRole === 'ADMIN';
   const canManage = isOwner || isAdmin;
 
-  useEffect(() => {
-    if (activeHousehold) {
-      fetchMembers();
-      setLocalInviteCode(activeHousehold.invite_code);
-    }
-  }, [activeHousehold]);
-
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
+    if (!activeHousehold) return;
     try {
       setLoading(true);
       const data = await getHouseholdMembers(activeHousehold.id);
       setMembers(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError('Error al cargar los miembros del hogar.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeHousehold]);
+
+  useEffect(() => {
+    if (activeHousehold) {
+      fetchMembers();
+      setLocalInviteCode(activeHousehold.invite_code);
+    }
+  }, [activeHousehold, fetchMembers]);
 
   const handleSaveName = async () => {
     if (!editName.trim() || editName.trim() === activeHousehold.name) {
@@ -79,8 +81,8 @@ export default function HouseholdAdminPage() {
       await updateHousehold(activeHousehold.id, { name: editName.trim() });
       await refreshHousehold();
       setIsEditingName(false);
-    } catch (err: any) {
-      setError(err.message || 'Error al actualizar el nombre.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Error al actualizar el nombre.'));
     } finally {
       setSaving(false);
     }
@@ -93,8 +95,8 @@ export default function HouseholdAdminPage() {
       const newCode = await regenerateInviteCode(activeHousehold.id);
       setLocalInviteCode(newCode);
       await refreshHousehold();
-    } catch (err: any) {
-      setError(err.message || 'Error al regenerar el código.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Error al regenerar el código.'));
     } finally {
       setRegenerating(false);
     }
@@ -124,8 +126,8 @@ export default function HouseholdAdminPage() {
       await refreshHousehold();
       success('Hogar abandonado', 'Has abandonado el hogar correctamente.');
       router.push('/household-setup');
-    } catch (err: any) {
-      showError('Error al abandonar el hogar', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error al abandonar el hogar', getErrorMessage(err));
     } finally {
       setLeaving(false);
     }
@@ -137,8 +139,8 @@ export default function HouseholdAdminPage() {
       await removeMember(activeHousehold.id, userIdToRemove);
       setMembers(members.filter(m => m.user_id !== userIdToRemove));
       success('Miembro eliminado', 'El miembro ha sido eliminado del hogar.');
-    } catch (err: any) {
-      showError('Error al eliminar miembro', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error al eliminar miembro', getErrorMessage(err));
     }
   };
 
@@ -147,8 +149,8 @@ export default function HouseholdAdminPage() {
       await updateMemberRole(activeHousehold.id, userIdToUpdate, newRole);
       setMembers(members.map(m => m.user_id === userIdToUpdate ? { ...m, role: newRole } : m));
       success('Rol actualizado', 'El rol del miembro ha sido actualizado correctamente.');
-    } catch (err: any) {
-      showError('Error al actualizar rol', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error al actualizar rol', getErrorMessage(err));
     }
   };
 

@@ -23,6 +23,7 @@ import {
   deleteMaintenanceLog
 } from '@/services/maintenanceService';
 import { useToast } from '@/lib/toast-context';
+import { getErrorMessage } from '@/lib/errors';
 
 const CATEGORY_ICONS: Record<AssetCategory, string> = {
   APPLIANCE: 'kitchen',
@@ -51,7 +52,7 @@ export default function MaintenanceDashboard() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [schedules, setSchedules] = useState<(MaintenanceSchedule & { asset: Asset })[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast, success, error: showError } = useToast();
+  const { success, error: showError } = useToast();
 
   // Asset Modal State
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -201,9 +202,9 @@ export default function MaintenanceDashboard() {
       }
       setIsAssetModalOpen(false);
       success('Activo guardado', 'El activo se ha guardado correctamente.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error saving asset:', err);
-      showError('Error al guardar el activo', err.message || 'Error desconocido');
+      showError('Error al guardar el activo', getErrorMessage(err));
     }
   };
 
@@ -212,9 +213,9 @@ export default function MaintenanceDashboard() {
       try {
         await deleteAsset(id);
         success('Activo eliminado', 'El activo se ha eliminado correctamente.');
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error deleting asset:', err);
-        showError('Error al eliminar el activo', err.message || 'Error desconocido');
+        showError('Error al eliminar el activo', getErrorMessage(err));
       }
     }
   };
@@ -265,9 +266,9 @@ export default function MaintenanceDashboard() {
 
       setIsLogModalOpen(false);
       success('Mantenimiento registrado', 'El mantenimiento se ha registrado con éxito.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error saving maintenance log:', err);
-      showError('Error al registrar el mantenimiento', err.message || 'Error desconocido');
+      showError('Error al registrar el mantenimiento', getErrorMessage(err));
     }
   };
 
@@ -315,9 +316,9 @@ export default function MaintenanceDashboard() {
       }
       setIsScheduleModalOpen(false);
       setEditingSchedule(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error scheduling maintenance:', err);
-      showError('Error al programar el mantenimiento', err.message || 'Error desconocido');
+      showError('Error al programar el mantenimiento', getErrorMessage(err));
     }
   };
 
@@ -338,9 +339,9 @@ export default function MaintenanceDashboard() {
       await deleteMaintenanceSchedule(scheduleId);
       setSchedules(schedules.filter(s => s.id !== scheduleId));
       success('Programación eliminada', 'La programación de mantenimiento se ha eliminado.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error deleting schedule:', err);
-      showError('Error al eliminar', err.message || 'Error desconocido');
+      showError('Error al eliminar', getErrorMessage(err));
     }
   };
 
@@ -388,9 +389,9 @@ export default function MaintenanceDashboard() {
       setIsLogModalOpen(false);
       setEditingLog(null);
       success('Registro actualizado', 'El mantenimiento se ha actualizado correctamente.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating log:', err);
-      showError('Error al actualizar', err.message || 'Error desconocido');
+      showError('Error al actualizar', getErrorMessage(err));
     }
   };
 
@@ -401,9 +402,9 @@ export default function MaintenanceDashboard() {
       await deleteMaintenanceLog(logId);
       setAssetLogs(assetLogs.filter(l => l.id !== logId));
       success('Registro eliminado', 'El mantenimiento se ha eliminado.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error deleting log:', err);
-      showError('Error al eliminar', err.message || 'Error desconocido');
+      showError('Error al eliminar', getErrorMessage(err));
     }
   };
 

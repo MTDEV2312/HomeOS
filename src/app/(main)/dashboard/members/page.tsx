@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useHousehold } from '@/lib/household-context';
 import { useAuth } from '@/lib/auth-context';
 import { getHouseholdMembers, removeMember, updateMemberRole, HouseholdMemberDetails } from '@/services/householdService';
 import { useToast } from '@/lib/toast-context';
+import { getErrorMessage } from '@/lib/errors';
 import { Copy, Shield, ShieldAlert, Trash2, User, Loader2, Users, QrCode } from 'lucide-react';
 import { QRCode } from '@/components/QRCode';
 
@@ -15,28 +16,29 @@ export default function MembersPage() {
   const [members, setMembers] = useState<HouseholdMemberDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { toast, success, error: showError } = useToast();
+  const { success, error: showError } = useToast();
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
 
-  useEffect(() => {
-    if (activeHousehold) {
-      fetchMembers();
-    }
-  }, [activeHousehold]);
-
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
+    if (!activeHousehold) return;
     try {
       setLoading(true);
       const data = await getHouseholdMembers(activeHousehold.id);
       setMembers(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError('Error al cargar los miembros del hogar.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeHousehold]);
+
+  useEffect(() => {
+    if (activeHousehold) {
+      fetchMembers();
+    }
+  }, [activeHousehold, fetchMembers]);
 
   const handleCopyCode = () => {
     if (activeHousehold?.invite_code) {
@@ -52,8 +54,8 @@ export default function MembersPage() {
     try {
       await removeMember(activeHousehold.id, userIdToRemove);
       setMembers(members.filter(m => m.user_id !== userIdToRemove));
-    } catch (err: any) {
-      showError('Error al eliminar al miembro', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error al eliminar al miembro', getErrorMessage(err));
     }
   };
 
@@ -61,8 +63,8 @@ export default function MembersPage() {
     try {
       await updateMemberRole(activeHousehold.id, userIdToUpdate, newRole);
       setMembers(members.map(m => m.user_id === userIdToUpdate ? { ...m, role: newRole } : m));
-    } catch (err: any) {
-      showError('Error al actualizar el rol', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error al actualizar el rol', getErrorMessage(err));
     }
   };
 

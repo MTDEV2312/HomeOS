@@ -19,6 +19,7 @@ import {
 
 import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService';
 import { useToast } from '@/lib/toast-context';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function ExpensesDashboard() {
   const { activeHousehold } = useHousehold();
@@ -29,7 +30,7 @@ export default function ExpensesDashboard() {
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast, success, error: showError } = useToast();
+  const { success, error: showError } = useToast();
   
   const [isLogExpenseModalOpen, setIsLogExpenseModalOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
@@ -78,8 +79,9 @@ export default function ExpensesDashboard() {
             try {
               const created = await createExpenseCategory(activeHousehold.id, cat);
               createdCats.push(created);
-            } catch (e: any) {
-              if (e.code !== '23505') { // ignore unique violation
+            } catch (e: unknown) {
+              const errorCode = typeof e === 'object' && e && 'code' in e ? (e as { code?: string }).code : undefined;
+              if (errorCode !== '23505') {
                 console.error("Error creating category:", e);
               }
             }
@@ -94,7 +96,7 @@ export default function ExpensesDashboard() {
         setBudgets(loadedBudgets);
         const currentBudget = loadedBudgets.find((b: Budget) => !b.category_id);
         if (currentBudget) setBudgetAmount(currentBudget.amount.toString());
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error loading expenses data:", err);
       } finally {
         setLoading(false);
@@ -109,7 +111,7 @@ export default function ExpensesDashboard() {
         const channelName = `household:${activeHousehold.id}`;
         await insforge.realtime.subscribe(channelName);
         
-        insforge.realtime.on('INSERT_expenses', (payload: any) => {
+        insforge.realtime.on('INSERT_expenses', (payload: Expense) => {
           setCategories(cats => {
             const expense = { ...payload, category: cats.find(c => c.id === payload.category_id) };
             setExpenses(prev => prev.find(e => e.id === payload.id) ? prev : [expense, ...prev]);
@@ -117,7 +119,7 @@ export default function ExpensesDashboard() {
           });
         });
         
-        insforge.realtime.on('UPDATE_expenses', (payload: any) => {
+        insforge.realtime.on('UPDATE_expenses', (payload: Expense) => {
           setCategories(cats => {
             const expense = { ...payload, category: cats.find(c => c.id === payload.category_id) };
             setExpenses(prev => prev.map(e => e.id === payload.id ? expense : e));
@@ -125,7 +127,7 @@ export default function ExpensesDashboard() {
           });
         });
         
-        insforge.realtime.on('DELETE_expenses', (payload: any) => {
+        insforge.realtime.on('DELETE_expenses', (payload: Expense) => {
           setExpenses(prev => prev.filter(e => e.id !== payload.id));
         });
         
@@ -174,8 +176,8 @@ export default function ExpensesDashboard() {
       
       closeExpenseModal();
       success('Gasto registrado', 'El gasto se ha registrado correctamente.');
-    } catch (err: any) {
-      showError('Error al guardar el gasto', err.message || "Error desconocido");
+    } catch (err: unknown) {
+      showError('Error al guardar el gasto', getErrorMessage(err));
     }
   };
 
@@ -186,8 +188,8 @@ export default function ExpensesDashboard() {
         await deleteExpense(editingExpense.id);
         closeExpenseModal();
         success('Gasto eliminado', 'El gasto se ha eliminado correctamente.');
-      } catch (err: any) {
-        showError('Error eliminando el gasto', err.message || "Error desconocido");
+      } catch (err: unknown) {
+        showError('Error eliminando el gasto', getErrorMessage(err));
       }
     }
   };
@@ -599,8 +601,8 @@ export default function ExpensesDashboard() {
                   
                 setIsBudgetModalOpen(false);
                 success('Presupuesto guardado', 'El presupuesto se ha guardado correctamente.');
-              } catch (err: any) {
-                showError('Error guardando presupuesto', err.message || "Error desconocido");
+              } catch (err: unknown) {
+                showError('Error guardando presupuesto', getErrorMessage(err));
               }
             }} className="p-lg flex flex-col gap-md">
               <div className="flex flex-col gap-1">

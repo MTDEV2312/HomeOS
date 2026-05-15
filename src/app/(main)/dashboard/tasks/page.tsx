@@ -3,23 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useHousehold } from '@/lib/household-context';
-import { getTasks, createTask, updateTaskStatus, deleteTask, updateTask, Task } from '@/services/taskService';
+import { getTasks, createTask, updateTaskStatus, deleteTask, updateTask, Task, TaskPriority, TaskStatus } from '@/services/taskService';
 import { useToast } from '@/lib/toast-context';
 import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService';
 import { insforge } from '@/lib/insforge';
 import { 
-  CheckCircle, PlusCircle, MoreVertical, Calendar, User, 
+  CheckCircle, PlusCircle, Calendar, User, 
   Filter, Repeat, X, AlertCircle, Loader2, Edit2, Trash2,
   Clock, CheckSquare
 } from 'lucide-react';
 import { format, isToday, isPast, parseISO, isFuture } from 'date-fns';
+import { getErrorMessage } from '@/lib/errors';
 
 type Tab = 'TODAY' | 'UPCOMING' | 'COMPLETED';
 
 export default function TasksPage() {
   const { user } = useAuth();
   const { activeHousehold, activeRole, isLoadingHousehold } = useHousehold();
-  const { toast, success, error: showError } = useToast();
+  const { error: showError } = useToast();
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<HouseholdMemberDetails[]>([]);
@@ -36,7 +37,14 @@ export default function TasksPage() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState({
+  const [editFormData, setEditFormData] = useState<{ 
+    title: string; 
+    description: string; 
+    due_date: string; 
+    priority: TaskPriority; 
+    assigned_to: string; 
+    is_recurring: boolean; 
+  }>({
     title: '',
     description: '',
     due_date: '',
@@ -46,7 +54,14 @@ export default function TasksPage() {
   });
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{ 
+    title: string; 
+    description: string; 
+    due_date: string; 
+    priority: TaskPriority; 
+    assigned_to: string; 
+    is_recurring: boolean; 
+  }>({
     title: '',
     description: '',
     due_date: '',
@@ -75,20 +90,20 @@ export default function TasksPage() {
         const channelName = `household:${activeHousehold.id}`;
         await insforge.realtime.subscribe(channelName);
 
-        insforge.realtime.on('INSERT_task', (payload: any) => {
+        insforge.realtime.on('INSERT_task', (payload: Task) => {
           setTasks(prev => prev.find(t => t.id === payload.id) ? prev : [...prev, payload]);
         });
 
-        insforge.realtime.on('UPDATE_task', (payload: any) => {
+        insforge.realtime.on('UPDATE_task', (payload: Task) => {
           setTasks(prev => prev.map(t => t.id === payload.id ? payload : t));
         });
 
-        insforge.realtime.on('DELETE_task', (payload: any) => {
+        insforge.realtime.on('DELETE_task', (payload: Task) => {
           setTasks(prev => prev.filter(t => t.id !== payload.id));
         });
 
-      } catch (err: any) {
-        setError(err.message || 'Error al cargar las tareas');
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, 'Error al cargar las tareas'));
       } finally {
         setLoading(false);
       }
@@ -112,7 +127,7 @@ export default function TasksPage() {
         title: formData.title,
         description: formData.description,
         due_date: formData.due_date ? new Date(formData.due_date).toISOString() : undefined,
-        priority: formData.priority as any,
+        priority: formData.priority,
         assigned_to: formData.assigned_to === 'unassigned' ? undefined : formData.assigned_to,
         is_recurring: formData.is_recurring,
         status: 'PENDING'
@@ -123,20 +138,20 @@ export default function TasksPage() {
       setFormData({
         title: '', description: '', due_date: '', priority: 'MEDIUM', assigned_to: 'unassigned', is_recurring: false
       });
-    } catch (err: any) {
-      showError('Error al crear tarea', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error al crear tarea', getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleToggleStatus = async (taskId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
+  const handleToggleStatus = async (taskId: string, currentStatus: TaskStatus) => {
+    const newStatus: TaskStatus = currentStatus === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
     try {
       const updated = await updateTaskStatus(taskId, newStatus);
       setTasks(tasks.map(t => t.id === taskId ? { ...t, status: updated.status } : t));
-    } catch (err: any) {
-      showError('Error actualizando tarea', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error actualizando tarea', getErrorMessage(err));
     }
   };
 
@@ -145,8 +160,8 @@ export default function TasksPage() {
     try {
       await deleteTask(taskId);
       setTasks(tasks.filter(t => t.id !== taskId));
-    } catch (err: any) {
-      showError('Error eliminando la tarea', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error eliminando la tarea', getErrorMessage(err));
     }
   };
 
@@ -187,7 +202,7 @@ export default function TasksPage() {
         title: editFormData.title,
         description: editFormData.description || undefined,
         due_date: editFormData.due_date ? new Date(editFormData.due_date).toISOString() : undefined,
-        priority: editFormData.priority as any,
+        priority: editFormData.priority,
         assigned_to: editFormData.assigned_to === 'unassigned' ? undefined : editFormData.assigned_to,
         is_recurring: editFormData.is_recurring
       });
@@ -196,8 +211,8 @@ export default function TasksPage() {
       setIsEditModalOpen(false);
       setIsDetailModalOpen(false);
       setSelectedTask(null);
-    } catch (err: any) {
-      showError('Error actualizando tarea', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error actualizando tarea', getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }

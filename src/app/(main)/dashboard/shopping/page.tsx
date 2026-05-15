@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useHousehold } from '@/lib/household-context';
+import { useAuth } from '@/lib/auth-context';
 import { insforge } from '@/lib/insforge';
 import { 
   ShoppingList, 
@@ -18,14 +19,16 @@ import {
 import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { useToast } from '@/lib/toast-context';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function ShoppingDashboard() {
   const { activeHousehold } = useHousehold();
+  const { user } = useAuth();
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [items, setItems] = useState<ShoppingListItem[]>([]);
   const [members, setMembers] = useState<HouseholdMemberDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast, success, error: showError } = useToast();
+  const { error: showError } = useToast();
 
   // Modals state
   const [isCreateListModalOpen, setIsCreateListModalOpen] = useState(false);
@@ -63,7 +66,7 @@ export default function ShoppingDashboard() {
         setLists(fetchedLists);
         setItems(fetchedItems);
         setMembers(fetchedMembers);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error loading shopping data:', err);
       } finally {
         setIsLoading(false);
@@ -78,24 +81,24 @@ export default function ShoppingDashboard() {
         const channelName = `household:${activeHousehold.id}`;
         await insforge.realtime.subscribe(channelName);
 
-        insforge.realtime.on('INSERT_shopping_lists', (payload: any) => {
+        insforge.realtime.on('INSERT_shopping_lists', (payload: ShoppingList) => {
           setLists(prev => prev.find(l => l.id === payload.id) ? prev : [payload, ...prev]);
         });
-        insforge.realtime.on('UPDATE_shopping_lists', (payload: any) => {
+        insforge.realtime.on('UPDATE_shopping_lists', (payload: ShoppingList) => {
           setLists(prev => prev.map(l => l.id === payload.id ? payload : l));
         });
-        insforge.realtime.on('DELETE_shopping_lists', (payload: any) => {
+        insforge.realtime.on('DELETE_shopping_lists', (payload: ShoppingList) => {
           setLists(prev => prev.filter(l => l.id !== payload.id));
           setItems(prev => prev.filter(i => i.list_id !== payload.id)); // local cleanup
         });
         
-        insforge.realtime.on('INSERT_shopping_list_items', (payload: any) => {
+        insforge.realtime.on('INSERT_shopping_list_items', (payload: ShoppingListItem) => {
           setItems(prev => prev.find(i => i.id === payload.id) ? prev : [...prev, payload]);
         });
-        insforge.realtime.on('UPDATE_shopping_list_items', (payload: any) => {
+        insforge.realtime.on('UPDATE_shopping_list_items', (payload: ShoppingListItem) => {
           setItems(prev => prev.map(i => i.id === payload.id ? payload : i));
         });
-        insforge.realtime.on('DELETE_shopping_list_items', (payload: any) => {
+        insforge.realtime.on('DELETE_shopping_list_items', (payload: ShoppingListItem) => {
           setItems(prev => prev.filter(i => i.id !== payload.id));
         });
       } catch (err) {
@@ -121,8 +124,8 @@ export default function ShoppingDashboard() {
       setLists([newList, ...lists]);
       setIsCreateListModalOpen(false);
       setNewListName('');
-    } catch (err: any) {
-      showError('Error al crear la lista', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error al crear la lista', getErrorMessage(err));
     }
   };
 
@@ -131,8 +134,8 @@ export default function ShoppingDashboard() {
     try {
       await deleteShoppingList(listId);
       setLists(lists.filter(l => l.id !== listId));
-    } catch (err: any) {
-      showError('Error al eliminar la lista', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error al eliminar la lista', getErrorMessage(err));
     }
   };
 
@@ -140,16 +143,14 @@ export default function ShoppingDashboard() {
     e.preventDefault();
     if (!activeHousehold || !activeListId || !newItemName.trim()) return;
     
-    const userMember = members.find(m => m.user_id === (insforge.auth as any).user?.id);
-    // Since we don't directly access user easily here, let's assume we can pass any placeholder if needed, 
-    // but added_by is required. Let's get current user session or just use members[0]?.user_id fallback.
-    // Better: use activeHousehold's members to find our own ID, or simply insforge.auth.getUser() equivalent.
-    // For now we will use the first member if we can't find ourselves (hacky, but we need auth context)
-    // Actually `insforge.auth` doesn't expose synchronous user. We should get it from context.
-    const currentUserId = members[0]?.user_id; // Temporary workaround, ideal to use an AuthContext 
+    const currentUserId = user?.id || members[0]?.user_id;
+    if (!currentUserId) {
+      showError('No se pudo identificar el usuario', 'Iniciá sesión nuevamente.');
+      return;
+    }
 
     try {
-      const newItem = await addShoppingListItem(activeListId, currentUserId, {
+      await addShoppingListItem(activeListId, currentUserId, {
         item_name: newItemName,
         quantity: newItemQuantity,
         category: newItemCategory || undefined,
@@ -162,8 +163,8 @@ export default function ShoppingDashboard() {
       setNewItemQuantity('');
       setNewItemCategory('');
       setNewItemAssignedTo('unassigned');
-    } catch (err: any) {
-      showError('Error al agregar item', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error al agregar item', getErrorMessage(err));
     }
   };
 
@@ -174,8 +175,8 @@ export default function ShoppingDashboard() {
         purchased_at: !item.is_purchased ? new Date().toISOString() : null,
       });
       setItems(items.map(i => i.id === item.id ? updated : i));
-    } catch (err: any) {
-      showError('Error actualizando item', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error actualizando item', getErrorMessage(err));
     }
   };
 
@@ -193,8 +194,8 @@ export default function ShoppingDashboard() {
       const updated = await updateShoppingList(activeListId, { name: editedListName });
       setLists(lists.map(l => l.id === activeListId ? updated : l));
       setIsEditingListName(false);
-    } catch (err: any) {
-      showError('Error actualizando lista', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error actualizando lista', getErrorMessage(err));
     }
   };
 
@@ -221,8 +222,8 @@ export default function ShoppingDashboard() {
       });
       setItems(items.map(i => i.id === editingItemId ? updated : i));
       setEditingItemId(null);
-    } catch (err: any) {
-      showError('Error actualizando item', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error actualizando item', getErrorMessage(err));
     }
   };
 
@@ -232,8 +233,8 @@ export default function ShoppingDashboard() {
     try {
       await deleteShoppingListItem(itemId);
       setItems(items.filter(i => i.id !== itemId));
-    } catch (err: any) {
-      showError('Error eliminando item', err.message || 'Error desconocido');
+    } catch (err: unknown) {
+      showError('Error eliminando item', getErrorMessage(err));
     }
   };
 

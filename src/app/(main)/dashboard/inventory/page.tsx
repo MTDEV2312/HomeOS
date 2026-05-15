@@ -14,8 +14,9 @@ import {
   updateInventoryItem, 
   deleteInventoryItem 
 } from '@/services/inventoryService';
-import { getShoppingLists, createShoppingList, addShoppingListItem, getShoppingListItems, updateShoppingListItem, ShoppingList, ShoppingListItem } from '@/services/shoppingService';
+import { getShoppingLists, createShoppingList, addShoppingListItem, getShoppingListItems, updateShoppingListItem, ShoppingList } from '@/services/shoppingService';
 import { useToast } from '@/lib/toast-context';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function InventoryDashboard() {
   const { activeHousehold } = useHousehold();
@@ -25,7 +26,7 @@ export default function InventoryDashboard() {
   const [categories, setCategories] = useState<InventoryCategory[]>([]);
   const [shoppingLists, setShoppingLists] = useState<ShoppingList[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast, success, error: showError } = useToast();
+  const { success, error: showError } = useToast();
   
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
@@ -70,8 +71,9 @@ export default function InventoryDashboard() {
           for (const cat of defaultCats) {
             try {
               await createInventoryCategory(activeHousehold.id, cat);
-            } catch (e: any) {
-              if (e.code !== '23505') console.error(e);
+            } catch (e: unknown) {
+              const errorCode = typeof e === 'object' && e && 'code' in e ? (e as { code?: string }).code : undefined;
+              if (errorCode !== '23505') console.error(e);
             }
           }
           const finalCategories = await getInventoryCategories(activeHousehold.id);
@@ -79,8 +81,8 @@ export default function InventoryDashboard() {
         } else {
           setCategories(loadedCategories);
         }
-      } catch (err: any) {
-        console.error("Error loading inventory:", JSON.stringify(err, null, 2));
+      } catch (err: unknown) {
+        console.error("Error loading inventory:", err);
       } finally {
         setLoading(false);
       }
@@ -94,7 +96,7 @@ export default function InventoryDashboard() {
         const channelName = `household:${activeHousehold.id}`;
         await insforge.realtime.subscribe(channelName);
         
-        insforge.realtime.on('INSERT_inventory_items', (payload: any) => {
+        insforge.realtime.on('INSERT_inventory_items', (payload: InventoryItem) => {
           setCategories(cats => {
             const item = { ...payload, category: cats.find(c => c.id === payload.category_id) };
             setItems(prev => prev.find(i => i.id === payload.id) ? prev : [item, ...prev]);
@@ -102,7 +104,7 @@ export default function InventoryDashboard() {
           });
         });
         
-        insforge.realtime.on('UPDATE_inventory_items', (payload: any) => {
+        insforge.realtime.on('UPDATE_inventory_items', (payload: InventoryItem) => {
           setCategories(cats => {
             const item = { ...payload, category: cats.find(c => c.id === payload.category_id) };
             setItems(prev => prev.map(i => i.id === payload.id ? item : i));
@@ -110,7 +112,7 @@ export default function InventoryDashboard() {
           });
         });
         
-        insforge.realtime.on('DELETE_inventory_items', (payload: any) => {
+        insforge.realtime.on('DELETE_inventory_items', (payload: InventoryItem) => {
           setItems(prev => prev.filter(i => i.id !== payload.id));
         });
         
@@ -182,9 +184,9 @@ export default function InventoryDashboard() {
       }
       closeItemModal();
       success('Ítem guardado', 'El ítem se ha guardado correctamente en el inventario.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error saving item:", err);
-      showError('Error al guardar el ítem', err.message || 'Error desconocido');
+      showError('Error al guardar el ítem', getErrorMessage(err));
     }
   };
 
@@ -193,9 +195,9 @@ export default function InventoryDashboard() {
       try {
         await deleteInventoryItem(id);
         success('Ítem eliminado', 'El ítem se ha eliminado del inventario.');
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error deleting item:', err);
-        showError('Error al eliminar el ítem', err.message || 'Error desconocido');
+        showError('Error al eliminar el ítem', getErrorMessage(err));
       }
     }
   };
@@ -204,7 +206,7 @@ export default function InventoryDashboard() {
     const newQty = Math.max(0, Number(item.current_quantity) + delta);
     try {
       await updateInventoryItem(item.id, { current_quantity: newQty });
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Error updating quantity:", err);
     }
   };
@@ -252,9 +254,9 @@ export default function InventoryDashboard() {
         
         success('Añadido a la lista', `"${item.name}" añadido a la lista de compras.`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error adding to shopping list:', err);
-      showError('Error al añadir a la lista', err.message || 'Hubo un error al añadir a la lista de compras.');
+      showError('Error al añadir a la lista', getErrorMessage(err, 'Hubo un error al añadir a la lista de compras.'));
     }
   };
 
