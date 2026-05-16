@@ -50,6 +50,7 @@ export default function MembersPage() {
   };
 
   const handleRemoveMember = async (userIdToRemove: string) => {
+    if (!activeHousehold) return;
     if (!confirm('¿Estás seguro de que deseas eliminar a este miembro del hogar?')) return;
     try {
       await removeMember(activeHousehold.id, userIdToRemove);
@@ -60,6 +61,7 @@ export default function MembersPage() {
   };
 
   const handleUpdateRole = async (userIdToUpdate: string, newRole: 'ADMIN' | 'MEMBER') => {
+    if (!activeHousehold) return;
     try {
       await updateMemberRole(activeHousehold.id, userIdToUpdate, newRole);
       setMembers(members.map(m => m.user_id === userIdToUpdate ? { ...m, role: newRole } : m));

@@ -233,7 +233,7 @@ export default function MaintenanceDashboard() {
 
   const handleSaveLog = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedAssetForLog || !user) return;
+    if (!selectedAssetForLog || !user || !activeHousehold) return;
 
     try {
       await addMaintenanceLog({

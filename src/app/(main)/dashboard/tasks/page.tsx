@@ -463,7 +463,7 @@ export default function TasksPage() {
                     <label className="block font-label-md text-label-md text-on-surface">Prioridad</label>
                     <select 
                       value={formData.priority}
-                      onChange={e => setFormData({...formData, priority: e.target.value})}
+                      onChange={e => setFormData({ ...formData, priority: e.target.value as TaskPriority })}
                       className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
                     >
                       <option value="LOW">Baja</option>
@@ -748,7 +748,7 @@ export default function TasksPage() {
                     <label className="block font-label-md text-label-md text-on-surface">Prioridad</label>
                     <select 
                       value={editFormData.priority}
-                      onChange={e => setEditFormData({...editFormData, priority: e.target.value})}
+                      onChange={e => setEditFormData({ ...editFormData, priority: e.target.value as TaskPriority })}
                       className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
                     >
                       <option value="LOW">Baja</option>

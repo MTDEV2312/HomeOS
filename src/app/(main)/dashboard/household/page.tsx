@@ -72,13 +72,15 @@ export default function HouseholdAdminPage() {
   }, [activeHousehold, fetchMembers]);
 
   const handleSaveName = async () => {
-    if (!editName.trim() || editName.trim() === activeHousehold.name) {
+    if (!activeHousehold) return;
+    const trimmedName = editName.trim();
+    if (!trimmedName || trimmedName === activeHousehold.name) {
       setIsEditingName(false);
       return;
     }
     try {
       setSaving(true);
-      await updateHousehold(activeHousehold.id, { name: editName.trim() });
+      await updateHousehold(activeHousehold.id, { name: trimmedName });
       await refreshHousehold();
       setIsEditingName(false);
     } catch (err: unknown) {
@@ -89,6 +91,7 @@ export default function HouseholdAdminPage() {
   };
 
   const handleRegenerateCode = async () => {
+    if (!activeHousehold) return;
     if (!confirm('¿Regenerar el código de invitación? El código anterior dejará de funcionar.')) return;
     try {
       setRegenerating(true);
@@ -119,6 +122,7 @@ export default function HouseholdAdminPage() {
 
   const handleLeaveHousehold = async () => {
     if (!user) return;
+    if (!activeHousehold) return;
     if (!confirm('¿Estás seguro de que querés abandonar este hogar? Perderás acceso a toda su información.')) return;
     try {
       setLeaving(true);
@@ -134,6 +138,7 @@ export default function HouseholdAdminPage() {
   };
 
   const handleRemoveMember = async (userIdToRemove: string) => {
+    if (!activeHousehold) return;
     if (!confirm('¿Estás seguro de que deseas expulsar a este miembro del hogar?')) return;
     try {
       await removeMember(activeHousehold.id, userIdToRemove);
@@ -145,6 +150,7 @@ export default function HouseholdAdminPage() {
   };
 
   const handleUpdateRole = async (userIdToUpdate: string, newRole: 'ADMIN' | 'MEMBER') => {
+    if (!activeHousehold) return;
     try {
       await updateMemberRole(activeHousehold.id, userIdToUpdate, newRole);
       setMembers(members.map(m => m.user_id === userIdToUpdate ? { ...m, role: newRole } : m));
