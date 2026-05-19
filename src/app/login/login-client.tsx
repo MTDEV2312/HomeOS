@@ -49,7 +49,7 @@ export default function LoginClient() {
   };
 
   return (
-    <div className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
+    <main className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
       <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg">
         <div className="text-center flex flex-col items-center gap-sm">
           <div className="w-16 h-16 relative">
@@ -88,7 +88,7 @@ export default function LoginClient() {
           <div className="flex flex-col gap-xs">
             <div className="flex justify-between items-center">
               <label className="font-label-sm text-label-sm text-on-surface" htmlFor="password">Contraseña</label>
-              <Link href="/forgot-password" className="font-label-sm text-label-sm text-primary hover:text-primary-fixed-dim transition-colors">¿Olvidaste tu contraseña?</Link>
+              <Link href="/forgot-password" className="inline-block py-1.5 px-2 -my-1.5 -mx-2 font-label-sm text-label-sm text-primary hover:text-primary-fixed-dim transition-colors">¿Olvidaste tu contraseña?</Link>
             </div>
             <div className="relative">
               <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline">lock</span>
@@ -129,6 +129,6 @@ export default function LoginClient() {
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

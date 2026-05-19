@@ -88,7 +88,7 @@ function ResetPasswordContent() {
 
   if (success) {
     return (
-      <div className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
+      <main className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
         <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg">
           <div className="text-center flex flex-col items-center gap-sm">
             <span className="material-symbols-outlined text-[48px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
@@ -112,13 +112,13 @@ function ResetPasswordContent() {
             <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
           </Link>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (mode === 'new-password') {
     return (
-      <div className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
+      <main className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
         <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg">
           <div className="text-center flex flex-col items-center gap-sm">
             <span className="material-symbols-outlined text-[48px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>lock_reset</span>
@@ -187,18 +187,19 @@ function ResetPasswordContent() {
           <div className="text-center font-body-md text-body-md text-on-surface-variant border-t border-outline-variant pt-md">
             <button 
               onClick={() => { setMode('verify-code'); setResetToken(''); setCode(''); }} 
-              className="text-primary hover:text-primary-fixed-dim font-label-sm text-label-sm transition-colors underline-offset-4 hover:underline"
+              className="inline-block py-1.5 px-2 -my-1.5 -mx-2 text-primary hover:text-primary-fixed-dim font-label-sm text-label-sm transition-colors underline-offset-4 hover:underline"
+              type="button"
             >
               Volver al código
             </button>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
+    <main className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
       <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg">
         <div className="text-center flex flex-col items-center gap-sm">
           <span className="material-symbols-outlined text-[48px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>pin</span>
@@ -261,18 +262,18 @@ function ResetPasswordContent() {
 
         <div className="text-center font-body-md text-body-md text-on-surface-variant border-t border-outline-variant pt-md">
           ¿No recibiste el código?{' '}
-          <Link href="/forgot-password" className="text-primary hover:text-primary-fixed-dim font-label-sm text-label-sm transition-colors underline-offset-4 hover:underline">
+          <Link href="/forgot-password" className="inline-block py-1.5 px-2 -my-1.5 -mx-2 text-primary hover:text-primary-fixed-dim font-label-sm text-label-sm transition-colors underline-offset-4 hover:underline">
             Enviar de nuevo
           </Link>
         </div>
 
         <div className="text-center">
-          <Link href="/login" className="text-on-surface-variant hover:text-primary font-label-sm text-label-sm transition-colors">
+          <Link href="/login" className="inline-block py-1.5 px-2 -my-1.5 -mx-2 text-on-surface-variant hover:text-primary font-label-sm text-label-sm transition-colors">
             Volver a Iniciar Sesión
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 

@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
+    <main className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
       <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg">
         <div className="text-center flex flex-col items-center gap-sm">
           <div className="w-16 h-16 relative">
@@ -88,11 +88,11 @@ export default function ForgotPasswordPage() {
 
         <div className="text-center font-body-md text-body-md text-on-surface-variant border-t border-outline-variant pt-md">
           ¿Recordaste tu contraseña?{' '}
-          <Link href="/login" className="text-primary hover:text-primary-fixed-dim font-label-sm text-label-sm transition-colors underline-offset-4 hover:underline">
+          <Link href="/login" className="inline-block py-1.5 px-2 -my-1.5 -mx-2 text-primary hover:text-primary-fixed-dim font-label-sm text-label-sm transition-colors underline-offset-4 hover:underline">
             Iniciar Sesión
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

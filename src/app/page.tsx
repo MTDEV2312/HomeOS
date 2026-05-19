@@ -20,11 +20,11 @@ export default function HomePage() {
   }, [user, loading, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <main className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
         <p className="text-on-surface-variant font-body-md">Cargando HomeOS...</p>
       </div>
-    </div>
+    </main>
   );
 }
