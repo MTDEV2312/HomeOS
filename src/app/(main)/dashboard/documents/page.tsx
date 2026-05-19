@@ -47,6 +47,30 @@ export default function DocumentsDashboard() {
   const [category, setCategory] = useState<DocumentCategory>('OTHER');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  // Preview Modal State
+  const [previewDoc, setPreviewDoc] = useState<HouseholdDocument | null>(null);
+
+  // Listen to Escape key to close the preview modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPreviewDoc(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const isImageFile = (doc: HouseholdDocument) => {
+    const ext = (doc.file_key || doc.file_url).split('.').pop()?.toLowerCase();
+    return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext || '');
+  };
+
+  const isPdfFile = (doc: HouseholdDocument) => {
+    const ext = (doc.file_key || doc.file_url).split('.').pop()?.toLowerCase();
+    return ext === 'pdf';
+  };
+
   useEffect(() => {
     if (!activeHousehold) return;
 
@@ -138,14 +162,32 @@ export default function DocumentsDashboard() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = doc.title;
+      
+      // Extraer extensión original para evitar que el archivo se descargue sin formato (corrupto)
+      const fileExt = doc.file_key.split('.').pop() || doc.file_url.split('.').pop() || '';
+      const cleanTitle = doc.title.endsWith(`.${fileExt}`) ? doc.title : `${doc.title}.${fileExt}`;
+      a.download = cleanTitle;
+      
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err: unknown) {
-      console.error('Error downloading document:', err);
-      showError('Error al descargar el documento', getErrorMessage(err));
+      console.error('Error downloading document, attempting fallback:', err);
+      try {
+        // Fallback: descarga directa por si falla el blob
+        const a = document.createElement('a');
+        a.href = doc.file_url;
+        const fileExt = doc.file_key.split('.').pop() || doc.file_url.split('.').pop() || '';
+        a.download = doc.title.endsWith(`.${fileExt}`) ? doc.title : `${doc.title}.${fileExt}`;
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (fallbackErr) {
+        console.error('Fallback download failed:', fallbackErr);
+        showError('Error al descargar el documento', getErrorMessage(err));
+      }
     }
   };
 
@@ -195,7 +237,7 @@ export default function DocumentsDashboard() {
 
               <div className="mt-auto pt-4 flex gap-2">
                 <button 
-                  onClick={() => window.open(doc.file_url, '_blank')}
+                  onClick={() => setPreviewDoc(doc)}
                   className="flex-1 py-1.5 bg-surface-container text-on-surface font-label-sm text-label-sm rounded hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1"
                   title="Ver online"
                 >
@@ -309,6 +351,90 @@ export default function DocumentsDashboard() {
                   'Subir'
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Preview Modal */}
+      {previewDoc && (
+        <div 
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6 transition-all duration-300 animate-in fade-in"
+          onClick={() => setPreviewDoc(null)}
+        >
+          <div 
+            className="bg-surface-container-lowest rounded-2xl shadow-2xl border border-outline-variant/30 w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-md md:p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low shrink-0">
+              <div className="flex items-center gap-md min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[20px]">{CATEGORY_ICONS[previewDoc.category]}</span>
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-h3 text-h3 text-on-surface font-semibold truncate max-w-[200px] sm:max-w-md" title={previewDoc.title}>
+                    {previewDoc.title}
+                  </h2>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant">
+                    {CATEGORY_LABELS[previewDoc.category]}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-sm">
+                <button
+                  onClick={() => handleDownload(previewDoc)}
+                  className="px-3 py-1.5 bg-primary text-on-primary font-label-sm text-label-sm rounded-lg hover:bg-primary-container hover:text-on-primary-container transition-colors flex items-center gap-1 shadow-sm"
+                  title="Descargar"
+                >
+                  <span className="material-symbols-outlined text-[16px]">download</span>
+                  <span className="hidden sm:inline">Descargar</span>
+                </button>
+                <button 
+                  onClick={() => setPreviewDoc(null)}
+                  className="text-on-surface-variant hover:text-error transition-colors p-2 rounded-full hover:bg-error-container/20 flex items-center justify-center"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Content Body */}
+            <div className="flex-1 bg-surface overflow-hidden p-md md:p-lg flex items-center justify-center relative min-h-0">
+              {isImageFile(previewDoc) ? (
+                <div className="w-full h-full flex items-center justify-center rounded-lg overflow-hidden bg-zinc-950/40 p-2 md:p-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img 
+                    src={previewDoc.file_url} 
+                    alt={previewDoc.title}
+                    className="max-w-full max-h-full object-contain rounded-md shadow-md transition-transform duration-300 hover:scale-105"
+                  />
+                </div>
+              ) : isPdfFile(previewDoc) ? (
+                <iframe 
+                  src={`${previewDoc.file_url}#toolbar=1`}
+                  className="w-full h-full border-0 rounded-lg shadow-sm bg-white"
+                  title={previewDoc.title}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center p-xl gap-md">
+                  <span className="material-symbols-outlined text-6xl text-on-surface-variant">description</span>
+                  <div>
+                    <h3 className="font-h3 text-h3 text-on-surface mb-1">Previsualización no disponible</h3>
+                    <p className="font-body-md text-body-md text-on-surface-variant max-w-sm">
+                      Este formato de archivo no se puede previsualizar en el navegador. Por favor descarga el archivo para verlo.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDownload(previewDoc)}
+                    className="px-lg py-sm bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm flex items-center gap-sm"
+                  >
+                    <span className="material-symbols-outlined">download</span>
+                    Descargar Archivo
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
