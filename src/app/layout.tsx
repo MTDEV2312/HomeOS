@@ -1,7 +1,7 @@
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
-
+import { FontLoader } from "@/components/FontLoader";
 import { ToastProvider } from "@/lib/toast-context";
 import { Inter } from "next/font/google";
 
@@ -25,10 +25,9 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/images/logo.ico" type="image/x-icon" />
         <link rel="apple-touch-icon" href="/images/logo.png" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-        />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <FontLoader />
       </head>
       <body suppressHydrationWarning className="bg-background text-on-background font-body-md text-body-md antialiased overflow-hidden flex flex-col h-screen transition-colors duration-200">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
