@@ -6,6 +6,32 @@ import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Home, PlusCircle } from 'lucide-react';
 import { Logo } from '@/components/Logo';
+import { getTasks } from '@/services/taskService';
+import { getAllItemsForHousehold } from '@/services/shoppingService';
+import { getInventoryItems } from '@/services/inventoryService';
+import { getHouseholdDocuments } from '@/services/documentService';
+import { getExpenses } from '@/services/expenseService';
+import { getAssets, getAllMaintenanceSchedules } from '@/services/maintenanceService';
+
+// Define search result type
+interface SearchResult {
+  id: string;
+  title: string;
+  subtitle: string;
+  category: 'tasks' | 'shopping' | 'inventory' | 'documents' | 'expenses' | 'maintenance';
+  url: string;
+  icon: string;
+  globalIndex: number;
+}
+
+interface CategorizedResults {
+  tasks: SearchResult[];
+  shopping: SearchResult[];
+  inventory: SearchResult[];
+  documents: SearchResult[];
+  expenses: SearchResult[];
+  maintenance: SearchResult[];
+}
 
 export function Topbar() {
   const { user, signOut } = useAuth();
@@ -14,13 +40,367 @@ export function Topbar() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [householdDropdownOpen, setHouseholdDropdownOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [rawData, setRawData] = useState<{
+    tasks: any[];
+    shopping: any[];
+    inventory: any[];
+    documents: any[];
+    expenses: any[];
+    assets: any[];
+    schedules: any[];
+  } | null>(null);
+  const [lastFetched, setLastFetched] = useState<number>(0);
+
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const householdDropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
     await signOut();
     router.push('/login');
+  };
+
+  // Fetch search data across all categories
+  const fetchData = async () => {
+    if (!activeHousehold) return;
+    
+    // Cache for 30 seconds
+    if (rawData && Date.now() - lastFetched < 30000) {
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const results = await Promise.allSettled([
+        getTasks(activeHousehold.id),
+        getAllItemsForHousehold(activeHousehold.id),
+        getInventoryItems(activeHousehold.id),
+        getHouseholdDocuments(activeHousehold.id),
+        getExpenses(activeHousehold.id),
+        getAssets(activeHousehold.id),
+        getAllMaintenanceSchedules(activeHousehold.id),
+      ]);
+      
+      const [
+        tasksRes,
+        shoppingRes,
+        inventoryRes,
+        documentsRes,
+        expensesRes,
+        assetsRes,
+        schedulesRes
+      ] = results;
+      
+      setRawData({
+        tasks: tasksRes.status === 'fulfilled' ? tasksRes.value : [],
+        shopping: shoppingRes.status === 'fulfilled' ? shoppingRes.value : [],
+        inventory: inventoryRes.status === 'fulfilled' ? inventoryRes.value : [],
+        documents: documentsRes.status === 'fulfilled' ? documentsRes.value : [],
+        expenses: expensesRes.status === 'fulfilled' ? expensesRes.value : [],
+        assets: assetsRes.status === 'fulfilled' ? assetsRes.value : [],
+        schedules: schedulesRes.status === 'fulfilled' ? schedulesRes.value : [],
+      });
+      setLastFetched(Date.now());
+    } catch (err) {
+      console.error('Error fetching search data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter local rawData by search query
+  const getFilteredResults = () => {
+    const flat: SearchResult[] = [];
+    
+    const mapWithGlobalIndex = (items: Omit<SearchResult, 'globalIndex'>[]) => {
+      return items.map(item => {
+        const mapped = {
+          ...item,
+          globalIndex: flat.length
+        };
+        flat.push(mapped);
+        return mapped;
+      });
+    };
+
+    if (!searchQuery || searchQuery.trim().length < 2 || !rawData) {
+      return {
+        categorized: {
+          tasks: [],
+          shopping: [],
+          inventory: [],
+          documents: [],
+          expenses: [],
+          maintenance: [],
+        },
+        flat: []
+      };
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    
+    // Filter tasks
+    const tasks = mapWithGlobalIndex(
+      rawData.tasks
+        .filter(t => t.title.toLowerCase().includes(query) || (t.description && t.description.toLowerCase().includes(query)))
+        .slice(0, 3)
+        .map(t => ({
+          id: t.id,
+          title: t.title,
+          subtitle: `Estado: ${t.status === 'COMPLETED' ? 'Completada' : 'Pendiente'} • Prioridad: ${t.priority}`,
+          category: 'tasks',
+          url: '/dashboard/tasks',
+          icon: 'task_alt'
+        }))
+    );
+    
+    // Filter shopping
+    const shopping = mapWithGlobalIndex(
+      rawData.shopping
+        .filter(s => s.item_name.toLowerCase().includes(query) || (s.category && s.category.toLowerCase().includes(query)))
+        .slice(0, 3)
+        .map(s => ({
+          id: s.id,
+          title: s.item_name,
+          subtitle: `Cantidad: ${s.quantity || '1'} • ${s.is_purchased ? 'Comprado' : 'Pendiente'}`,
+          category: 'shopping',
+          url: '/dashboard/shopping',
+          icon: 'shopping_cart'
+        }))
+    );
+    
+    // Filter inventory
+    const inventory = mapWithGlobalIndex(
+      rawData.inventory
+        .filter(i => i.name.toLowerCase().includes(query) || (i.brand && i.brand.toLowerCase().includes(query)) || (i.location && i.location.toLowerCase().includes(query)))
+        .slice(0, 3)
+        .map(i => ({
+          id: i.id,
+          title: i.name,
+          subtitle: `Stock: ${i.current_quantity} ${i.unit} • Ubicación: ${i.location || 'N/A'}`,
+          category: 'inventory',
+          url: '/dashboard/inventory',
+          icon: 'inventory_2'
+        }))
+    );
+    
+    // Filter documents
+    const documents = mapWithGlobalIndex(
+      rawData.documents
+        .filter(d => d.title.toLowerCase().includes(query) || d.category.toLowerCase().includes(query))
+        .slice(0, 3)
+        .map(d => ({
+          id: d.id,
+          title: d.title,
+          subtitle: `Tipo: ${d.category} • Subido: ${new Date(d.created_at).toLocaleDateString()}`,
+          category: 'documents',
+          url: '/dashboard/documents',
+          icon: 'description'
+        }))
+    );
+    
+    // Filter expenses
+    const expenses = mapWithGlobalIndex(
+      rawData.expenses
+        .filter(e => e.description && e.description.toLowerCase().includes(query))
+        .slice(0, 3)
+        .map(e => ({
+          id: e.id,
+          title: e.description,
+          subtitle: `Monto: $${e.amount.toLocaleString()} • Fecha: ${e.date}`,
+          category: 'expenses',
+          url: '/dashboard/expenses',
+          icon: 'payments'
+        }))
+    );
+    
+    // Filter maintenance
+    const filteredAssets = rawData.assets
+      .filter(a => a.name.toLowerCase().includes(query) || (a.location && a.location.toLowerCase().includes(query)))
+      .slice(0, 2)
+      .map(a => ({
+        id: a.id,
+        title: a.name,
+        subtitle: `Equipo • Ubicación: ${a.location || 'N/A'}`,
+        category: 'maintenance' as const,
+        url: '/dashboard/maintenance',
+        icon: 'handyman'
+      }));
+      
+    const filteredSchedules = rawData.schedules
+      .filter(s => s.task_description.toLowerCase().includes(query) || (s.asset && s.asset.name.toLowerCase().includes(query)))
+      .slice(0, 2)
+      .map(s => ({
+        id: s.id,
+        title: s.task_description,
+        subtitle: `Agenda • Equipo: ${s.asset?.name || 'N/A'} • Próximo: ${s.next_due || 'Sin programar'}`,
+        category: 'maintenance' as const,
+        url: '/dashboard/maintenance',
+        icon: 'event_repeat'
+      }));
+      
+    const maintenance = mapWithGlobalIndex([...filteredAssets, ...filteredSchedules].slice(0, 3));
+    
+    return {
+      categorized: {
+        tasks,
+        shopping,
+        inventory,
+        documents,
+        expenses,
+        maintenance
+      },
+      flat
+    };
+  };
+
+  const handleSelectResult = (item: SearchResult) => {
+    router.push(item.url);
+    setIsFocused(false);
+    setSearchOpen(false);
+    setSearchQuery('');
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const { flat } = getFilteredResults();
+    if (flat.length === 0) return;
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prevIndex) => (prevIndex + 1) % flat.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prevIndex) => (prevIndex - 1 + flat.length) % flat.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (flat[selectedIndex]) {
+        handleSelectResult(flat[selectedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsFocused(false);
+      setSearchOpen(false);
+    }
+  };
+
+  const highlightMatch = (text: string, query: string) => {
+    if (!query) return text;
+    const parts = text.split(new RegExp(`(${query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'));
+    return (
+      <>
+        {parts.map((part, i) => 
+          part.toLowerCase() === query.toLowerCase() ? (
+            <mark key={i} className="bg-primary/20 text-primary font-bold px-0.5 rounded">
+              {part}
+            </mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
+  };
+
+  const renderSearchResults = () => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-8 text-on-surface-variant gap-2.5">
+          <div className="w-6 h-6 rounded-full border-2 border-primary/25 border-t-primary animate-spin"></div>
+          <p className="font-label-sm text-label-sm text-on-surface-variant/80">Cargando base de datos...</p>
+        </div>
+      );
+    }
+
+    const { categorized, flat } = getFilteredResults();
+    
+    if (searchQuery.trim().length >= 2 && flat.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-10 text-on-surface-variant text-center px-4">
+          <span className="material-symbols-outlined text-[40px] text-outline/40 mb-2">search_off</span>
+          <p className="font-title-sm text-title-sm text-on-surface font-semibold">Sin resultados</p>
+          <p className="font-body-sm text-body-sm text-on-surface-variant/80 mt-1 max-w-[280px]">
+            No encontramos coincidencias para "<span className="font-semibold text-on-surface">{searchQuery}</span>" en este hogar.
+          </p>
+        </div>
+      );
+    }
+
+    const categories: { key: keyof typeof categorized; label: string; bg: string; text: string; icon: string }[] = [
+      { key: 'tasks', label: 'Tareas', bg: 'bg-sky-100 dark:bg-sky-950/50', text: 'text-sky-600 dark:text-sky-400', icon: 'task_alt' },
+      { key: 'shopping', label: 'Compras', bg: 'bg-amber-100 dark:bg-amber-950/50', text: 'text-amber-600 dark:text-amber-400', icon: 'shopping_cart' },
+      { key: 'inventory', label: 'Inventario', bg: 'bg-emerald-100 dark:bg-emerald-950/50', text: 'text-emerald-600 dark:text-emerald-400', icon: 'inventory_2' },
+      { key: 'expenses', label: 'Gastos', bg: 'bg-rose-100 dark:bg-rose-950/50', text: 'text-rose-600 dark:text-rose-400', icon: 'payments' },
+      { key: 'documents', label: 'Documentos', bg: 'bg-indigo-100 dark:bg-indigo-950/50', text: 'text-indigo-600 dark:text-indigo-400', icon: 'description' },
+      { key: 'maintenance', label: 'Equipos y Mantenimiento', bg: 'bg-teal-100 dark:bg-teal-950/50', text: 'text-teal-600 dark:text-teal-400', icon: 'handyman' },
+    ];
+
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="flex justify-between items-center px-2 py-0.5 text-[10px] text-on-surface-variant/60 border-b border-outline-variant/30">
+          <span>Coincidencias en este hogar</span>
+          <span className="hidden sm:inline">Use ↑↓ para navegar, ↵ para ir</span>
+        </div>
+        
+        {categories.map(({ key, label, bg, text, icon }) => {
+          const items = categorized[key];
+          if (items.length === 0) return null;
+          
+          return (
+            <div key={key} className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-1.5 px-2 py-0.5">
+                <span className={`material-symbols-outlined text-[12px] ${text}`}>{icon}</span>
+                <span className="font-label-sm text-[10px] text-on-surface-variant font-bold tracking-wider uppercase">
+                  {label}
+                </span>
+                <span className="text-[9px] text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded-full ml-auto font-medium">
+                  {items.length}
+                </span>
+              </div>
+              
+              <div className="flex flex-col gap-0.5">
+                {items.map((item) => {
+                  const isActive = item.globalIndex === selectedIndex;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleSelectResult(item)}
+                      onMouseEnter={() => setSelectedIndex(item.globalIndex)}
+                      className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all duration-150 ${
+                        isActive
+                          ? 'bg-primary/10 text-primary border-l-2 border-primary pl-2 shadow-sm'
+                          : 'text-on-surface hover:bg-surface-container-high'
+                      }`}
+                    >
+                      <div className={`w-7.5 h-7.5 rounded-full flex items-center justify-center shrink-0 ${bg} ${text}`}>
+                        <span className="material-symbols-outlined text-[15px]">{item.icon}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className={`font-semibold text-body-md truncate block ${isActive ? 'text-primary' : 'text-on-surface'}`}>
+                          {highlightMatch(item.title, searchQuery)}
+                        </span>
+                        <span className="text-[11px] text-on-surface-variant/80 block mt-0.5 truncate">
+                          {item.subtitle}
+                        </span>
+                      </div>
+                      <span className={`material-symbols-outlined text-[16px] text-primary/70 transition-opacity ml-auto shrink-0 ${isActive ? 'opacity-100' : 'opacity-0'}`}>
+                        chevron_right
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   // Close dropdowns on outside click
@@ -32,10 +412,38 @@ export function Topbar() {
       if (householdDropdownRef.current && !householdDropdownRef.current.contains(e.target as Node)) {
         setHouseholdDropdownOpen(false);
       }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setIsFocused(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Keyboard shortcut effect
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K or Cmd+K
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setSearchOpen(true);
+        setIsFocused(true);
+        fetchData();
+      }
+      // / key (only if not already focusing an input/textarea)
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setSearchOpen(true);
+        setIsFocused(true);
+        fetchData();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [rawData]);
 
   // Auto-focus search on open
   useEffect(() => {
@@ -127,15 +535,36 @@ export function Topbar() {
       {/* Right side */}
       <div className="flex items-center gap-0.5 sm:gap-1">
         {/* Desktop inline search */}
-        <div className="relative hidden md:block">
+        <div className="relative hidden md:block" ref={searchContainerRef}>
           <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">
             search
           </span>
           <input
-            className="pl-xl pr-md py-sm rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary outline-none font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant w-64"
-            placeholder="Buscar..."
+            ref={searchInputRef}
+            className="pl-xl pr-12 py-sm rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary outline-none font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant w-64 transition-all duration-200 focus:w-80"
+            placeholder="Buscar... (Ctrl+K o /)"
             type="text"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setSelectedIndex(0);
+            }}
+            onFocus={() => {
+              setIsFocused(true);
+              fetchData();
+            }}
+            onKeyDown={handleSearchKeyDown}
           />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 pointer-events-none px-1.5 py-0.5 rounded border border-outline-variant bg-surface-container text-[10px] font-medium text-on-surface-variant font-sans">
+            <span className="text-[9px]">⌘</span>K
+          </div>
+          
+          {/* Desktop Search Results Dropdown */}
+          {isFocused && (searchQuery.trim().length >= 2 || loading) && (
+            <div className="absolute right-0 top-full mt-2 w-[480px] max-h-[480px] overflow-y-auto bg-surface/95 backdrop-blur-md rounded-xl shadow-2xl border border-outline-variant/60 z-50 p-3 scrollbar-thin animate-slide-up">
+              {renderSearchResults()}
+            </div>
+          )}
         </div>
 
         {/* Mobile search toggle */}
@@ -200,6 +629,18 @@ export function Topbar() {
                 Configuración
               </button>
 
+              {/* Help */}
+              <button 
+                onClick={() => {
+                  setUserDropdownOpen(false);
+                  router.push('/help');
+                }}
+                className="w-full text-left px-4 py-3 font-label-sm text-label-sm text-on-surface hover:bg-surface-container transition-colors flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[18px]">help</span>
+                Ayuda
+              </button>
+
               {/* Logout */}
               <button 
                 onClick={handleLogout}
@@ -215,7 +656,7 @@ export function Topbar() {
 
       {/* Mobile search overlay */}
       {searchOpen && (
-        <div className="md:hidden absolute left-0 right-0 top-full bg-surface-container-lowest border-b border-outline-variant shadow-md p-3 z-50 animate-fade-in">
+        <div className="md:hidden absolute left-0 right-0 top-full bg-surface-container-lowest border-b border-outline-variant shadow-md p-3 z-50 animate-fade-in flex flex-col gap-2 max-h-[80vh] overflow-y-auto">
           <div className="relative">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">
               search
@@ -225,11 +666,42 @@ export function Topbar() {
               className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-outline-variant bg-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant"
               placeholder="Buscar en HomeOS..."
               type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setSelectedIndex(0);
+              }}
+              onFocus={() => {
+                setIsFocused(true);
+                fetchData();
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') setSearchOpen(false);
+                
+                const { flat } = getFilteredResults();
+                if (flat.length === 0) return;
+                
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setSelectedIndex((prevIndex) => (prevIndex + 1) % flat.length);
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setSelectedIndex((prevIndex) => (prevIndex - 1 + flat.length) % flat.length);
+                } else if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (flat[selectedIndex]) {
+                    handleSelectResult(flat[selectedIndex]);
+                  }
+                }
               }}
             />
           </div>
+          
+          {(searchQuery.trim().length >= 2 || loading) && (
+            <div className="mt-2 border-t border-outline-variant/30 pt-2">
+              {renderSearchResults()}
+            </div>
+          )}
         </div>
       )}
     </header>
