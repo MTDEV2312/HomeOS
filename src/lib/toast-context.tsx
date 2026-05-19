@@ -48,11 +48,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       {mounted && createPortal(
-        <div className="fixed bottom-20 md:bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-[200] flex flex-col gap-2 pointer-events-none max-w-sm w-full sm:w-auto sm:min-w-[320px]">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm z-[9999] flex flex-col gap-2 pointer-events-none sm:left-auto sm:right-6 sm:bottom-6 sm:translate-x-0 sm:w-full">
           {toasts.map((toast) => (
             <div 
               key={toast.id} 
-              className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl shadow-lg border animate-slide-up bg-surface-container-highest border-outline-variant`}
+              className="pointer-events-auto flex items-start gap-3 p-4 rounded-xl shadow-lg border animate-slide-up bg-surface-container-highest border-outline-variant w-full"
             >
               <span className={`material-symbols-outlined shrink-0 ${
                 toast.type === 'success' ? 'text-primary' : 

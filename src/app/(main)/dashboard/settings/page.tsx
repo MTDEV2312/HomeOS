@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { useToast } from '@/lib/toast-context';
 import { Loader2 } from 'lucide-react';
 
 type ChangePasswordStep = 'start' | 'verify-code' | 'new-password';
 
 export default function SettingsPage() {
   const { user, updateProfile, sendResetPasswordEmail, exchangeResetPasswordToken, resetPassword } = useAuth();
+  const { toast, success, error, info } = useToast();
   const [name, setName] = useState((user?.profile?.name as string) || '');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -244,6 +246,47 @@ export default function SettingsPage() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* ═══ Toast Testing Playground ═══ */}
+      <div className="bg-surface-container-low rounded-xl border border-outline-variant p-lg max-w-2xl">
+        <div className="flex items-center gap-sm mb-md">
+          <span className="material-symbols-outlined text-[24px] text-primary">notifications_active</span>
+          <h2 className="font-h3 text-h3 text-on-surface">Prueba de Notificaciones (Toasts)</h2>
+        </div>
+        <p className="text-on-surface-variant text-sm mb-4">
+          Haz clic en los botones para disparar notificaciones y probar el posicionamiento, responsividad y su animación.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
+          <button 
+            onClick={() => success('¡Operación Exitosa!', 'Los datos del hogar se han guardado con éxito.')}
+            className="flex items-center justify-center gap-2 bg-emerald-600/10 text-emerald-500 hover:bg-emerald-600/20 px-4 py-3 rounded-lg border border-emerald-500/25 transition-all text-sm font-semibold active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined text-[18px]">check_circle</span>
+            Gatillar Éxito (Success)
+          </button>
+          <button 
+            onClick={() => error('Error del Sistema', 'No se pudieron sincronizar los datos con InsForge.')}
+            className="flex items-center justify-center gap-2 bg-rose-600/10 text-rose-500 hover:bg-rose-600/20 px-4 py-3 rounded-lg border border-rose-500/25 transition-all text-sm font-semibold active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined text-[18px]">error</span>
+            Gatillar Error (Error)
+          </button>
+          <button 
+            onClick={() => toast('Alerta de Inventario', 'Quedan pocos suministros en la despensa.', 'warning')}
+            className="flex items-center justify-center gap-2 bg-amber-600/10 text-amber-500 hover:bg-amber-600/20 px-4 py-3 rounded-lg border border-amber-500/25 transition-all text-sm font-semibold active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined text-[18px]">warning</span>
+            Gatillar Alerta (Warning)
+          </button>
+          <button 
+            onClick={() => info('Información del Hogar', 'Sincronización en tiempo real activa.')}
+            className="flex items-center justify-center gap-2 bg-sky-600/10 text-sky-500 hover:bg-sky-600/20 px-4 py-3 rounded-lg border border-sky-500/25 transition-all text-sm font-semibold active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined text-[18px]">info</span>
+            Gatillar Info (Info)
+          </button>
+        </div>
       </div>
     </div>
   );
