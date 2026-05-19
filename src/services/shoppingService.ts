@@ -88,25 +88,17 @@ export const getShoppingListItems = async (listId: string): Promise<ShoppingList
 };
 
 export const getAllItemsForHousehold = async (householdId: string): Promise<ShoppingListItem[]> => {
-  // Fetch all lists for the household
-  const { data: lists, error: listsError } = await insforge.database
+  // Single round-trip relational query fetching lists with nested items
+  const { data, error } = await insforge.database
     .from('shopping_lists')
-    .select('id')
+    .select('id, shopping_list_items(*)')
     .eq('household_id', householdId);
 
-  if (listsError) throw listsError;
-  if (!lists || lists.length === 0) return [];
+  if (error) throw error;
+  if (!data) return [];
 
-  const listIds = lists.map(l => l.id);
-
-  // Fetch all items belonging to those lists
-  const { data: items, error: itemsError } = await insforge.database
-    .from('shopping_list_items')
-    .select('*')
-    .in('list_id', listIds);
-
-  if (itemsError) throw itemsError;
-  return items as ShoppingListItem[];
+  // Flatten nested shopping list items into a single array
+  return data.flatMap(list => (list as unknown as { shopping_list_items: ShoppingListItem[] }).shopping_list_items || []);
 };
 
 export const addShoppingListItem = async (

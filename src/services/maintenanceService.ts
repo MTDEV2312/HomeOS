@@ -146,18 +146,16 @@ export const getMaintenanceSchedules = async (assetId: string): Promise<Maintena
 };
 
 export const getAllMaintenanceSchedules = async (householdId: string): Promise<(MaintenanceSchedule & { asset: Asset })[]> => {
-  // We need to fetch schedules joining with assets
-  // Using InsForge relationships:
+  // Fetch schedules joining with assets and filtering on household_id on the database server
   const { data, error } = await insforge.database
     .from('maintenance_schedule')
-    .select('*, asset:assets(*)')
+    .select('*, asset:assets!inner(*)')
+    .eq('asset.household_id', householdId)
     .order('next_due', { ascending: true });
     
   if (error) throw error;
   
-  // Filter locally by household_id if needed, though RLS already restricts it
-  const rows = (data || []) as ScheduleWithAsset[];
-  return rows.filter(s => s.asset && s.asset.household_id === householdId);
+  return data as (MaintenanceSchedule & { asset: Asset })[];
 };
 
 export const addMaintenanceSchedule = async (payload: Partial<MaintenanceSchedule>): Promise<MaintenanceSchedule> => {
