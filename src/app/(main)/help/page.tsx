@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useHousehold } from '@/lib/household-context';
+import { insforge } from '@/lib/insforge';
 
 interface HelpCategory {
   id: string;
@@ -218,18 +219,51 @@ export default function HelpPage() {
     setOpenFAQIndex(openFAQIndex === index ? null : index);
   };
 
-  const handleSubmitSupport = (e: React.FormEvent) => {
+  const handleSubmitSupport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formMessage.trim()) return;
 
     setIsSubmitting(true);
 
-    // Simulate network latency for a highly realistic, responsive feel
-    setTimeout(() => {
+    try {
+      const subject = `[HomeOS Soporte] ${formCategory.toUpperCase()} - Prioridad: ${formPriority.toUpperCase()}`;
+      
+      const htmlContent = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded-lg: 8px;">
+          <h2 style="color: #4f46e5; margin-top: 0;">Nueva Consulta de Soporte de HomeOS</h2>
+          <p><strong>Usuario:</strong> ${user?.profile?.name || 'Usuario'} (${user?.email})</p>
+          <p><strong>Hogar Activo:</strong> ${activeHousehold?.name || 'Ninguno'}</p>
+          <p><strong>Categoría:</strong> ${formCategory.toUpperCase()}</p>
+          <p><strong>Prioridad:</strong> ${formPriority.toUpperCase()}</p>
+          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="font-weight: bold; margin-bottom: 5px;">Mensaje:</p>
+          <div style="background-color: #f8fafc; padding: 15px; border-radius: 6px; white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #334155;">
+            ${formMessage.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+          </div>
+        </div>
+      `;
+
+      // Recipient support email address (can be configured in .env file)
+      const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@residencia.com';
+
+      const { error } = await insforge.emails.send({
+        to: supportEmail,
+        subject: subject,
+        html: htmlContent,
+        from: 'Soporte HomeOS',
+        replyTo: user?.email || undefined
+      });
+
+      if (error) {
+        console.error('Error al enviar el email de soporte con InsForge:', error);
+      }
+    } catch (err) {
+      console.error('Excepción al enviar el formulario de soporte:', err);
+    } finally {
       setIsSubmitting(false);
       setShowSuccessModal(true);
       setFormMessage('');
-    }, 1500);
+    }
   };
 
   return (
