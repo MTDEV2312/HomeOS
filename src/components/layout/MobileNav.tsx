@@ -20,17 +20,7 @@ export function MobileNav() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container-lowest border-t border-outline-variant shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 safe-area-bottom">
-      <div 
-        className="flex overflow-x-auto px-1 py-1 gap-0.5"
-        style={{ 
-          scrollbarWidth: 'none', 
-          msOverflowStyle: 'none',
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
-        <style jsx>{`
-          div::-webkit-scrollbar { display: none; }
-        `}</style>
+      <div className="flex overflow-x-auto px-1 py-1 gap-0.5 scrollbar-hide">
         {navItems.map((item) => {
           const isActive = pathname === item.path || (item.path !== '/dashboard' && pathname.startsWith(`${item.path}/`));
           
