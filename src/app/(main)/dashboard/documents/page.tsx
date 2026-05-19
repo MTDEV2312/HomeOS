@@ -49,6 +49,8 @@ export default function DocumentsDashboard() {
 
   // Preview Modal State
   const [previewDoc, setPreviewDoc] = useState<HouseholdDocument | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [loadingPreview, setLoadingPreview] = useState<boolean>(false);
 
   // Listen to Escape key to close the preview modal
   useEffect(() => {
@@ -63,13 +65,91 @@ export default function DocumentsDashboard() {
 
   const isImageFile = (doc: HouseholdDocument) => {
     const ext = (doc.file_key || doc.file_url).split('.').pop()?.toLowerCase();
-    return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'].includes(ext || '');
+    return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'avif', 'apng', 'ico', 'bmp'].includes(ext || '');
   };
 
   const isPdfFile = (doc: HouseholdDocument) => {
     const ext = (doc.file_key || doc.file_url).split('.').pop()?.toLowerCase();
     return ext === 'pdf';
   };
+
+  const isOfficeFile = (doc: HouseholdDocument) => {
+    const ext = (doc.file_key || doc.file_url).split('.').pop()?.toLowerCase();
+    return ['docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt'].includes(ext || '');
+  };
+
+  // Manage Preview Loading and URL Lifecycles
+  useEffect(() => {
+    if (!previewDoc) {
+      if (previewUrl) {
+        // Revoke the blob URL to free browser RAM
+        if (previewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(previewUrl);
+        }
+        setPreviewUrl('');
+      }
+      return;
+    }
+
+    const loadPreview = async () => {
+      setLoadingPreview(true);
+      try {
+        if (isImageFile(previewDoc) || isPdfFile(previewDoc)) {
+          let blob: Blob;
+          try {
+            // 1. Try SDK download
+            blob = await downloadHouseholdDocument(previewDoc.file_key);
+            // Verify if blob is actually a JSON error response disguised as a blob
+            if (blob.type === 'application/json' || blob.type.startsWith('text/')) {
+              const text = await blob.text();
+              if (text.includes('error') || text.includes('message')) {
+                throw new Error('SDK returned a storage error response');
+              }
+            }
+          } catch (sdkErr) {
+            console.warn('SDK download failed, attempting native browser fetch:', sdkErr);
+            // 2. Direct fetch fallback (inheriting credentials/cookies)
+            const res = await fetch(previewDoc.file_url);
+            if (!res.ok) throw new Error('Failed to fetch file from storage');
+            blob = await res.blob();
+          }
+
+          // Ensure proper MIME type is set so the browser renders it correctly
+          const fileExt = previewDoc.file_key.split('.').pop()?.toLowerCase() || '';
+          let mimeType = blob.type;
+          if (isPdfFile(previewDoc)) {
+            mimeType = 'application/pdf';
+          } else if (isImageFile(previewDoc)) {
+            if (fileExt === 'jpg' || fileExt === 'jpeg') {
+              mimeType = 'image/jpeg';
+            } else if (fileExt === 'svg') {
+              mimeType = 'image/svg+xml';
+            } else if (fileExt === 'ico') {
+              mimeType = 'image/x-icon';
+            } else {
+              mimeType = `image/${fileExt}`;
+            }
+          }
+
+          const typedBlob = new Blob([blob], { type: mimeType });
+          const url = URL.createObjectURL(typedBlob);
+          setPreviewUrl(url);
+        } else if (isOfficeFile(previewDoc)) {
+          // Office files need Microsoft Office Web Viewer (must receive the direct public storage URL)
+          const officeUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDoc.file_url)}`;
+          setPreviewUrl(officeUrl);
+        }
+      } catch (err) {
+        console.error('Failed to prepare preview:', err);
+        setPreviewUrl('');
+      } finally {
+        setLoadingPreview(false);
+      }
+    };
+
+    loadPreview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewDoc]);
 
   useEffect(() => {
     if (!activeHousehold) return;
@@ -158,12 +238,30 @@ export default function DocumentsDashboard() {
 
   const handleDownload = async (doc: HouseholdDocument) => {
     try {
-      const blob = await downloadHouseholdDocument(doc.file_key);
+      let blob: Blob;
+      try {
+        // 1. Try SDK download
+        blob = await downloadHouseholdDocument(doc.file_key);
+        // Verify if blob is actually a JSON error response disguised as a blob
+        if (blob.type === 'application/json' || blob.type.startsWith('text/')) {
+          const text = await blob.text();
+          if (text.includes('error') || text.includes('message')) {
+            throw new Error('SDK returned a storage error response');
+          }
+        }
+      } catch (sdkErr) {
+        console.warn('SDK download failed, attempting native browser fetch:', sdkErr);
+        // 2. Direct fetch fallback (inheriting credentials/cookies)
+        const res = await fetch(doc.file_url);
+        if (!res.ok) throw new Error('Failed to fetch file from storage');
+        blob = await res.blob();
+      }
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       
-      // Extraer extensión original para evitar que el archivo se descargue sin formato (corrupto)
+      // Extraer extensión original para evitar que el archivo se descargue sin formato
       const fileExt = doc.file_key.split('.').pop() || doc.file_url.split('.').pop() || '';
       const cleanTitle = doc.title.endsWith(`.${fileExt}`) ? doc.title : `${doc.title}.${fileExt}`;
       a.download = cleanTitle;
@@ -402,28 +500,60 @@ export default function DocumentsDashboard() {
 
             {/* Content Body */}
             <div className="flex-1 bg-surface overflow-hidden p-md md:p-lg flex items-center justify-center relative min-h-0">
-              {isImageFile(previewDoc) ? (
-                <div className="w-full h-full flex items-center justify-center rounded-lg overflow-hidden bg-zinc-950/40 p-2 md:p-4">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img 
-                    src={previewDoc.file_url} 
-                    alt={previewDoc.title}
-                    className="max-w-full max-h-full object-contain rounded-md shadow-md transition-transform duration-300 hover:scale-105"
-                  />
+              {loadingPreview ? (
+                <div className="flex flex-col items-center justify-center gap-md">
+                  <span className="material-symbols-outlined animate-spin text-primary text-4xl">refresh</span>
+                  <p className="font-body-md text-body-md text-on-surface-variant">
+                    Cargando previsualización...
+                  </p>
                 </div>
-              ) : isPdfFile(previewDoc) ? (
-                <iframe 
-                  src={`${previewDoc.file_url}#toolbar=1`}
-                  className="w-full h-full border-0 rounded-lg shadow-sm bg-white"
-                  title={previewDoc.title}
-                />
+              ) : previewUrl ? (
+                isImageFile(previewDoc) ? (
+                  <div className="w-full h-full flex items-center justify-center rounded-lg overflow-hidden bg-zinc-950/40 p-2 md:p-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img 
+                      src={previewUrl} 
+                      alt={previewDoc.title}
+                      className="max-w-full max-h-full object-contain rounded-md shadow-md transition-transform duration-300 hover:scale-105"
+                    />
+                  </div>
+                ) : isPdfFile(previewDoc) ? (
+                  <iframe 
+                    src={previewUrl}
+                    className="w-full h-full border-0 rounded-lg shadow-sm bg-white"
+                    title={previewDoc.title}
+                  />
+                ) : isOfficeFile(previewDoc) ? (
+                  <iframe 
+                    src={previewUrl}
+                    className="w-full h-full border-0 rounded-lg shadow-sm bg-white"
+                    title={previewDoc.title}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center p-xl gap-md">
+                    <span className="material-symbols-outlined text-6xl text-on-surface-variant">description</span>
+                    <div>
+                      <h3 className="font-h3 text-h3 text-on-surface mb-1">Previsualización no disponible</h3>
+                      <p className="font-body-md text-body-md text-on-surface-variant max-w-sm">
+                        Este formato de archivo no se puede previsualizar. Por favor descarga el archivo para verlo.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDownload(previewDoc)}
+                      className="px-lg py-sm bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm flex items-center gap-sm"
+                    >
+                      <span className="material-symbols-outlined">download</span>
+                      Descargar Archivo
+                    </button>
+                  </div>
+                )
               ) : (
                 <div className="flex flex-col items-center justify-center text-center p-xl gap-md">
                   <span className="material-symbols-outlined text-6xl text-on-surface-variant">description</span>
                   <div>
                     <h3 className="font-h3 text-h3 text-on-surface mb-1">Previsualización no disponible</h3>
                     <p className="font-body-md text-body-md text-on-surface-variant max-w-sm">
-                      Este formato de archivo no se puede previsualizar en el navegador. Por favor descarga el archivo para verlo.
+                      No pudimos cargar la vista previa de este archivo. Por favor descarga el archivo para verlo.
                     </p>
                   </div>
                   <button
