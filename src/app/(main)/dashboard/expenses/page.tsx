@@ -46,6 +46,11 @@ export default function ExpensesDashboard() {
   // Budget form state
   const [budgetAmount, setBudgetAmount] = useState('');
   
+  // View options state
+  const [showAllExpenses, setShowAllExpenses] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  
   useEffect(() => {
     if (!activeHousehold) return;
     
@@ -250,6 +255,16 @@ export default function ExpensesDashboard() {
     if (cat.pct > topCategory.pct) topCategory = { name: cat.name, pct: cat.pct };
   });
 
+  // Filter and slice/full list based on state
+  const displayedExpenses = showAllExpenses
+    ? expenses.filter(expense => {
+        const matchesSearch = expense.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              expense.amount.toString().includes(searchQuery);
+        const matchesCategory = !filterCategory || expense.category_id === filterCategory;
+        return matchesSearch && matchesCategory;
+      })
+    : expenses.slice(0, 5);
+
   return (
     <div className="flex flex-col gap-xl w-full min-w-0">
       {/* Page Header & Actions */}
@@ -370,14 +385,63 @@ export default function ExpensesDashboard() {
 
           {/* Bottom Section: Recent Expenses */}
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden mb-xl">
-            <div className="p-lg border-b border-outline-variant flex justify-between items-center">
-              <h2 className="font-h3 text-h3 text-on-surface">Gastos Recientes</h2>
-              <button className="font-label-md text-label-md text-primary hover:text-primary-container transition-colors">Ver Todos</button>
+            <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-lowest">
+              <h2 className="font-h3 text-h3 text-on-surface">
+                {showAllExpenses ? 'Todos los Gastos' : 'Gastos Recientes'}
+              </h2>
+              <button 
+                onClick={() => {
+                  setShowAllExpenses(!showAllExpenses);
+                  if (showAllExpenses) {
+                    setSearchQuery('');
+                    setFilterCategory('');
+                  }
+                }}
+                className="font-label-md text-label-md text-primary hover:text-primary-container transition-colors flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-md">
+                  {showAllExpenses ? 'arrow_back' : 'visibility'}
+                </span>
+                {showAllExpenses ? 'Ver Recientes' : 'Ver Todos'}
+              </button>
             </div>
+
+            {showAllExpenses && (
+              <div className="p-md bg-surface-container-low border-b border-outline-variant flex flex-col sm:flex-row gap-sm items-center justify-between animate-fade-in">
+                <div className="relative w-full sm:w-72">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">search</span>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Buscar por descripción o monto..."
+                    className="w-full bg-surface rounded-lg border border-outline-variant py-2 pl-9 pr-3 text-on-surface font-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                  />
+                </div>
+                <div className="flex gap-sm w-full sm:w-auto items-center">
+                  <span className="font-label-md text-on-surface-variant hidden sm:inline">Filtrar por:</span>
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="w-full sm:w-48 bg-surface rounded-lg border border-outline-variant p-2 text-on-surface font-body-md focus:border-primary outline-none"
+                  >
+                    <option value="">Todas las categorías</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
             <div className="overflow-x-auto">
               {expenses.length === 0 ? (
                 <div className="p-xl text-center text-on-surface-variant font-body-md">
                   No hay gastos registrados. ¡Anota el primero!
+                </div>
+              ) : displayedExpenses.length === 0 ? (
+                <div className="p-xl text-center text-on-surface-variant font-body-md">
+                  No se encontraron gastos que coincidan con la búsqueda.
                 </div>
               ) : (
                 <table className="w-full text-left border-collapse min-w-[550px]">
@@ -391,7 +455,7 @@ export default function ExpensesDashboard() {
                     </tr>
                   </thead>
                   <tbody className="font-body-md text-body-md text-on-surface divide-y divide-outline-variant">
-                    {expenses.slice(0, 5).map(expense => {
+                    {displayedExpenses.map(expense => {
                       const payer = members?.find(m => m.user_id === expense.payer_id);
                       
                       let badgeClass = 'bg-surface-container-high text-on-surface-variant';
