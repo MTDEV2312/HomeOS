@@ -1,5 +1,11 @@
 import { Suspense } from 'react';
 import LoginClient from './login-client';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Iniciar Sesión',
+  description: 'Inicia sesión en HomeOS para acceder al panel de control de tu hogar familiar y colaborar en tareas y presupuestos.',
+};
 
 export default function LoginPage() {
   return (
