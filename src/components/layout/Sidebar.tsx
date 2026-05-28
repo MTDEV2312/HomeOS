@@ -17,24 +17,30 @@ export function Sidebar() {
     });
   };
 
+  const handleAutoCollapse = (width: number) => {
+    const stored = localStorage.getItem('sidebar-collapsed');
+    
+    // Si la pantalla es mediana o chica (menor a 1200px), forzamos el colapso de la sidebar
+    // para priorizar el espacio de lectura y visualización del contenido útil.
+    if (width < 1200) {
+      setIsCollapsed(true);
+    } else if (stored !== null) {
+      // En pantallas grandes, respetamos la decisión manual que tomó el usuario
+      setIsCollapsed(stored === 'true');
+    } else {
+      // Por defecto en pantallas grandes, se mantiene expandida
+      setIsCollapsed(false);
+    }
+  };
+
   // Safe client mounting and auto-responsive setup
   useEffect(() => {
     setIsMounted(true);
     
-    // Check if the user previously set a manual preference
-    const stored = localStorage.getItem('sidebar-collapsed');
-    if (stored !== null) {
-      setIsCollapsed(stored === 'true');
-    } else {
-      // Default auto-collapse on viewports less than 1100px
-      setIsCollapsed(window.innerWidth < 1100);
-    }
+    handleAutoCollapse(window.innerWidth);
 
     const handleResize = () => {
-      // Only auto-adjust if the user hasn't set a manual override
-      if (localStorage.getItem('sidebar-collapsed') === null) {
-        setIsCollapsed(window.innerWidth < 1100);
-      }
+      handleAutoCollapse(window.innerWidth);
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
