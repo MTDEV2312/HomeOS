@@ -145,7 +145,7 @@ export const getMaintenanceSchedules = async (assetId: string): Promise<Maintena
   return data as MaintenanceSchedule[];
 };
 
-export const getAllMaintenanceSchedules = async (householdId: string): Promise<(MaintenanceSchedule & { asset: Asset })[]> => {
+export const getAllMaintenanceSchedules = async (householdId: string): Promise<ScheduleWithAsset[]> => {
   // Fetch schedules joining with assets and filtering on household_id on the database server
   const { data, error } = await insforge.database
     .from('maintenance_schedule')
@@ -155,7 +155,7 @@ export const getAllMaintenanceSchedules = async (householdId: string): Promise<(
     
   if (error) throw error;
   
-  return data as (MaintenanceSchedule & { asset: Asset })[];
+  return data as ScheduleWithAsset[];
 };
 
 export const addMaintenanceSchedule = async (payload: Partial<MaintenanceSchedule>): Promise<MaintenanceSchedule> => {

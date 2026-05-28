@@ -167,3 +167,24 @@ export const leaveHousehold = async (householdId: string, userId: string) => {
 
   if (error) throw error;
 };
+
+export const deleteHousehold = async (householdId: string): Promise<void> => {
+  // Verify that the household has no other members before deleting.
+  const { data: members, error: membersError } = await insforge.database
+    .from('household_members')
+    .select('id')
+    .eq('household_id', householdId);
+
+  if (membersError) throw membersError;
+
+  if (members && members.length > 1) {
+    throw new Error('No se puede eliminar el hogar porque aún tiene otros miembros. Debés expulsarlos primero.');
+  }
+
+  const { error } = await insforge.database
+    .from('households')
+    .delete()
+    .eq('id', householdId);
+
+  if (error) throw error;
+};
