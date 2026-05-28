@@ -423,4 +423,18 @@
 
 .animate-slide-up {
   animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ═══ Custom Utility Classes to Remove Inline Styles (SEO & CSP) ═══ */
+.material-symbols-filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24 !important;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin !important;
+}
+
+.custom-support-heading {
+  color: #4f46e5 !important;
+  margin-top: 0 !important;
 }

@@ -13,8 +13,7 @@ export function Logo({ className = '', size = 48 }: LogoProps) {
       width={size}
       height={size}
       viewBox="0 0 567 567"
-      className={className}
-      style={{ fill: 'currentColor' }}
+      className={`${className} fill-current`}
       xmlns="http://www.w3.org/2000/svg"
     >
       <g transform="translate(0.000000,567.000000) scale(0.100000,-0.100000)">

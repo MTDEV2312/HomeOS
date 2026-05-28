@@ -128,8 +128,7 @@ export function Sidebar() {
               }`}
             >
               <span 
-                className="material-symbols-outlined shrink-0 transition-transform duration-300 group-hover:scale-110" 
-                style={isActive ? { fontVariationSettings: "'FILL' 1" } : {}}
+                className={`material-symbols-outlined shrink-0 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'material-symbols-filled' : ''}`}
               >
                 {item.icon}
               </span>

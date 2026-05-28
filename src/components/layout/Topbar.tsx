@@ -24,14 +24,14 @@ interface SearchResult {
   globalIndex: number;
 }
 
-interface CategorizedResults {
-  tasks: SearchResult[];
-  shopping: SearchResult[];
-  inventory: SearchResult[];
-  documents: SearchResult[];
-  expenses: SearchResult[];
-  maintenance: SearchResult[];
-}
+// interface CategorizedResults {
+//   tasks: SearchResult[];
+//   shopping: SearchResult[];
+//   inventory: SearchResult[];
+//   documents: SearchResult[];
+//   expenses: SearchResult[];
+//   maintenance: SearchResult[];
+// }
 
 export function Topbar() {
   const { user, signOut } = useAuth();
@@ -46,6 +46,7 @@ export function Topbar() {
   const [isFocused, setIsFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const [rawData, setRawData] = useState<{
     tasks: any[];
     shopping: any[];
@@ -55,6 +56,7 @@ export function Topbar() {
     assets: any[];
     schedules: any[];
   } | null>(null);
+  /* eslint-enable @typescript-eslint/no-explicit-any */
   const [lastFetched, setLastFetched] = useState<number>(0);
 
   const userDropdownRef = useRef<HTMLDivElement>(null);
@@ -326,7 +328,7 @@ export function Topbar() {
           <span className="material-symbols-outlined text-[40px] text-outline/40 mb-2">search_off</span>
           <p className="font-title-sm text-title-sm text-on-surface font-semibold">Sin resultados</p>
           <p className="font-body-sm text-body-sm text-on-surface-variant/80 mt-1 max-w-[280px]">
-            No encontramos coincidencias para "<span className="font-semibold text-on-surface">{searchQuery}</span>" en este hogar.
+            No encontramos coincidencias para &quot;<span className="font-semibold text-on-surface">{searchQuery}</span>&quot; en este hogar.
           </p>
         </div>
       );
@@ -443,6 +445,7 @@ export function Topbar() {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawData]);
 
   // Auto-focus search on open
