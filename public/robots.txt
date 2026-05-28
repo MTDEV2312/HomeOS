@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://homeos.insforge.app/sitemap.xml
+Sitemap: https://homeos.mathiast.me/sitemap.xml

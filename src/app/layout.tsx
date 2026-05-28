@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://homeos.insforge.app"),
+  metadataBase: new URL("https://homeos.mathiast.me"),
   title: {
     default: "HomeOS - Gestión familiar integrada",
     template: "%s - HomeOS",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "es_AR",
-    url: "https://homeos.insforge.app",
+    url: "https://homeos.mathiast.me",
     title: "HomeOS - Gestión familiar integrada",
     description: "HomeOS - Tu mini ERP familiar para la gestión del hogar, tareas, presupuestos y compras colaborativas.",
     siteName: "HomeOS",
