@@ -281,9 +281,8 @@ function ResetPasswordContent() {
           </Link>
         </div>
       </div>
-        </div>
-      </div>
-    </main>
+    </div>
+  </main>
   );
 }
 
