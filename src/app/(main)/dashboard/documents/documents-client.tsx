@@ -1,0 +1,574 @@
+'use client';
+
+import { useEffect, useState, useRef } from 'react';
+import { useHousehold } from '@/lib/household-context';
+import { useAuth } from '@/lib/auth-context';
+import { insforge } from '@/lib/insforge';
+import {
+  HouseholdDocument,
+  DocumentCategory,
+  getHouseholdDocuments,
+  addHouseholdDocument,
+  deleteHouseholdDocument,
+  downloadHouseholdDocument
+} from '@/services/documentService';
+import { useToast } from '@/lib/toast-context';
+import { getErrorMessage } from '@/lib/errors';
+
+const CATEGORY_ICONS: Record<DocumentCategory, string> = {
+  RECEIPT: 'receipt_long',
+  WARRANTY: 'verified_user',
+  CONTRACT: 'description',
+  IDENTITY: 'badge',
+  OTHER: 'folder'
+};
+
+const CATEGORY_LABELS: Record<DocumentCategory, string> = {
+  RECEIPT: 'Recibo/Factura',
+  WARRANTY: 'Garantía',
+  CONTRACT: 'Contrato',
+  IDENTITY: 'Identidad',
+  OTHER: 'Otro'
+};
+
+export default function DocumentsDashboard() {
+  const { activeHousehold } = useHousehold();
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [documents, setDocuments] = useState<HouseholdDocument[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const { success, error: showError } = useToast();
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState<DocumentCategory>('OTHER');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Preview Modal State
+  const [previewDoc, setPreviewDoc] = useState<HouseholdDocument | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [loadingPreview, setLoadingPreview] = useState<boolean>(false);
+
+  // Listen to Escape key to close the preview modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPreviewDoc(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const isImageFile = (doc: HouseholdDocument) => {
+    const ext = (doc.file_key || doc.file_url).split('.').pop()?.toLowerCase();
+    return ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'avif', 'apng', 'ico', 'bmp'].includes(ext || '');
+  };
+
+  const isPdfFile = (doc: HouseholdDocument) => {
+    const ext = (doc.file_key || doc.file_url).split('.').pop()?.toLowerCase();
+    return ext === 'pdf';
+  };
+
+  const isOfficeFile = (doc: HouseholdDocument) => {
+    const ext = (doc.file_key || doc.file_url).split('.').pop()?.toLowerCase();
+    return ['docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt'].includes(ext || '');
+  };
+
+  // Manage Preview Loading and URL Lifecycles
+  useEffect(() => {
+    if (!previewDoc) {
+      if (previewUrl) {
+        // Revoke the blob URL to free browser RAM
+        if (previewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(previewUrl);
+        }
+        setPreviewUrl('');
+      }
+      return;
+    }
+
+    const loadPreview = async () => {
+      setLoadingPreview(true);
+      try {
+        if (isImageFile(previewDoc) || isPdfFile(previewDoc)) {
+          let blob: Blob;
+          try {
+            // 1. Try SDK download
+            blob = await downloadHouseholdDocument(previewDoc.file_key);
+            // Verify if blob is actually a JSON error response disguised as a blob
+            if (blob.type === 'application/json' || blob.type.startsWith('text/')) {
+              const text = await blob.text();
+              if (text.includes('error') || text.includes('message')) {
+                throw new Error('SDK returned a storage error response');
+              }
+            }
+          } catch (sdkErr) {
+            console.warn('SDK download failed, attempting native browser fetch:', sdkErr);
+            // 2. Direct fetch fallback (inheriting credentials/cookies)
+            const res = await fetch(previewDoc.file_url);
+            if (!res.ok) throw new Error('Failed to fetch file from storage');
+            blob = await res.blob();
+          }
+
+          // Ensure proper MIME type is set so the browser renders it correctly
+          const fileExt = previewDoc.file_key.split('.').pop()?.toLowerCase() || '';
+          let mimeType = blob.type;
+          if (isPdfFile(previewDoc)) {
+            mimeType = 'application/pdf';
+          } else if (isImageFile(previewDoc)) {
+            if (fileExt === 'jpg' || fileExt === 'jpeg') {
+              mimeType = 'image/jpeg';
+            } else if (fileExt === 'svg') {
+              mimeType = 'image/svg+xml';
+            } else if (fileExt === 'ico') {
+              mimeType = 'image/x-icon';
+            } else {
+              mimeType = `image/${fileExt}`;
+            }
+          }
+
+          const typedBlob = new Blob([blob], { type: mimeType });
+          const url = URL.createObjectURL(typedBlob);
+          setPreviewUrl(url);
+        } else if (isOfficeFile(previewDoc)) {
+          // Office files need Microsoft Office Web Viewer (must receive the direct public storage URL)
+          const officeUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewDoc.file_url)}`;
+          setPreviewUrl(officeUrl);
+        }
+      } catch (err) {
+        console.error('Failed to prepare preview:', err);
+        setPreviewUrl('');
+      } finally {
+        setLoadingPreview(false);
+      }
+    };
+
+    loadPreview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewDoc]);
+
+  useEffect(() => {
+    if (!activeHousehold) return;
+
+    const loadDocs = async () => {
+      try {
+        setLoading(true);
+        const docs = await getHouseholdDocuments(activeHousehold.id);
+        setDocuments(docs);
+      } catch (err) {
+        console.error('Error loading documents:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDocs();
+
+    const setupRealtime = async () => {
+      try {
+        await insforge.realtime.connect();
+        const channelName = `household:${activeHousehold.id}`;
+        await insforge.realtime.subscribe(channelName);
+        
+        insforge.realtime.on('INSERT_household_documents', () => loadDocs());
+        insforge.realtime.on('UPDATE_household_documents', () => loadDocs());
+        insforge.realtime.on('DELETE_household_documents', () => loadDocs());
+      } catch (err) {
+        console.error('Error setting up realtime:', err);
+      }
+    };
+
+    setupRealtime();
+
+    return () => {
+      insforge.realtime.unsubscribe(`household:${activeHousehold.id}`);
+    };
+  }, [activeHousehold]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeHousehold || !user || !selectedFile) return;
+
+    try {
+      setUploading(true);
+      await addHouseholdDocument({
+        household_id: activeHousehold.id,
+        title,
+        category,
+        related_type: null,
+        related_id: null,
+        created_by: user.id
+      }, selectedFile);
+
+      setIsModalOpen(false);
+      setTitle('');
+      setCategory('OTHER');
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      success('Documento subido', 'El documento se ha subido correctamente.');
+    } catch (err: unknown) {
+      console.error('Error uploading document:', err);
+      showError('Error al subir el documento', getErrorMessage(err));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async (doc: HouseholdDocument) => {
+    if (confirm('¿Estás seguro de que deseas eliminar este documento?')) {
+      try {
+        await deleteHouseholdDocument(doc.id, doc.file_key);
+        success('Documento eliminado', 'El documento se ha eliminado correctamente.');
+      } catch (err: unknown) {
+        console.error('Error deleting document:', err);
+        showError('Error al eliminar el documento', getErrorMessage(err));
+      }
+    }
+  };
+
+  const handleDownload = async (doc: HouseholdDocument) => {
+    try {
+      let blob: Blob;
+      try {
+        // 1. Try SDK download
+        blob = await downloadHouseholdDocument(doc.file_key);
+        // Verify if blob is actually a JSON error response disguised as a blob
+        if (blob.type === 'application/json' || blob.type.startsWith('text/')) {
+          const text = await blob.text();
+          if (text.includes('error') || text.includes('message')) {
+            throw new Error('SDK returned a storage error response');
+          }
+        }
+      } catch (sdkErr) {
+        console.warn('SDK download failed, attempting native browser fetch:', sdkErr);
+        // 2. Direct fetch fallback (inheriting credentials/cookies)
+        const res = await fetch(doc.file_url);
+        if (!res.ok) throw new Error('Failed to fetch file from storage');
+        blob = await res.blob();
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Extraer extensión original para evitar que el archivo se descargue sin formato
+      const fileExt = doc.file_key.split('.').pop() || doc.file_url.split('.').pop() || '';
+      const cleanTitle = doc.title.endsWith(`.${fileExt}`) ? doc.title : `${doc.title}.${fileExt}`;
+      a.download = cleanTitle;
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      console.error('Error downloading document, attempting fallback:', err);
+      try {
+        // Fallback: descarga directa por si falla el blob
+        const a = document.createElement('a');
+        a.href = doc.file_url;
+        const fileExt = doc.file_key.split('.').pop() || doc.file_url.split('.').pop() || '';
+        a.download = doc.title.endsWith(`.${fileExt}`) ? doc.title : `${doc.title}.${fileExt}`;
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (fallbackErr) {
+        console.error('Fallback download failed:', fallbackErr);
+        showError('Error al descargar el documento', getErrorMessage(err));
+      }
+    }
+  };
+
+  if (!activeHousehold || !user) {
+    return <div className="p-margin">Cargando contexto del hogar...</div>;
+  }
+
+  return (
+    <div className="flex flex-col gap-xl w-full min-w-0">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md">
+        <div>
+          <h1 className="font-h1 text-h1 text-on-surface">Documentos</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+            Almacenamiento seguro de recibos, garantías y contratos
+          </p>
+        </div>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="w-full sm:w-auto px-lg py-sm rounded-lg font-label-md text-label-md bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm flex items-center justify-center gap-sm"
+        >
+          <span className="material-symbols-outlined">upload_file</span>
+          Subir Documento
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-md">
+        {loading && documents.length === 0 ? (
+          <div className="col-span-full flex justify-center p-xl">
+            <span className="material-symbols-outlined animate-spin text-primary text-4xl">refresh</span>
+          </div>
+        ) : documents.length === 0 ? (
+          <div className="col-span-full bg-surface-container-lowest p-xl rounded-xl border border-outline-variant text-center text-on-surface-variant font-body-md shadow-sm">
+            No tienes documentos guardados. ¡Subí tu primer recibo o contrato!
+          </div>
+        ) : (
+          documents.map(doc => (
+            <div key={doc.id} className="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm flex flex-col gap-md transition-shadow hover:shadow-md">
+              <div className="flex items-start gap-md">
+                <div className="w-12 h-12 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[24px]">{CATEGORY_ICONS[doc.category]}</span>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <h3 className="font-h3 text-h3 text-on-surface truncate" title={doc.title}>{doc.title}</h3>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant">{CATEGORY_LABELS[doc.category]}</p>
+                </div>
+              </div>
+
+              <div className="mt-auto pt-4 flex gap-2">
+                <button 
+                  onClick={() => setPreviewDoc(doc)}
+                  className="flex-1 py-1.5 bg-surface-container text-on-surface font-label-sm text-label-sm rounded hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1"
+                  title="Ver online"
+                >
+                  <span className="material-symbols-outlined text-[16px]">visibility</span>
+                  Ver
+                </button>
+                <button 
+                  onClick={() => handleDownload(doc)}
+                  className="flex-1 py-1.5 bg-surface-container text-primary font-label-sm text-label-sm rounded hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1"
+                  title="Descargar"
+                >
+                  <span className="material-symbols-outlined text-[16px]">download</span>
+                  Bajar
+                </button>
+                <button 
+                  onClick={() => handleDelete(doc)}
+                  className="px-3 py-1.5 bg-surface-container text-error font-label-sm text-label-sm rounded hover:bg-error-container hover:text-on-error-container transition-colors flex items-center justify-center"
+                  title="Eliminar"
+                >
+                  <span className="material-symbols-outlined text-[16px]">delete</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Upload Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
+          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col">
+            <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low shrink-0">
+              <h2 className="font-h3 text-h3 text-on-surface font-semibold flex items-center gap-sm">
+                <span className="material-symbols-outlined text-primary">upload_file</span>
+                Subir Documento
+              </h2>
+              <button 
+                onClick={() => !uploading && setIsModalOpen(false)}
+                disabled={uploading}
+                className="text-on-surface-variant hover:text-error transition-colors p-1 rounded-full hover:bg-error-container disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <form id="uploadForm" onSubmit={handleUpload} className="p-lg flex flex-col gap-md">
+              <div className="flex flex-col gap-1">
+                <label className="font-label-md text-on-surface font-medium">Título del Documento *</label>
+                <input
+                  type="text"
+                  required
+                  disabled={uploading}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full bg-surface rounded-lg border border-outline-variant px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none disabled:opacity-50"
+                  placeholder="Ej. Factura Heladera Samsung"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="font-label-md text-on-surface font-medium">Categoría</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as DocumentCategory)}
+                  disabled={uploading}
+                  className="w-full bg-surface rounded-lg border border-outline-variant px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none disabled:opacity-50"
+                >
+                  {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1 mt-2">
+                <label className="font-label-md text-on-surface font-medium">Archivo *</label>
+                <input
+                  type="file"
+                  required
+                  disabled={uploading}
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="w-full bg-surface rounded-lg border border-outline-variant px-3 py-2 text-on-surface-variant text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-container file:text-on-primary-container hover:file:bg-primary/20 disabled:opacity-50 cursor-pointer"
+                />
+                <span className="text-xs text-on-surface-variant mt-1">
+                  Formatos soportados: PDF, JPG, PNG. Max 10MB.
+                </span>
+              </div>
+            </form>
+            
+            <div className="p-lg border-t border-outline-variant flex justify-end gap-md shrink-0 bg-surface-container-lowest">
+              <button 
+                type="button" 
+                onClick={() => setIsModalOpen(false)}
+                disabled={uploading}
+                className="px-lg py-sm rounded-lg font-label-md text-label-md text-primary hover:bg-primary-container transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit"
+                form="uploadForm"
+                disabled={uploading || !selectedFile}
+                className="px-lg py-sm rounded-lg font-label-md text-label-md bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+              >
+                {uploading ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-[18px]">refresh</span>
+                    Subiendo...
+                  </>
+                ) : (
+                  'Subir'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Preview Modal */}
+      {previewDoc && (
+        <div 
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6 transition-all duration-300 animate-in fade-in"
+          onClick={() => setPreviewDoc(null)}
+        >
+          <div 
+            className="bg-surface-container-lowest rounded-2xl shadow-2xl border border-outline-variant/30 w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-md md:p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low shrink-0">
+              <div className="flex items-center gap-md min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[20px]">{CATEGORY_ICONS[previewDoc.category]}</span>
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-h3 text-h3 text-on-surface font-semibold truncate max-w-[200px] sm:max-w-md" title={previewDoc.title}>
+                    {previewDoc.title}
+                  </h2>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant">
+                    {CATEGORY_LABELS[previewDoc.category]}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-sm">
+                <button
+                  onClick={() => handleDownload(previewDoc)}
+                  className="px-3 py-1.5 bg-primary text-on-primary font-label-sm text-label-sm rounded-lg hover:bg-primary-container hover:text-on-primary-container transition-colors flex items-center gap-1 shadow-sm"
+                  title="Descargar"
+                >
+                  <span className="material-symbols-outlined text-[16px]">download</span>
+                  <span className="hidden sm:inline">Descargar</span>
+                </button>
+                <button 
+                  onClick={() => setPreviewDoc(null)}
+                  className="text-on-surface-variant hover:text-error transition-colors p-2 rounded-full hover:bg-error-container/20 flex items-center justify-center"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Content Body */}
+            <div className="flex-1 bg-surface overflow-hidden p-md md:p-lg flex items-center justify-center relative min-h-0">
+              {loadingPreview ? (
+                <div className="flex flex-col items-center justify-center gap-md">
+                  <span className="material-symbols-outlined animate-spin text-primary text-4xl">refresh</span>
+                  <p className="font-body-md text-body-md text-on-surface-variant">
+                    Cargando previsualización...
+                  </p>
+                </div>
+              ) : previewUrl ? (
+                isImageFile(previewDoc) ? (
+                  <div className="w-full h-full flex items-center justify-center rounded-lg overflow-hidden bg-zinc-950/40 p-2 md:p-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img 
+                      src={previewUrl} 
+                      alt={previewDoc.title}
+                      className="max-w-full max-h-full object-contain rounded-md shadow-md transition-transform duration-300 hover:scale-105"
+                    />
+                  </div>
+                ) : isPdfFile(previewDoc) ? (
+                  <iframe 
+                    src={previewUrl}
+                    className="w-full h-full border-0 rounded-lg shadow-sm bg-white"
+                    title={previewDoc.title}
+                  />
+                ) : isOfficeFile(previewDoc) ? (
+                  <iframe 
+                    src={previewUrl}
+                    className="w-full h-full border-0 rounded-lg shadow-sm bg-white"
+                    title={previewDoc.title}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center p-xl gap-md">
+                    <span className="material-symbols-outlined text-6xl text-on-surface-variant">description</span>
+                    <div>
+                      <h3 className="font-h3 text-h3 text-on-surface mb-1">Previsualización no disponible</h3>
+                      <p className="font-body-md text-body-md text-on-surface-variant max-w-sm">
+                        Este formato de archivo no se puede previsualizar. Por favor descarga el archivo para verlo.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDownload(previewDoc)}
+                      className="px-lg py-sm bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm flex items-center gap-sm"
+                    >
+                      <span className="material-symbols-outlined">download</span>
+                      Descargar Archivo
+                    </button>
+                  </div>
+                )
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center p-xl gap-md">
+                  <span className="material-symbols-outlined text-6xl text-on-surface-variant">description</span>
+                  <div>
+                    <h3 className="font-h3 text-h3 text-on-surface mb-1">Previsualización no disponible</h3>
+                    <p className="font-body-md text-body-md text-on-surface-variant max-w-sm">
+                      No pudimos cargar la vista previa de este archivo. Por favor descarga el archivo para verlo.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDownload(previewDoc)}
+                    className="px-lg py-sm bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm flex items-center gap-sm"
+                  >
+                    <span className="material-symbols-outlined">download</span>
+                    Descargar Archivo
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
