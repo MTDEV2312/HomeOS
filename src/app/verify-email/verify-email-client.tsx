@@ -99,8 +99,9 @@ function VerifyEmailContent() {
   };
 
   return (
-    <div className="auth-container min-h-screen flex items-center justify-center p-md">
-      <div className="w-full max-w-md flex flex-col gap-lg">
+    <div className="auth-container h-screen overflow-y-auto">
+      <div className="min-h-full w-full flex items-center justify-center p-md">
+        <div className="w-full max-w-md flex flex-col gap-lg py-md">
         <div className="auth-card">
           {/* Icon */}
           <div className="text-center mb-8">
@@ -184,17 +185,20 @@ function VerifyEmailContent() {
         </div>
         <span className="mt-xs">Desarrollado por MTDEV2312 • © {new Date().getFullYear()} HomeOS</span>
       </footer>
+        </div>
+      </div>
     </div>
-  </div>
   );
 }
 
 export default function VerifyEmailClient() {
   return (
     <Suspense fallback={
-      <div className="auth-container min-h-screen flex items-center justify-center p-md">
-        <div className="auth-card flex items-center justify-center py-16 w-full max-w-md">
-          <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+      <div className="auth-container h-screen overflow-y-auto">
+        <div className="min-h-full w-full flex items-center justify-center p-md">
+          <div className="auth-card flex items-center justify-center py-16 w-full max-w-md">
+            <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+          </div>
         </div>
       </div>
     }>

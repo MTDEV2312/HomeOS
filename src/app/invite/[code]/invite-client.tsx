@@ -52,18 +52,21 @@ export default function InviteClient() {
 
   if (status === 'loading' || authLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-md">
+      <div className="h-screen overflow-y-auto bg-background">
+        <div className="min-h-full w-full flex items-center justify-center p-md">
+          <div className="flex flex-col items-center gap-md py-md">
           <Loader2 className="w-10 h-10 animate-spin text-primary" />
           <p className="font-body-md text-body-md text-on-surface-variant">Cargando...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-md">
-      <div className="w-full max-w-md bg-surface-container-lowest rounded-xl border border-outline-variant shadow-[0_4px_20px_rgba(0,0,0,0.1)] overflow-hidden">
+    <div className="h-screen overflow-y-auto bg-background">
+      <div className="min-h-full w-full flex items-center justify-center p-md">
+        <div className="w-full max-w-md bg-surface-container-lowest rounded-xl border border-outline-variant shadow-[0_4px_20px_rgba(0,0,0,0.1)] overflow-hidden">
         {/* Header */}
         <div className="bg-primary-container p-xl flex flex-col items-center gap-md text-center">
           <div className="w-16 h-16 rounded-full bg-surface flex items-center justify-center">
@@ -151,6 +154,7 @@ export default function InviteClient() {
               </div>
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>

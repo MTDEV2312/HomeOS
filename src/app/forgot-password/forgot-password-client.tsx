@@ -41,8 +41,9 @@ export default function ForgotPasswordClient() {
   };
 
   return (
-    <main className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
-      <div className="w-full max-w-md flex flex-col gap-lg">
+    <main className="bg-surface-dim h-screen overflow-y-auto text-on-surface font-body-md">
+      <div className="min-h-full w-full flex items-center justify-center p-md">
+        <div className="w-full max-w-md flex flex-col gap-lg py-md">
         <div className="w-full bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg">
           <div className="text-center flex flex-col items-center gap-sm">
             <div className="w-16 h-16 relative">
@@ -107,7 +108,8 @@ export default function ForgotPasswordClient() {
         </div>
         <span className="mt-xs">Desarrollado por MTDEV2312 • © {new Date().getFullYear()} HomeOS</span>
       </footer>
-    </div>
-  </main>
+        </div>
+      </div>
+    </main>
   );
 }

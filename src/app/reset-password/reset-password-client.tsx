@@ -88,8 +88,9 @@ function ResetPasswordContent() {
 
   if (success) {
     return (
-      <main className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
-        <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg">
+      <main className="bg-surface-dim h-screen overflow-y-auto text-on-surface font-body-md">
+        <div className="min-h-full w-full flex items-center justify-center p-md">
+          <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg py-md">
           <div className="text-center flex flex-col items-center gap-sm">
             <span className="material-symbols-outlined text-[48px] text-primary material-symbols-filled">check_circle</span>
             <h1 className="font-h1 text-h1 text-primary">Contraseña Restablecida</h1>
@@ -112,6 +113,7 @@ function ResetPasswordContent() {
             Iniciar Sesión
             <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
           </Link>
+          </div>
         </div>
       </main>
     );
@@ -119,8 +121,9 @@ function ResetPasswordContent() {
 
   if (mode === 'new-password') {
     return (
-      <main className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
-        <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg">
+      <main className="bg-surface-dim h-screen overflow-y-auto text-on-surface font-body-md">
+        <div className="min-h-full w-full flex items-center justify-center p-md">
+          <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg py-md">
           <div className="text-center flex flex-col items-center gap-sm">
             <span className="material-symbols-outlined text-[48px] text-primary material-symbols-filled">lock_reset</span>
             <h1 className="font-h1 text-h1 text-primary">Nueva Contraseña</h1>
@@ -195,14 +198,16 @@ function ResetPasswordContent() {
               Volver al código
             </button>
           </div>
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="bg-surface-dim min-h-screen flex items-center justify-center p-md text-on-surface font-body-md">
-      <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg">
+    <main className="bg-surface-dim h-screen overflow-y-auto text-on-surface font-body-md">
+      <div className="min-h-full w-full flex items-center justify-center p-md">
+        <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg py-md">
         <div className="text-center flex flex-col items-center gap-sm">
           <span className="material-symbols-outlined text-[48px] text-primary material-symbols-filled">pin</span>
           <h1 className="font-h1 text-h1 text-primary">Código de Verificación</h1>
@@ -276,13 +281,15 @@ function ResetPasswordContent() {
           </Link>
         </div>
       </div>
+        </div>
+      </div>
     </main>
   );
 }
 
 function LoadingFallback() {
   return (
-    <div className="bg-surface-dim min-h-screen flex items-center justify-center p-md">
+    <div className="bg-surface-dim h-screen overflow-y-auto flex items-center justify-center p-md">
       <div className="flex items-center gap-md text-on-surface-variant">
         <Loader2 className="w-6 h-6 animate-spin" />
         <span>Cargando...</span>
