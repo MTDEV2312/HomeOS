@@ -46,7 +46,7 @@ export default function DashboardClient() {
           m.filter(sch => sch.next_due && new Date(sch.next_due) <= nextWeek)
         );
 
-        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const currentMonthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
         setExpenses(e.filter(exp => exp.date >= currentMonthStart));
         setBudgets(b);
         setActiveShoppingLists(s.filter(list => !list.is_archived));
@@ -60,7 +60,11 @@ export default function DashboardClient() {
 
     loadData();
 
-    // Re-use standard channel subscription to listen for overall updates
+    const tables = ['tasks', 'inventory_items', 'maintenance_schedule', 'expenses', 'budgets', 'shopping_lists'];
+    const handleUpdate = () => {
+      loadData();
+    };
+
     const setupRealtime = async () => {
       try {
         await insforge.realtime.connect();
@@ -68,11 +72,10 @@ export default function DashboardClient() {
         await insforge.realtime.subscribe(channelName);
         
         // Listen to all inserts/updates/deletes on relevant tables
-        const tables = ['task', 'inventory_items', 'maintenance_schedule', 'expenses', 'budgets', 'shopping_lists'];
         tables.forEach(table => {
-          insforge.realtime.on(`INSERT_${table}`, () => loadData());
-          insforge.realtime.on(`UPDATE_${table}`, () => loadData());
-          insforge.realtime.on(`DELETE_${table}`, () => loadData());
+          insforge.realtime.on(`INSERT_${table}`, handleUpdate);
+          insforge.realtime.on(`UPDATE_${table}`, handleUpdate);
+          insforge.realtime.on(`DELETE_${table}`, handleUpdate);
         });
       } catch (err) {
         console.error('Error setting up realtime on dashboard:', err);
@@ -83,13 +86,18 @@ export default function DashboardClient() {
 
     return () => {
       insforge.realtime.unsubscribe(`household:${activeHousehold.id}`);
+      tables.forEach(table => {
+        insforge.realtime.off(`INSERT_${table}`, handleUpdate);
+        insforge.realtime.off(`UPDATE_${table}`, handleUpdate);
+        insforge.realtime.off(`DELETE_${table}`, handleUpdate);
+      });
     };
   }, [activeHousehold]);
 
   if (!activeHousehold) return <div className="p-margin">Cargando contexto del hogar...</div>;
 
-  // Calculate Budget Info
-  const totalBudget = budgets.reduce((sum, b) => sum + b.amount, 0);
+  // Calculate Budget Info (Only total monthly budget where category_id is null)
+  const totalBudget = budgets.find(b => !b.category_id)?.amount || 0;
   const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
   const budgetPercentage = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
   const isOverBudget = totalSpent > totalBudget && totalBudget > 0;

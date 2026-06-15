@@ -21,6 +21,41 @@ import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/househol
 import { useToast } from '@/lib/toast-context';
 import { getErrorMessage } from '@/lib/errors';
 
+interface SplitInfo {
+  cleanDescription: string;
+  splitType: 'all' | 'custom' | 'loan';
+  targetMembers: string[];
+}
+
+const parseDescription = (desc: string): SplitInfo => {
+  if (!desc) {
+    return { cleanDescription: '', splitType: 'all', targetMembers: [] };
+  }
+  const splitMatch = desc.match(/\|split:([^|]+)\|/);
+  if (splitMatch) {
+    const cleanDescription = desc.replace(/\|split:[^|]+\|/, '').trim();
+    const targetMembers = splitMatch[1].split(',').map(id => id.trim());
+    return { cleanDescription, splitType: 'custom', targetMembers };
+  }
+  const loanMatch = desc.match(/\|loan:([^|]+)\|/);
+  if (loanMatch) {
+    const cleanDescription = desc.replace(/\|loan:[^|]+\|/, '').trim();
+    const targetMembers = loanMatch[1].split(',').map(id => id.trim());
+    return { cleanDescription, splitType: 'loan', targetMembers };
+  }
+  return { cleanDescription: desc.trim(), splitType: 'all', targetMembers: [] };
+};
+
+const serializeDescription = (cleanDesc: string, splitType: 'all' | 'custom' | 'loan', targetMembers: string[]): string => {
+  if (splitType === 'custom' && targetMembers.length > 0) {
+    return `${cleanDesc} |split:${targetMembers.join(',')}|`;
+  }
+  if (splitType === 'loan' && targetMembers.length > 0) {
+    return `${cleanDesc} |loan:${targetMembers.join(',')}|`;
+  }
+  return cleanDesc;
+};
+
 export default function ExpensesDashboard() {
   const { activeHousehold } = useHousehold();
   const { user } = useAuth();
@@ -45,6 +80,19 @@ export default function ExpensesDashboard() {
 
   // Budget form state
   const [budgetAmount, setBudgetAmount] = useState('');
+  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
+
+  // Split form state
+  const [splitType, setSplitType] = useState<'all' | 'custom' | 'loan'>('all');
+  const [selectedSplitMembers, setSelectedSplitMembers] = useState<string[]>([]);
+  const [selectedLoanDebtors, setSelectedLoanDebtors] = useState<string[]>([]);
+
+  useEffect(() => {
+    const payerId = expensePayerId || user?.id;
+    if (payerId) {
+      setSelectedLoanDebtors(prev => prev.filter(id => id !== payerId));
+    }
+  }, [expensePayerId, user?.id]);
   
   // View options state
   const [showAllExpenses, setShowAllExpenses] = useState(false);
@@ -110,40 +158,53 @@ export default function ExpensesDashboard() {
     
     loadData();
     
+    let active = true;
+
+    const onInsertExpense = (payload: Expense) => {
+      if (!active) return;
+      setCategories(cats => {
+        const expense = { ...payload, category: cats.find(c => c.id === payload.category_id) };
+        setExpenses(prev => prev.find(e => e.id === payload.id) ? prev : [expense, ...prev]);
+        return cats;
+      });
+    };
+
+    const onUpdateExpense = (payload: Expense) => {
+      if (!active) return;
+      setCategories(cats => {
+        const expense = { ...payload, category: cats.find(c => c.id === payload.category_id) };
+        setExpenses(prev => prev.map(e => e.id === payload.id ? expense : e));
+        return cats;
+      });
+    };
+
+    const onDeleteExpense = (payload: Expense) => {
+      if (!active) return;
+      setExpenses(prev => prev.filter(e => e.id !== payload.id));
+    };
+
+    const onBudgetOrCategoryChange = () => {
+      if (!active) return;
+      loadData();
+    };
+
     const setupRealtime = async () => {
       try {
         await insforge.realtime.connect();
         const channelName = `household:${activeHousehold.id}`;
         await insforge.realtime.subscribe(channelName);
         
-        insforge.realtime.on('INSERT_expenses', (payload: Expense) => {
-          setCategories(cats => {
-            const expense = { ...payload, category: cats.find(c => c.id === payload.category_id) };
-            setExpenses(prev => prev.find(e => e.id === payload.id) ? prev : [expense, ...prev]);
-            return cats;
-          });
-        });
+        insforge.realtime.on('INSERT_expenses', onInsertExpense);
+        insforge.realtime.on('UPDATE_expenses', onUpdateExpense);
+        insforge.realtime.on('DELETE_expenses', onDeleteExpense);
         
-        insforge.realtime.on('UPDATE_expenses', (payload: Expense) => {
-          setCategories(cats => {
-            const expense = { ...payload, category: cats.find(c => c.id === payload.category_id) };
-            setExpenses(prev => prev.map(e => e.id === payload.id ? expense : e));
-            return cats;
-          });
-        });
+        insforge.realtime.on('INSERT_budgets', onBudgetOrCategoryChange);
+        insforge.realtime.on('UPDATE_budgets', onBudgetOrCategoryChange);
+        insforge.realtime.on('DELETE_budgets', onBudgetOrCategoryChange);
         
-        insforge.realtime.on('DELETE_expenses', (payload: Expense) => {
-          setExpenses(prev => prev.filter(e => e.id !== payload.id));
-        });
-        
-        // Listen to budgets and categories
-        insforge.realtime.on('INSERT_budgets', () => loadData());
-        insforge.realtime.on('UPDATE_budgets', () => loadData());
-        insforge.realtime.on('DELETE_budgets', () => loadData());
-        
-        insforge.realtime.on('INSERT_expense_categories', () => loadData());
-        insforge.realtime.on('UPDATE_expense_categories', () => loadData());
-        insforge.realtime.on('DELETE_expense_categories', () => loadData());
+        insforge.realtime.on('INSERT_expense_categories', onBudgetOrCategoryChange);
+        insforge.realtime.on('UPDATE_expense_categories', onBudgetOrCategoryChange);
+        insforge.realtime.on('DELETE_expense_categories', onBudgetOrCategoryChange);
       } catch (err) {
         console.error('Error setting up realtime:', err);
       }
@@ -152,7 +213,19 @@ export default function ExpensesDashboard() {
     setupRealtime();
     
     return () => {
+      active = false;
       insforge.realtime.unsubscribe(`household:${activeHousehold.id}`);
+      insforge.realtime.off('INSERT_expenses', onInsertExpense);
+      insforge.realtime.off('UPDATE_expenses', onUpdateExpense);
+      insforge.realtime.off('DELETE_expenses', onDeleteExpense);
+      
+      insforge.realtime.off('INSERT_budgets', onBudgetOrCategoryChange);
+      insforge.realtime.off('UPDATE_budgets', onBudgetOrCategoryChange);
+      insforge.realtime.off('DELETE_budgets', onBudgetOrCategoryChange);
+      
+      insforge.realtime.off('INSERT_expense_categories', onBudgetOrCategoryChange);
+      insforge.realtime.off('UPDATE_expense_categories', onBudgetOrCategoryChange);
+      insforge.realtime.off('DELETE_expense_categories', onBudgetOrCategoryChange);
     };
   }, [activeHousehold]);
 
@@ -160,11 +233,30 @@ export default function ExpensesDashboard() {
     e.preventDefault();
     if (!activeHousehold || !user) return;
     
+    if (splitType === 'custom' && selectedSplitMembers.length < 2) {
+      showError('Error de validación', 'Debés seleccionar al menos 2 miembros para dividir el gasto.');
+      return;
+    }
+    if (splitType === 'loan' && selectedLoanDebtors.length < 1) {
+      showError('Error de validación', 'Por favor, seleccioná al menos 1 miembro que debe saldar el préstamo.');
+      return;
+    }
+
     try {
+      const fullDescription = serializeDescription(
+        description,
+        splitType,
+        splitType === 'custom' 
+          ? selectedSplitMembers 
+          : splitType === 'loan' 
+            ? selectedLoanDebtors 
+            : []
+      );
+
       if (editingExpense) {
         await updateExpense(editingExpense.id, {
           amount: parseFloat(amount),
-          description,
+          description: fullDescription,
           category_id: categoryId || null,
           date,
           payer_id: expensePayerId || user.id
@@ -172,7 +264,7 @@ export default function ExpensesDashboard() {
       } else {
         await addExpense(activeHousehold.id, expensePayerId || user.id, {
           amount: parseFloat(amount),
-          description,
+          description: fullDescription,
           category_id: categoryId || null,
           date,
           receipt_url: null
@@ -207,6 +299,9 @@ export default function ExpensesDashboard() {
     setCategoryId('');
     setExpensePayerId('');
     setDate(new Date().toISOString().split('T')[0]);
+    setSplitType('all');
+    setSelectedSplitMembers([]);
+    setSelectedLoanDebtors([]);
   };
 
   const openEditModal = (expense: Expense) => {
@@ -214,12 +309,25 @@ export default function ExpensesDashboard() {
     const canEdit = expense.payer_id === user?.id || currentMember?.role === 'OWNER' || currentMember?.role === 'ADMIN';
     if (!canEdit) return;
 
+    const { cleanDescription, splitType: parsedSplitType, targetMembers } = parseDescription(expense.description);
+
     setEditingExpense(expense);
     setAmount(expense.amount.toString());
-    setDescription(expense.description);
+    setDescription(cleanDescription);
     setCategoryId(expense.category_id || '');
     setExpensePayerId(expense.payer_id);
     setDate(expense.date);
+    setSplitType(parsedSplitType);
+    if (parsedSplitType === 'custom') {
+      setSelectedSplitMembers(targetMembers);
+      setSelectedLoanDebtors([]);
+    } else if (parsedSplitType === 'loan') {
+      setSelectedLoanDebtors(targetMembers);
+      setSelectedSplitMembers(members.map(m => m.user_id));
+    } else {
+      setSelectedSplitMembers(members.map(m => m.user_id));
+      setSelectedLoanDebtors([]);
+    }
     setIsLogExpenseModalOpen(true);
   };
 
@@ -227,15 +335,19 @@ export default function ExpensesDashboard() {
     return <div className="p-margin">Cargando contexto del hogar...</div>;
   }
 
-  // Calculate totals
+  // Calculate totals (Only for the current month)
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const currentMonthExpenses = expenses.filter(exp => exp.date >= currentMonthStr);
+
   const totalBudget = budgets.find(b => !b.category_id)?.amount || 0;
-  const totalSpent = expenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+  const totalSpent = currentMonthExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
   const percentSpent = totalBudget > 0 ? Math.min(100, Math.round((totalSpent / totalBudget) * 100)) : 0;
   const remaining = totalBudget - totalSpent;
   
-  // Category mapping
+  // Category mapping (Spent only in the current month)
   const categoryTotals = categories.map(cat => {
-    const spent = expenses
+    const spent = currentMonthExpenses
       .filter(e => e.category_id === cat.id)
       .reduce((sum, exp) => sum + Number(exp.amount), 0);
     const catBudget = budgets.find(b => b.category_id === cat.id)?.amount || (totalBudget > 0 ? (totalBudget / categories.length) : 0);
@@ -254,6 +366,100 @@ export default function ExpensesDashboard() {
   categoryTotals.forEach(cat => {
     if (cat.pct > topCategory.pct) topCategory = { name: cat.name, pct: cat.pct };
   });
+
+  // --- Calculation of Balances & Suggested Transfers (Current Month) ---
+  const memberBalances = members.map(m => {
+    return {
+      ...m,
+      spent: 0, // total amount paid by this member
+      share: 0, // total share of expenses this member owes
+      balance: 0,
+    };
+  });
+
+  // Calculate spent and share for each member
+  currentMonthExpenses.forEach(exp => {
+    const payer = memberBalances.find(m => m.user_id === exp.payer_id);
+    if (payer) {
+      payer.spent += Number(exp.amount);
+    }
+
+    const { splitType: expSplitType, targetMembers } = parseDescription(exp.description);
+
+    if (expSplitType === 'custom' && targetMembers.length > 0) {
+      const shareAmount = Number(exp.amount) / targetMembers.length;
+      targetMembers.forEach(memberId => {
+        const mb = memberBalances.find(m => m.user_id === memberId);
+        if (mb) {
+          mb.share += shareAmount;
+        }
+      });
+    } else if (expSplitType === 'loan' && targetMembers.length > 0) {
+      const shareAmount = Number(exp.amount) / targetMembers.length;
+      targetMembers.forEach(debtorId => {
+        const mb = memberBalances.find(m => m.user_id === debtorId);
+        if (mb) {
+          mb.share += shareAmount;
+        }
+      });
+    } else {
+      // default: split among all members
+      const nMembers = memberBalances.length;
+      const shareAmount = nMembers > 0 ? Number(exp.amount) / nMembers : 0;
+      memberBalances.forEach(mb => {
+        mb.share += shareAmount;
+      });
+    }
+  });
+
+  // Balance = spent - share
+  memberBalances.forEach(mb => {
+    mb.balance = mb.spent - mb.share;
+  });
+
+  interface Transfer {
+    fromName: string;
+    toName: string;
+    amount: number;
+  }
+
+  const suggestedTransfers: Transfer[] = [];
+  
+  const numMembers = members.length;
+  if (numMembers > 1) {
+    const debtors = memberBalances
+      .filter(mb => mb.balance < -0.01)
+      .map(mb => ({ name: mb.name, amountOwed: Math.abs(mb.balance) }))
+      .sort((a, b) => b.amountOwed - a.amountOwed);
+
+    const creditors = memberBalances
+      .filter(mb => mb.balance > 0.01)
+      .map(mb => ({ name: mb.name, amountOwed: mb.balance }))
+      .sort((a, b) => b.amountOwed - a.amountOwed);
+
+    let dIdx = 0;
+    let cIdx = 0;
+
+    while (dIdx < debtors.length && cIdx < creditors.length) {
+      const debtor = debtors[dIdx];
+      const creditor = creditors[cIdx];
+      const transferAmount = Math.min(debtor.amountOwed, creditor.amountOwed);
+      
+      if (transferAmount > 0.01) {
+        suggestedTransfers.push({
+          fromName: debtor.name,
+          toName: creditor.name,
+          amount: transferAmount
+        });
+      }
+
+      debtor.amountOwed -= transferAmount;
+      creditor.amountOwed -= transferAmount;
+
+      if (debtor.amountOwed <= 0.01) dIdx++;
+      if (creditor.amountOwed <= 0.01) cIdx++;
+    }
+  }
 
   // Filter and slice/full list based on state
   const displayedExpenses = showAllExpenses
@@ -277,7 +483,15 @@ export default function ExpensesDashboard() {
         </div>
         <div className="flex gap-sm w-full sm:w-auto">
           <button 
-            onClick={() => setIsBudgetModalOpen(true)}
+            onClick={() => {
+              const catBudgets: Record<string, string> = {};
+              categories.forEach(cat => {
+                const b = budgets.find(bg => bg.category_id === cat.id);
+                catBudgets[cat.id] = b ? b.amount.toString() : '';
+              });
+              setCategoryBudgets(catBudgets);
+              setIsBudgetModalOpen(true);
+            }}
             className="flex-1 sm:flex-none px-lg py-sm rounded-lg font-label-md text-label-md border border-outline text-secondary hover:bg-surface-container-low transition-colors flex items-center justify-center gap-sm"
           >
             <span className="material-symbols-outlined">tune</span>
@@ -286,6 +500,7 @@ export default function ExpensesDashboard() {
           <button 
             onClick={() => {
               setExpensePayerId(user?.id || '');
+              setSelectedSplitMembers(members.map(m => m.user_id));
               setIsLogExpenseModalOpen(true);
             }}
             className="flex-1 sm:flex-none px-lg py-sm rounded-lg font-label-md text-label-md bg-primary text-on-primary hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm flex items-center justify-center gap-sm"
@@ -383,6 +598,81 @@ export default function ExpensesDashboard() {
             </div>
           </div>
 
+          {/* Balance Section: Accounts & Debts */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-md">
+            {/* Resumen de Aportes Card */}
+            <div className="lg:col-span-2 bg-surface-container-lowest rounded-xl p-lg border border-outline-variant shadow-sm flex flex-col gap-md">
+              <h3 className="font-h3 text-h3 text-on-surface font-semibold flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">groups</span>
+                Balances de Miembros (Este Mes)
+              </h3>
+              <div className="divide-y divide-outline-variant">
+                {memberBalances.map(mb => {
+                  const isCreditor = mb.balance > 0.01;
+                  const isDebtor = mb.balance < -0.01;
+                  const balanceColor = isCreditor 
+                    ? 'text-primary' 
+                    : isDebtor 
+                      ? 'text-error' 
+                      : 'text-on-surface-variant';
+                  
+                  return (
+                    <div key={mb.member_id} className="flex justify-between items-center py-md">
+                      <div className="flex items-center gap-sm">
+                        <span className="w-8 h-8 rounded-full bg-tertiary-container text-on-tertiary flex items-center justify-center font-label-md text-label-md">
+                          {mb.name.substring(0, 2).toUpperCase()}
+                        </span>
+                        <div>
+                          <span className="block font-label-lg text-label-lg text-on-surface">{mb.name}</span>
+                          <span className="block font-body-sm text-body-sm text-on-surface-variant">Aportó: {formatCurrency(mb.spent)}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`font-h3 text-h3 font-bold ${balanceColor}`}>
+                          {mb.balance > 0.01 ? '+' : ''}{formatCurrency(mb.balance)}
+                        </span>
+                        <span className="block font-label-sm text-label-sm text-on-surface-variant">
+                          {isCreditor ? 'A favor' : isDebtor ? 'En contra' : 'Saldado'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Suggested Transfers Card */}
+            <div className="bg-surface-container-lowest rounded-xl p-lg border border-outline-variant shadow-sm flex flex-col gap-md">
+              <h3 className="font-h3 text-h3 text-on-surface font-semibold flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">payments</span>
+                Cómo Saldar Cuentas
+              </h3>
+              <div className="flex-1 flex flex-col justify-center">
+                {suggestedTransfers.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-md gap-sm text-on-surface-variant text-center">
+                    <span className="material-symbols-outlined text-4xl text-primary/50 font-light">verified</span>
+                    <p className="font-body-md text-body-md">¡Todo saldado! No hay deudas pendientes para este mes.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-sm">
+                    {suggestedTransfers.map((t, idx) => (
+                      <div key={idx} className="bg-surface-container-low p-md rounded-xl border border-outline-variant flex items-center justify-between gap-sm">
+                        <div className="min-w-0">
+                          <span className="font-label-lg text-label-lg text-on-surface font-semibold block truncate">{t.fromName}</span>
+                          <span className="font-body-xs text-body-xs text-on-surface-variant">debe transferir a</span>
+                          <span className="font-label-lg text-label-lg text-on-surface font-semibold block truncate">{t.toName}</span>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <span className="font-h2 text-h2 font-bold text-primary">{formatCurrency(t.amount)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Bottom Section: Recent Expenses */}
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden mb-xl">
             <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-lowest">
@@ -470,7 +760,7 @@ export default function ExpensesDashboard() {
                           className="hover:bg-surface-container-lowest transition-colors cursor-pointer"
                         >
                           <td className="p-md" suppressHydrationWarning>{new Date(expense.date).toLocaleDateString()}</td>
-                          <td className="p-md font-medium">{expense.description}</td>
+                          <td className="p-md font-medium">{parseDescription(expense.description).cleanDescription}</td>
                           <td className="p-md">
                             {expense.category ? (
                               <span className={`inline-flex items-center px-2 py-1 rounded-full font-label-sm text-label-sm ${badgeClass}`}>
@@ -590,6 +880,89 @@ export default function ExpensesDashboard() {
                   className="w-full bg-surface rounded-lg border border-outline-variant p-2 text-on-surface focus:border-primary outline-none"
                 />
               </div>
+
+              {/* Split Type Selector */}
+              <div className="flex flex-col gap-1 w-full border-t border-outline-variant pt-md">
+                <label className="font-label-md text-on-surface font-medium">División del Gasto</label>
+                <select
+                  value={splitType}
+                  onChange={(e) => {
+                    const newType = e.target.value as 'all' | 'custom' | 'loan';
+                    setSplitType(newType);
+                    if (newType === 'custom' && selectedSplitMembers.length === 0) {
+                      setSelectedSplitMembers(members.map(m => m.user_id));
+                    } else if (newType === 'loan' && selectedLoanDebtors.length === 0) {
+                      const otherMember = members.find(m => m.user_id !== (expensePayerId || user?.id));
+                      setSelectedLoanDebtors(otherMember ? [otherMember.user_id] : []);
+                    }
+                  }}
+                  className="w-full bg-surface rounded-lg border border-outline-variant p-2 text-on-surface focus:border-primary outline-none"
+                >
+                  <option value="all">Dividir por igual entre todos</option>
+                  <option value="custom">Dividir entre miembros seleccionados (2 o más)</option>
+                  <option value="loan">Préstamo personal (Debido por 1 o más miembros)</option>
+                </select>
+              </div>
+
+              {/* Custom Split Checkboxes */}
+              {splitType === 'custom' && (
+                <div className="flex flex-col gap-2 bg-surface-container-low p-3 rounded-lg border border-outline-variant animate-fade-in">
+                  <label className="font-label-sm text-on-surface font-medium">¿Quiénes participan? (Mínimo 2)</label>
+                  <div className="grid grid-cols-2 gap-sm">
+                    {members.map(m => {
+                      const isChecked = selectedSplitMembers.includes(m.user_id);
+                      return (
+                        <label key={m.user_id} className="flex items-center gap-2 cursor-pointer py-1">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                setSelectedSplitMembers(selectedSplitMembers.filter(id => id !== m.user_id));
+                              } else {
+                                setSelectedSplitMembers([...selectedSplitMembers, m.user_id]);
+                              }
+                            }}
+                            className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4"
+                          />
+                          <span className="font-body-sm text-on-surface truncate">{m.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Personal Loan Checkboxes */}
+              {splitType === 'loan' && (
+                <div className="flex flex-col gap-2 bg-surface-container-low p-3 rounded-lg border border-outline-variant animate-fade-in">
+                  <label className="font-label-sm text-on-surface font-medium">¿Quiénes deben saldar el préstamo? (1 o más)</label>
+                  <div className="grid grid-cols-2 gap-sm">
+                    {members
+                      .filter(m => m.user_id !== (expensePayerId || user?.id))
+                      .map(m => {
+                        const isChecked = selectedLoanDebtors.includes(m.user_id);
+                        return (
+                          <label key={m.user_id} className="flex items-center gap-2 cursor-pointer py-1">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                if (isChecked) {
+                                  setSelectedLoanDebtors(selectedLoanDebtors.filter(id => id !== m.user_id));
+                                } else {
+                                  setSelectedLoanDebtors([...selectedLoanDebtors, m.user_id]);
+                                }
+                              }}
+                              className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4"
+                            />
+                            <span className="font-body-sm text-on-surface truncate">{m.name}</span>
+                          </label>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
               
             </form>
             </div>
@@ -627,9 +1000,9 @@ export default function ExpensesDashboard() {
 
       {/* Budget Modal */}
       {isBudgetModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4">
-          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col">
-            <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 pb-20 md:pb-4 animate-fade-in">
+          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-lg border-b border-outline-variant flex justify-between items-center bg-surface-container-low shrink-0">
               <h2 className="font-h3 text-h3 text-on-surface font-semibold flex items-center gap-sm">
                 <span className="material-symbols-outlined text-primary">tune</span>
                 Gestionar Presupuesto
@@ -642,26 +1015,50 @@ export default function ExpensesDashboard() {
               </button>
             </div>
             
-            <form onSubmit={async (e) => {
+            <div className="overflow-y-auto">
+            <form id="budgetForm" onSubmit={async (e) => {
               e.preventDefault();
               if (!activeHousehold) return;
               try {
-                // Delete existing total budget
+                // Delete existing budgets for this household
                 await insforge.database
                   .from('budgets')
                   .delete()
-                  .eq('household_id', activeHousehold.id)
-                  .is('category_id', null);
+                  .eq('household_id', activeHousehold.id);
                   
-                // Create new total budget
-                await insforge.database
-                  .from('budgets')
-                  .insert([{
+                const budgetRows = [];
+                
+                // General budget
+                const parsedGeneral = parseFloat(budgetAmount);
+                if (!isNaN(parsedGeneral) && parsedGeneral >= 0) {
+                  budgetRows.push({
                     household_id: activeHousehold.id,
-                    amount: parseFloat(budgetAmount) || 0,
+                    category_id: null,
+                    amount: parsedGeneral,
                     period: 'MONTHLY',
                     start_date: new Date().toISOString().split('T')[0]
-                  }]);
+                  });
+                }
+
+                // Category budgets
+                Object.entries(categoryBudgets).forEach(([catId, amtStr]) => {
+                  const amt = parseFloat(amtStr);
+                  if (!isNaN(amt) && amt > 0) {
+                    budgetRows.push({
+                      household_id: activeHousehold.id,
+                      category_id: catId,
+                      amount: amt,
+                      period: 'MONTHLY',
+                      start_date: new Date().toISOString().split('T')[0]
+                    });
+                  }
+                });
+
+                if (budgetRows.length > 0) {
+                  await insforge.database
+                    .from('budgets')
+                    .insert(budgetRows);
+                }
                   
                 setIsBudgetModalOpen(false);
                 success('Presupuesto guardado', 'El presupuesto se ha guardado correctamente.');
@@ -686,23 +1083,57 @@ export default function ExpensesDashboard() {
                   />
                 </div>
               </div>
-              
-              <div className="pt-md mt-md border-t border-outline-variant flex justify-end gap-sm">
-                <button 
-                  type="button"
-                  onClick={() => setIsBudgetModalOpen(false)}
-                  className="px-md py-2 rounded-lg font-label-md text-secondary hover:bg-surface-container-high transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit"
-                  className="px-md py-2 rounded-lg font-label-md bg-primary text-on-primary hover:bg-primary/90 transition-colors shadow-sm"
-                >
-                  Guardar Presupuesto
-                </button>
+
+              {/* Category Budgets */}
+              <div className="flex flex-col gap-sm border-t border-outline-variant pt-md">
+                <label className="font-label-md text-on-surface font-medium">Presupuestos por Categoría (Opcional)</label>
+                <p className="font-label-sm text-on-surface-variant mb-2">Define límites específicos para categorías individuales.</p>
+                
+                <div className="flex flex-col gap-sm max-h-[30vh] overflow-y-auto pr-xs">
+                  {categories.map(cat => (
+                    <div key={cat.id} className="flex items-center justify-between gap-md bg-surface-container-low p-2 rounded-lg border border-outline-variant">
+                      <div className="flex items-center gap-sm min-w-0">
+                        <span className="material-symbols-outlined text-primary shrink-0">{cat.icon}</span>
+                        <span className="font-label-md text-on-surface truncate">{cat.name}</span>
+                      </div>
+                      <div className="relative w-32 shrink-0">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={categoryBudgets[cat.id] || ''}
+                          onChange={(e) => setCategoryBudgets({
+                            ...categoryBudgets,
+                            [cat.id]: e.target.value
+                          })}
+                          className="w-full bg-surface rounded-md border border-outline-variant py-1 pl-6 pr-2 text-on-surface text-sm focus:border-primary outline-none transition-all"
+                          placeholder="Sin límite"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </form>
+            </div>
+            
+            <div className="p-lg border-t border-outline-variant flex justify-end gap-sm shrink-0 bg-surface-container-lowest">
+              <button 
+                type="button"
+                onClick={() => setIsBudgetModalOpen(false)}
+                className="px-md py-2 rounded-lg font-label-md text-secondary hover:bg-surface-container-high transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit"
+                form="budgetForm"
+                className="px-md py-2 rounded-lg font-label-md bg-primary text-on-primary hover:bg-primary/90 transition-colors shadow-sm"
+              >
+                Guardar Presupuesto
+              </button>
+            </div>
           </div>
         </div>
       )}

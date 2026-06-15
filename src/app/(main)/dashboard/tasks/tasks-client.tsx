@@ -44,13 +44,15 @@ export default function TasksPage() {
     priority: TaskPriority; 
     assigned_to: string; 
     is_recurring: boolean; 
+    recurrence_rule: string;
   }>({
     title: '',
     description: '',
     due_date: '',
     priority: 'MEDIUM',
     assigned_to: 'unassigned',
-    is_recurring: false
+    is_recurring: false,
+    recurrence_rule: 'WEEKLY'
   });
 
   // Form State
@@ -61,16 +63,35 @@ export default function TasksPage() {
     priority: TaskPriority; 
     assigned_to: string; 
     is_recurring: boolean; 
+    recurrence_rule: string;
   }>({
     title: '',
     description: '',
     due_date: '',
     priority: 'MEDIUM',
     assigned_to: 'unassigned',
-    is_recurring: false
+    is_recurring: false,
+    recurrence_rule: 'WEEKLY'
   });
 
   useEffect(() => {
+    let active = true;
+
+    const onInsertTask = (payload: Task) => {
+      if (!active) return;
+      setTasks(prev => prev.find(t => t.id === payload.id) ? prev : [...prev, payload]);
+    };
+
+    const onUpdateTask = (payload: Task) => {
+      if (!active) return;
+      setTasks(prev => prev.map(t => t.id === payload.id ? payload : t));
+    };
+
+    const onDeleteTask = (payload: Task) => {
+      if (!active) return;
+      setTasks(prev => prev.filter(t => t.id !== payload.id));
+    };
+
     async function loadData() {
       if (!activeHousehold || !user) {
         if (!isLoadingHousehold) setLoading(false);
@@ -82,6 +103,7 @@ export default function TasksPage() {
           getTasks(activeHousehold.id),
           getHouseholdMembers(activeHousehold.id)
         ]);
+        if (!active) return;
         setTasks(tasksData);
         setMembers(membersData);
 
@@ -90,29 +112,25 @@ export default function TasksPage() {
         const channelName = `household:${activeHousehold.id}`;
         await insforge.realtime.subscribe(channelName);
 
-        insforge.realtime.on('INSERT_task', (payload: Task) => {
-          setTasks(prev => prev.find(t => t.id === payload.id) ? prev : [...prev, payload]);
-        });
-
-        insforge.realtime.on('UPDATE_task', (payload: Task) => {
-          setTasks(prev => prev.map(t => t.id === payload.id ? payload : t));
-        });
-
-        insforge.realtime.on('DELETE_task', (payload: Task) => {
-          setTasks(prev => prev.filter(t => t.id !== payload.id));
-        });
+        insforge.realtime.on('INSERT_tasks', onInsertTask);
+        insforge.realtime.on('UPDATE_tasks', onUpdateTask);
+        insforge.realtime.on('DELETE_tasks', onDeleteTask);
 
       } catch (err: unknown) {
-        setError(getErrorMessage(err, 'Error al cargar las tareas'));
+        if (active) setError(getErrorMessage(err, 'Error al cargar las tareas'));
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
     loadData();
 
     return () => {
+      active = false;
       if (activeHousehold) {
         insforge.realtime.unsubscribe(`household:${activeHousehold.id}`);
+        insforge.realtime.off('INSERT_tasks', onInsertTask);
+        insforge.realtime.off('UPDATE_tasks', onUpdateTask);
+        insforge.realtime.off('DELETE_tasks', onDeleteTask);
       }
     };
   }, [activeHousehold, user, isLoadingHousehold]);
@@ -130,13 +148,20 @@ export default function TasksPage() {
         priority: formData.priority,
         assigned_to: formData.assigned_to === 'unassigned' ? undefined : formData.assigned_to,
         is_recurring: formData.is_recurring,
+        recurrence_rule: formData.is_recurring ? formData.recurrence_rule : undefined,
         status: 'PENDING'
       });
       
       setTasks([...tasks, newTask]);
       setIsModalOpen(false);
       setFormData({
-        title: '', description: '', due_date: '', priority: 'MEDIUM', assigned_to: 'unassigned', is_recurring: false
+        title: '',
+        description: '',
+        due_date: '',
+        priority: 'MEDIUM',
+        assigned_to: 'unassigned',
+        is_recurring: false,
+        recurrence_rule: 'WEEKLY'
       });
     } catch (err: unknown) {
       showError('Error al crear tarea', getErrorMessage(err));
@@ -145,11 +170,46 @@ export default function TasksPage() {
     }
   };
 
-  const handleToggleStatus = async (taskId: string, currentStatus: TaskStatus) => {
-    const newStatus: TaskStatus = currentStatus === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
+  const handleToggleStatus = async (task: Task) => {
+    const newStatus: TaskStatus = task.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
     try {
-      const updated = await updateTaskStatus(taskId, newStatus);
-      setTasks(tasks.map(t => t.id === taskId ? { ...t, status: updated.status } : t));
+      const updated = await updateTaskStatus(task.id, newStatus);
+      let updatedTasks = tasks.map(t => t.id === task.id ? { ...t, status: updated.status } : t);
+
+      // Si se completó una tarea recurrente, calcular y programar la siguiente instancia
+      if (newStatus === 'COMPLETED' && task.is_recurring && activeHousehold && user) {
+        const baseDate = task.due_date ? new Date(task.due_date) : new Date();
+        const nextDate = new Date(baseDate);
+        const freq = task.recurrence_rule || 'WEEKLY';
+        
+        if (freq === 'DAILY') {
+          nextDate.setDate(baseDate.getDate() + 1);
+        } else if (freq === 'MONTHLY') {
+          nextDate.setMonth(baseDate.getMonth() + 1);
+        } else { // default WEEKLY
+          nextDate.setDate(baseDate.getDate() + 7);
+        }
+
+        const nextTask = await createTask(activeHousehold.id, user.id, {
+          title: task.title,
+          description: task.description || undefined,
+          due_date: nextDate.toISOString(),
+          priority: task.priority,
+          assigned_to: task.assigned_to || undefined,
+          is_recurring: true,
+          recurrence_rule: freq,
+          status: 'PENDING'
+        });
+
+        updatedTasks = [...updatedTasks, nextTask];
+      }
+
+      setTasks(updatedTasks);
+
+      // Si la tarea seleccionada en detalle es esta, actualizar su estado en la UI
+      if (selectedTask && selectedTask.id === task.id) {
+        setSelectedTask({ ...selectedTask, status: updated.status });
+      }
     } catch (err: unknown) {
       showError('Error actualizando tarea', getErrorMessage(err));
     }
@@ -186,7 +246,8 @@ export default function TasksPage() {
       due_date: task.due_date ? task.due_date.split('T')[0] : '',
       priority: task.priority,
       assigned_to: task.assigned_to || 'unassigned',
-      is_recurring: task.is_recurring
+      is_recurring: task.is_recurring,
+      recurrence_rule: task.recurrence_rule || 'WEEKLY'
     });
     setIsEditModalOpen(true);
   };
@@ -204,7 +265,8 @@ export default function TasksPage() {
         due_date: editFormData.due_date ? new Date(editFormData.due_date).toISOString() : undefined,
         priority: editFormData.priority,
         assigned_to: editFormData.assigned_to === 'unassigned' ? undefined : editFormData.assigned_to,
-        is_recurring: editFormData.is_recurring
+        is_recurring: editFormData.is_recurring,
+        recurrence_rule: editFormData.is_recurring ? editFormData.recurrence_rule : undefined
       });
 
       setTasks(tasks.map(t => t.id === selectedTask.id ? updated : t));
@@ -344,7 +406,7 @@ export default function TasksPage() {
               <div className="flex justify-between items-start mb-sm pl-sm">
                 <div className="flex items-center gap-sm">
                   <div 
-                    onClick={() => handleToggleStatus(task.id, task.status)}
+                    onClick={() => handleToggleStatus(task)}
                     className={`w-5 h-5 rounded border flex items-center justify-center cursor-pointer transition-colors ${
                       isCompleted ? 'bg-primary border-primary text-white' : 'border-outline hover:border-primary bg-surface'
                     }`}
@@ -491,7 +553,7 @@ export default function TasksPage() {
                   </div>
                 </div>
 
-                {/* Recurrence (Toggle only for now) */}
+                {/* Recurrence */}
                 <div className="bg-surface-bright border border-outline-variant rounded-xl p-md mt-sm flex items-center justify-between">
                   <div className="flex items-center gap-sm">
                     <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center">
@@ -512,6 +574,21 @@ export default function TasksPage() {
                     <div className="w-11 h-6 bg-surface-variant peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-container-lowest after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
                 </div>
+
+                {formData.is_recurring && (
+                  <div className="flex flex-col gap-1 mt-sm animate-fade-in">
+                    <label className="block font-label-md text-label-md text-on-surface">Frecuencia</label>
+                    <select
+                      value={formData.recurrence_rule}
+                      onChange={e => setFormData({...formData, recurrence_rule: e.target.value})}
+                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                    >
+                      <option value="DAILY">Diaria</option>
+                      <option value="WEEKLY">Semanal</option>
+                      <option value="MONTHLY">Mensual</option>
+                    </select>
+                  </div>
+                )}
               </form>
             </div>
 
@@ -664,7 +741,7 @@ export default function TasksPage() {
                 )}
                 <button 
                   onClick={() => { 
-                    handleToggleStatus(selectedTask.id, selectedTask.status);
+                    handleToggleStatus(selectedTask);
                     setIsDetailModalOpen(false);
                     setSelectedTask(null);
                   }}
@@ -797,6 +874,21 @@ export default function TasksPage() {
                     <div className="w-11 h-6 bg-surface-variant peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-container-lowest after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
                 </div>
+
+                {editFormData.is_recurring && (
+                  <div className="flex flex-col gap-1 mt-sm animate-fade-in">
+                    <label className="block font-label-md text-label-md text-on-surface">Frecuencia</label>
+                    <select
+                      value={editFormData.recurrence_rule}
+                      onChange={e => setEditFormData({...editFormData, recurrence_rule: e.target.value})}
+                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                    >
+                      <option value="DAILY">Diaria</option>
+                      <option value="WEEKLY">Semanal</option>
+                      <option value="MONTHLY">Mensual</option>
+                    </select>
+                  </div>
+                )}
               </form>
             </div>
 
