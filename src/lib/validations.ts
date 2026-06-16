@@ -26,13 +26,6 @@ export const signupSchema = z.object({
   path: ['confirmPassword'],
 });
 
-export const otpSchema = z.object({
-  otp: z.string()
-    .min(1, 'El código es requerido')
-    .length(6, 'El código debe tener 6 dígitos')
-    .regex(/^\d+$/, 'Solo se permiten números'),
-});
-
 export const householdSchema = z.object({
   name: z.string()
     .min(1, 'El nombre es requerido')
@@ -49,7 +42,6 @@ export const inviteCodeSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
-export type OtpInput = z.infer<typeof otpSchema>;
 export type HouseholdInput = z.infer<typeof householdSchema>;
 export type InviteCodeInput = z.infer<typeof inviteCodeSchema>;
 

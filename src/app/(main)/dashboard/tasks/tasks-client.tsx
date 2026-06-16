@@ -12,7 +12,47 @@ import {
   Filter, Repeat, X, AlertCircle, Loader2, Edit2, Trash2,
   Clock, CheckSquare
 } from 'lucide-react';
-import { format, isToday, isPast, parseISO, isFuture } from 'date-fns';
+const parseISO = (dateStr: string) => new Date(dateStr);
+
+const isToday = (date: Date) => {
+  const today = new Date();
+  return date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear();
+};
+
+const isPast = (date: Date) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date < today;
+};
+
+const isFuture = (date: Date) => {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  return date > today;
+};
+
+const format = (date: Date, pattern: 'dd MMM yyyy' | 'EEEE, d MMMM yyyy' | 'd MMM yyyy, HH:mm') => {
+  if (pattern === 'dd MMM yyyy') {
+    const day = String(date.getDate()).padStart(2, '0');
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return `${day} ${months[date.getMonth()]} ${date.getFullYear()}`;
+  }
+  if (pattern === 'EEEE, d MMMM yyyy') {
+    const weekdays = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    return `${weekdays[date.getDay()]}, ${date.getDate()} de ${months[date.getMonth()]} de ${date.getFullYear()}`;
+  }
+  if (pattern === 'd MMM yyyy, HH:mm') {
+    const day = date.getDate();
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day} ${months[date.getMonth()]} ${date.getFullYear()}, ${hours}:${minutes}`;
+  }
+  return date.toLocaleDateString();
+};
 import { getErrorMessage } from '@/lib/errors';
 
 type Tab = 'TODAY' | 'UPCOMING' | 'COMPLETED';

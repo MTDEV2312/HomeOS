@@ -17,9 +17,25 @@ import {
   deleteShoppingListItem
 } from '@/services/shoppingService';
 import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService';
-import { formatDistanceToNow, parseISO } from 'date-fns';
 import { useToast } from '@/lib/toast-context';
 import { getErrorMessage } from '@/lib/errors';
+
+const parseISO = (dateStr: string) => new Date(dateStr);
+
+const formatDistanceToNow = (date: Date, _options?: { addSuffix?: boolean }) => {
+  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  let interval = Math.floor(seconds / 31536000);
+  if (interval >= 1) return `hace ${interval} año${interval > 1 ? 's' : ''}`;
+  interval = Math.floor(seconds / 2592000);
+  if (interval >= 1) return `hace ${interval} me${interval > 1 ? 'ses' : 's'}`;
+  interval = Math.floor(seconds / 86400);
+  if (interval >= 1) return `hace ${interval} día${interval > 1 ? 's' : ''}`;
+  interval = Math.floor(seconds / 3600);
+  if (interval >= 1) return `hace ${interval} hora${interval > 1 ? 's' : ''}`;
+  interval = Math.floor(seconds / 60);
+  if (interval >= 1) return `hace ${interval} minuto${interval > 1 ? 's' : ''}`;
+  return 'hace unos momentos';
+};
 
 export default function ShoppingClient() {
   const { activeHousehold } = useHousehold();

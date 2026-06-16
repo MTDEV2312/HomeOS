@@ -1,13 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
-
-const ThreeHouseCanvas = dynamic(
-  () => import("./ThreeHouseCanvas").then((mod) => ({ default: mod.ThreeHouseCanvas })),
-  { ssr: false }
-);
-
 function MobileHouseFallback() {
   return (
     <div className="w-full h-full flex items-center justify-center p-4">
@@ -150,29 +142,9 @@ function MobileHouseFallback() {
 }
 
 export function ThreeHouse() {
-  const [isMobile, setIsMobile] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 1024); // lg breakpoint is 1024px
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  if (isMobile === null) {
-    return <div className="w-full h-full" />;
-  }
-
-  if (isMobile) {
-    return <MobileHouseFallback />;
-  }
-
   return (
     <div className="w-full h-full flex items-center justify-center">
-      <ThreeHouseCanvas />
+      <MobileHouseFallback />
     </div>
   );
 }
