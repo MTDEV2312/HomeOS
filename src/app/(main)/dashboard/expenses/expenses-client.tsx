@@ -25,35 +25,68 @@ interface SplitInfo {
   cleanDescription: string;
   splitType: 'all' | 'custom' | 'loan';
   targetMembers: string[];
+  paidAmounts: Record<string, number>;
 }
 
 const parseDescription = (desc: string): SplitInfo => {
   if (!desc) {
-    return { cleanDescription: '', splitType: 'all', targetMembers: [] };
+    return { cleanDescription: '', splitType: 'all', targetMembers: [], paidAmounts: {} };
   }
-  const splitMatch = desc.match(/\|split:([^|]+)\|/);
+  
+  const paidMatch = desc.match(/\|paid:([^|]+)\|/);
+  const paidAmounts: Record<string, number> = {};
+  let cleanDesc = desc;
+  
+  if (paidMatch) {
+    cleanDesc = cleanDesc.replace(/\|paid:[^|]+\|/, '').trim();
+    paidMatch[1].split(',').forEach(item => {
+      const [id, val] = item.split(':');
+      if (id && val) {
+        paidAmounts[id.trim()] = parseFloat(val) || 0;
+      }
+    });
+  }
+
+  const splitMatch = cleanDesc.match(/\|split:([^|]+)\|/);
   if (splitMatch) {
-    const cleanDescription = desc.replace(/\|split:[^|]+\|/, '').trim();
+    const cleanDescription = cleanDesc.replace(/\|split:[^|]+\|/, '').trim();
     const targetMembers = splitMatch[1].split(',').map(id => id.trim());
-    return { cleanDescription, splitType: 'custom', targetMembers };
+    return { cleanDescription, splitType: 'custom', targetMembers, paidAmounts };
   }
-  const loanMatch = desc.match(/\|loan:([^|]+)\|/);
+  
+  const loanMatch = cleanDesc.match(/\|loan:([^|]+)\|/);
   if (loanMatch) {
-    const cleanDescription = desc.replace(/\|loan:[^|]+\|/, '').trim();
+    const cleanDescription = cleanDesc.replace(/\|loan:[^|]+\|/, '').trim();
     const targetMembers = loanMatch[1].split(',').map(id => id.trim());
-    return { cleanDescription, splitType: 'loan', targetMembers };
+    return { cleanDescription, splitType: 'loan', targetMembers, paidAmounts };
   }
-  return { cleanDescription: desc.trim(), splitType: 'all', targetMembers: [] };
+  
+  return { cleanDescription: cleanDesc.trim(), splitType: 'all', targetMembers: [], paidAmounts };
 };
 
-const serializeDescription = (cleanDesc: string, splitType: 'all' | 'custom' | 'loan', targetMembers: string[]): string => {
+const serializeDescription = (
+  cleanDesc: string, 
+  splitType: 'all' | 'custom' | 'loan', 
+  targetMembers: string[],
+  paidAmounts: Record<string, number>
+): string => {
+  let result = cleanDesc;
+  
   if (splitType === 'custom' && targetMembers.length > 0) {
-    return `${cleanDesc} |split:${targetMembers.join(',')}|`;
+    result = `${result} |split:${targetMembers.join(',')}|`;
+  } else if (splitType === 'loan' && targetMembers.length > 0) {
+    result = `${result} |loan:${targetMembers.join(',')}|`;
   }
-  if (splitType === 'loan' && targetMembers.length > 0) {
-    return `${cleanDesc} |loan:${targetMembers.join(',')}|`;
+  
+  const paidEntries = Object.entries(paidAmounts)
+    .filter(([id, val]) => targetMembers.includes(id) && val > 0)
+    .map(([id, val]) => `${id}:${val}`);
+    
+  if (paidEntries.length > 0 && splitType !== 'all') {
+    result = `${result} |paid:${paidEntries.join(',')}|`;
   }
-  return cleanDesc;
+  
+  return result;
 };
 
 export default function ExpensesDashboard() {
@@ -86,6 +119,7 @@ export default function ExpensesDashboard() {
   const [splitType, setSplitType] = useState<'all' | 'custom' | 'loan'>('all');
   const [selectedSplitMembers, setSelectedSplitMembers] = useState<string[]>([]);
   const [selectedLoanDebtors, setSelectedLoanDebtors] = useState<string[]>([]);
+  const [paidAmounts, setPaidAmounts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const payerId = expensePayerId || user?.id;
@@ -242,6 +276,52 @@ export default function ExpensesDashboard() {
       return;
     }
 
+    const totalAmountVal = parseFloat(amount);
+    const parsedPaidAmounts: Record<string, number> = {};
+    
+    if (splitType === 'custom') {
+      const shareAmount = totalAmountVal / selectedSplitMembers.length;
+      for (const memberId of selectedSplitMembers) {
+        if (memberId === (expensePayerId || user?.id)) continue;
+        const valStr = paidAmounts[memberId];
+        if (valStr) {
+          const val = parseFloat(valStr);
+          if (isNaN(val) || val < 0) {
+            showError('Error de validación', 'Los montos abonados deben ser números válidos y mayores o iguales a 0.');
+            return;
+          }
+          if (val > shareAmount + 0.01) {
+            const memberName = members.find(m => m.user_id === memberId)?.name || 'miembro';
+            showError('Error de validación', `El abono de ${memberName} ($${val.toFixed(2)}) no puede superar su cuota de $${shareAmount.toFixed(2)}.`);
+            return;
+          }
+          if (val > 0) {
+            parsedPaidAmounts[memberId] = val;
+          }
+        }
+      }
+    } else if (splitType === 'loan') {
+      const shareAmount = totalAmountVal / selectedLoanDebtors.length;
+      for (const memberId of selectedLoanDebtors) {
+        const valStr = paidAmounts[memberId];
+        if (valStr) {
+          const val = parseFloat(valStr);
+          if (isNaN(val) || val < 0) {
+            showError('Error de validación', 'Los montos abonados deben ser números válidos y mayores o iguales a 0.');
+            return;
+          }
+          if (val > shareAmount + 0.01) {
+            const memberName = members.find(m => m.user_id === memberId)?.name || 'miembro';
+            showError('Error de validación', `El abono de ${memberName} ($${val.toFixed(2)}) no puede superar su cuota de $${shareAmount.toFixed(2)}.`);
+            return;
+          }
+          if (val > 0) {
+            parsedPaidAmounts[memberId] = val;
+          }
+        }
+      }
+    }
+
     try {
       const fullDescription = serializeDescription(
         description,
@@ -250,7 +330,8 @@ export default function ExpensesDashboard() {
           ? selectedSplitMembers 
           : splitType === 'loan' 
             ? selectedLoanDebtors 
-            : []
+            : [],
+        parsedPaidAmounts
       );
 
       if (editingExpense) {
@@ -302,6 +383,7 @@ export default function ExpensesDashboard() {
     setSplitType('all');
     setSelectedSplitMembers([]);
     setSelectedLoanDebtors([]);
+    setPaidAmounts({});
   };
 
   const openEditModal = (expense: Expense) => {
@@ -309,7 +391,7 @@ export default function ExpensesDashboard() {
     const canEdit = expense.payer_id === user?.id || currentMember?.role === 'OWNER' || currentMember?.role === 'ADMIN';
     if (!canEdit) return;
 
-    const { cleanDescription, splitType: parsedSplitType, targetMembers } = parseDescription(expense.description);
+    const { cleanDescription, splitType: parsedSplitType, targetMembers, paidAmounts: parsedPaidAmounts } = parseDescription(expense.description);
 
     setEditingExpense(expense);
     setAmount(expense.amount.toString());
@@ -318,6 +400,13 @@ export default function ExpensesDashboard() {
     setExpensePayerId(expense.payer_id);
     setDate(expense.date);
     setSplitType(parsedSplitType);
+
+    const mappedPaid: Record<string, string> = {};
+    Object.entries(parsedPaidAmounts || {}).forEach(([id, val]) => {
+      mappedPaid[id] = val.toString();
+    });
+    setPaidAmounts(mappedPaid);
+
     if (parsedSplitType === 'custom') {
       setSelectedSplitMembers(targetMembers);
       setSelectedLoanDebtors([]);
@@ -379,36 +468,44 @@ export default function ExpensesDashboard() {
 
   // Calculate spent and share for each member
   currentMonthExpenses.forEach(exp => {
-    const payer = memberBalances.find(m => m.user_id === exp.payer_id);
-    if (payer) {
-      payer.spent += Number(exp.amount);
-    }
-
-    const { splitType: expSplitType, targetMembers } = parseDescription(exp.description);
+    const { splitType: expSplitType, targetMembers, paidAmounts } = parseDescription(exp.description);
+    const initialAmount = Number(exp.amount);
+    let totalPaidBack = 0;
 
     if (expSplitType === 'custom' && targetMembers.length > 0) {
-      const shareAmount = Number(exp.amount) / targetMembers.length;
+      const shareAmount = initialAmount / targetMembers.length;
       targetMembers.forEach(memberId => {
+        const paidBack = paidAmounts[memberId] || 0;
+        totalPaidBack += paidBack;
+        
         const mb = memberBalances.find(m => m.user_id === memberId);
         if (mb) {
-          mb.share += shareAmount;
+          mb.share += (shareAmount - paidBack);
         }
       });
     } else if (expSplitType === 'loan' && targetMembers.length > 0) {
-      const shareAmount = Number(exp.amount) / targetMembers.length;
+      const shareAmount = initialAmount / targetMembers.length;
       targetMembers.forEach(debtorId => {
+        const paidBack = paidAmounts[debtorId] || 0;
+        totalPaidBack += paidBack;
+        
         const mb = memberBalances.find(m => m.user_id === debtorId);
         if (mb) {
-          mb.share += shareAmount;
+          mb.share += (shareAmount - paidBack);
         }
       });
     } else {
       // default: split among all members
       const nMembers = memberBalances.length;
-      const shareAmount = nMembers > 0 ? Number(exp.amount) / nMembers : 0;
+      const shareAmount = nMembers > 0 ? initialAmount / nMembers : 0;
       memberBalances.forEach(mb => {
         mb.share += shareAmount;
       });
+    }
+
+    const payer = memberBalances.find(m => m.user_id === exp.payer_id);
+    if (payer) {
+      payer.spent += (initialAmount - totalPaidBack);
     }
   });
 
@@ -460,6 +557,12 @@ export default function ExpensesDashboard() {
       if (creditor.amountOwed <= 0.01) cIdx++;
     }
   }
+
+  const activeDebtors = splitType === 'custom'
+    ? selectedSplitMembers.filter(id => id !== (expensePayerId || user?.id))
+    : splitType === 'loan'
+      ? selectedLoanDebtors
+      : [];
 
   // Filter and slice/full list based on state
   const displayedExpenses = showAllExpenses
@@ -960,6 +1063,57 @@ export default function ExpensesDashboard() {
                           </label>
                         );
                       })}
+                  </div>
+                </div>
+              )}
+
+              {/* Paid Back Amounts (Abonos) */}
+              {activeDebtors.length > 0 && (
+                <div className="flex flex-col gap-2 bg-surface-container-low p-3 rounded-lg border border-outline-variant animate-fade-in mt-md">
+                  <label className="font-label-md text-on-surface font-semibold">Abonos / Pagos Parciales Recibidos</label>
+                  <p className="font-label-sm text-on-surface-variant mb-1">Registrá cuánto dinero te ha devuelto cada miembro para esta deuda.</p>
+                  
+                  <div className="flex flex-col gap-sm">
+                    {activeDebtors.map(debtorId => {
+                      const memberName = members.find(m => m.user_id === debtorId)?.name || 'Miembro';
+                      const totalAmt = parseFloat(amount) || 0;
+                      const shareAmount = splitType === 'custom'
+                        ? totalAmt / Math.max(1, selectedSplitMembers.length)
+                        : totalAmt / Math.max(1, selectedLoanDebtors.length);
+                        
+                      const paidVal = parseFloat(paidAmounts[debtorId] || '0') || 0;
+                      const remainingDebt = Math.max(0, shareAmount - paidVal);
+                      
+                      return (
+                        <div key={debtorId} className="flex flex-col sm:flex-row sm:items-center justify-between gap-sm bg-surface p-2 rounded-md border border-outline-variant">
+                          <div className="min-w-0">
+                            <span className="block font-label-md text-on-surface truncate font-medium">{memberName}</span>
+                            <span className="block font-body-xs text-on-surface-variant">
+                              Deuda total: {formatCurrency(shareAmount)} | Pendiente: <strong className="text-primary">{formatCurrency(remainingDebt)}</strong>
+                            </span>
+                          </div>
+                          <div className="relative w-32 shrink-0">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              max={shareAmount}
+                              value={paidAmounts[debtorId] || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setPaidAmounts(prev => ({
+                                  ...prev,
+                                  [debtorId]: val
+                                }));
+                              }}
+                              className="w-full bg-surface-container-lowest rounded-md border border-outline-variant py-1 pl-6 pr-2 text-on-surface text-sm focus:border-primary outline-none transition-all"
+                              placeholder="0.00"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
