@@ -68,13 +68,3 @@ src/
 
 ---
 
-## 📈 Plan de Ejecución (Fases)
-
-Este proyecto se desarrolla bajo una metodología de **entrega por fases**, garantizando que cada pieza del rompecabezas encaje perfectamente antes de avanzar.
-
-- [x] **Fase 1**: Fundación, Auth y Layout Base.
-- [/] **Fase 2**: Sistema de Hogares e Invitaciones (En progreso).
-- [ ] **Fase 3**: Gestión de Tareas y Recurrencias.
-- [ ] **Fase 4**: Listas de Compras Colaborativas.
-- [ ] **Fase 5**: Gastos, Presupuestos y Analíticas.
-- [ ] ... *Ver `plan.md` para el detalle completo.*
