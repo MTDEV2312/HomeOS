@@ -5,7 +5,12 @@ const config = [
 	{
 		ignores: [
 			"designs/**",
-			"designs/**/*"
+			"designs/**/*",
+			"UI- redesign/**",
+			"UI- redesign/**/*",
+			".agents/**",
+			".agents/**/*",
+			".next/**",
 		]
 	},
 	...nextCoreWebVitals,
