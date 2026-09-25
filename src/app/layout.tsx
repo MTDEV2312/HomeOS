@@ -1,53 +1,60 @@
-import { ThemeProvider } from "next-themes";
-import { AuthProvider } from "@/lib/auth-context";
-import "./globals.css";
-import { ToastProvider } from "@/lib/toast-context";
-import { Inter } from "next/font/google";
-import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from 'next';
+import { Manrope, DM_Mono } from 'next/font/google';
+import './globals.css';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { ToastProvider } from '@/context/ToastContext';
+import { AuthProvider } from '@/lib/auth-context';
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
+const manrope = Manrope({
+  subsets: ['latin'],
+  variable: '--font-manrope',
+  display: 'swap',
+});
+
+const dmMono = DM_Mono({
+  subsets: ['latin'],
+  weight: ['300', '400', '500'],
+  variable: '--font-dm-mono',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://homeos.mathiast.me"),
+  metadataBase: new URL('https://homeos.mathiast.me'),
   title: {
-    default: "HomeOS - Gestión familiar integrada",
-    template: "%s - HomeOS",
+    default: 'HomeOS — Sistema operativo para el hogar',
+    template: '%s — HomeOS',
   },
-  description: "HomeOS - Tu mini ERP familiar para la gestión del hogar, tareas, presupuestos y compras colaborativas.",
+  description: 'Todo lo que mantiene tu hogar en marcha, en un solo lugar.',
   alternates: {
-    canonical: "/",
+    canonical: '/',
   },
   openGraph: {
-    type: "website",
-    locale: "es_AR",
-    url: "https://homeos.mathiast.me",
-    title: "HomeOS - Gestión familiar integrada",
-    description: "HomeOS - Tu mini ERP familiar para la gestión del hogar, tareas, presupuestos y compras colaborativas.",
-    siteName: "HomeOS",
+    type: 'website',
+    locale: 'es_AR',
+    url: 'https://homeos.mathiast.me',
+    title: 'HomeOS — Sistema operativo para el hogar',
+    description: 'Todo lo que mantiene tu hogar en marcha, en un solo lugar.',
+    siteName: 'HomeOS',
     images: [
       {
-        url: "/images/logo.png",
+        url: '/images/logo.png',
         width: 512,
         height: 512,
-        alt: "HomeOS Logo",
+        alt: 'HomeOS Logo',
       },
     ],
   },
   twitter: {
-    card: "summary_large_image",
-    title: "HomeOS - Gestión familiar integrada",
-    description: "HomeOS - Tu mini ERP familiar para la gestión del hogar, tareas, presupuestos y compras colaborativas.",
-    creator: "@MTDEV2312",
-    images: ["/images/logo.png"],
+    card: 'summary_large_image',
+    title: 'HomeOS — Sistema operativo para el hogar',
+    description: 'Todo lo que mantiene tu hogar en marcha, en un solo lugar.',
+    creator: '@MTDEV2312',
+    images: ['/images/logo.png'],
   },
 };
 
 export const viewport: Viewport = {
-  width: "device-width",
+  width: 'device-width',
   initialScale: 1,
 };
 
@@ -57,7 +64,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" suppressHydrationWarning className={inter.variable}>
+    <html lang="es" suppressHydrationWarning className={`${manrope.variable} ${dmMono.variable}`}>
       <head>
         <link rel="icon" href="/images/logo.ico" type="image/x-icon" />
         <link rel="apple-touch-icon" href="/images/logo.png" />
@@ -68,9 +75,17 @@ export default function RootLayout({
           rel="stylesheet" 
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('homeos-theme');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||((!t||t==='system')&&m)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}}catch(e){}})();`,
+          }}
+        />
       </head>
-      <body suppressHydrationWarning className="bg-background text-on-background font-body-md text-body-md antialiased overflow-hidden flex flex-col h-screen transition-colors duration-200">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+      <body
+        suppressHydrationWarning
+        className="min-h-screen bg-bg dark:bg-dark-bg text-ink dark:text-dark-ink font-sans antialiased selection:bg-olive selection:text-white dark:selection:bg-dark-olive dark:selection:text-dark-bg"
+      >
+        <ThemeProvider>
           <ToastProvider>
             <AuthProvider>
               {children}

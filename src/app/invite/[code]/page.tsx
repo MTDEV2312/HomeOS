@@ -1,5 +1,5 @@
-import InviteClient from './invite-client';
 import { Metadata } from 'next';
+import Invite from '@/screens/Invite';
 
 type Props = {
   params: Promise<{ code: string }>;
@@ -13,6 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function InvitePage() {
-  return <InviteClient />;
+export default async function InvitePage({ params }: Props) {
+  const { code } = await params;
+  return <Invite initialCode={code} />;
 }

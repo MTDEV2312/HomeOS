@@ -11,6 +11,11 @@ type ActiveHouseholdContextType = {
   isLoadingHousehold: boolean;
   refreshHousehold: () => Promise<void>;
   switchHousehold: (householdId: string) => void;
+  // Aliases for compatibility
+  currentHousehold: Household | null;
+  households: UserHousehold[];
+  setCurrentHousehold?: (h: Household | null) => void;
+  refreshHouseholds: () => Promise<void>;
 };
 
 const HouseholdContext = createContext<ActiveHouseholdContextType>({
@@ -20,6 +25,9 @@ const HouseholdContext = createContext<ActiveHouseholdContextType>({
   isLoadingHousehold: true,
   refreshHousehold: async () => {},
   switchHousehold: () => {},
+  currentHousehold: null,
+  households: [],
+  refreshHouseholds: async () => {},
 });
 
 export function HouseholdProvider({ children }: { children: React.ReactNode }) {
@@ -85,7 +93,20 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
   }, [refreshHousehold]);
 
   return (
-    <HouseholdContext.Provider value={{ activeHousehold, activeRole, householdsList, isLoadingHousehold, refreshHousehold, switchHousehold }}>
+    <HouseholdContext.Provider
+      value={{
+        activeHousehold,
+        activeRole,
+        householdsList,
+        isLoadingHousehold,
+        refreshHousehold,
+        switchHousehold,
+        currentHousehold: activeHousehold,
+        households: householdsList,
+        setCurrentHousehold: setActiveHousehold,
+        refreshHouseholds: refreshHousehold,
+      }}
+    >
       {children}
     </HouseholdContext.Provider>
   );

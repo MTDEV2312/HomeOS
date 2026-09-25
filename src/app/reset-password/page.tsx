@@ -1,11 +1,10 @@
-import ResetPasswordClient from './reset-password-client';
-import { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Restablecer Contraseña',
-  description: 'Ingresa el código OTP de verificación y establece una nueva contraseña para recuperar de forma segura el acceso a tu cuenta HomeOS.',
-};
+import { Suspense } from 'react';
+import ResetPassword from '@/screens/ResetPassword';
 
 export default function ResetPasswordPage() {
-  return <ResetPasswordClient />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-bg dark:bg-dark-bg" />}>
+      <ResetPassword />
+    </Suspense>
+  );
 }

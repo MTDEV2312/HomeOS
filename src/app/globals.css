@@ -1,412 +1,169 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark, .dark *));
+
+@theme {
+  --font-sans: var(--font-manrope), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-dm-mono), 'Courier New', monospace;
+
+  --color-bg: #F5F4EF;
+  --color-surface: #FFFFFF;
+  --color-ink: #181817;
+  --color-muted: #77766E;
+  --color-line: #D9D8D0;
+  --color-olive: #9D9652;
+  --color-olive-soft: #ECEADB;
+  --color-sage: #C7CDBE;
+  --color-sage-soft: #EEF0EA;
+  --color-softblue: #BBD9DC;
+  --color-softblue-bg: #EAF4F5;
+  --color-sand: #E5DCC8;
+  --color-sand-bg: #F7F2E8;
+  --color-terracotta: #C97963;
+  --color-terracotta-bg: #F9EDE9;
+
+  --color-dark-bg: #151613;
+  --color-dark-surface: #1D1E1A;
+  --color-dark-ink: #F1F0E9;
+  --color-dark-muted: #A8A79F;
+  --color-dark-line: #34352F;
+  --color-dark-olive: #B1A75D;
+  --color-dark-sage: #8B9682;
+  --color-dark-softblue: #76999E;
+  --color-dark-sand: #CFC5A9;
+  --color-dark-terracotta: #B86E5A;
+  --color-dark-olive-soft: #2A2B1F;
+  --color-dark-surface-2: #252620;
+}
 
 :root {
-  --background: #f8fafc;
-  --on-background: #0f172a;
-  --surface: #ffffff;
-  --on-surface: #0f172a;
-  --surface-dim: #f1f5f9;
-  --surface-bright: #ffffff;
-  --surface-container-lowest: #ffffff;
-  --surface-container-low: #f8fafc;
-  --surface-container: #f1f5f9;
-  --surface-container-high: #e2e8f0;
-  --surface-container-highest: #cbd5e1;
-  --surface-variant: #e2e8f0;
-  --on-surface-variant: #475569;
-  --inverse-surface: #0f172a;
-  --inverse-on-surface: #f8fafc;
+  --background: #F5F4EF;
+  --on-background: #181817;
+  --surface: #FFFFFF;
+  --on-surface: #181817;
+  --surface-dim: #EEF0EA;
+  --surface-bright: #FFFFFF;
+  --surface-container-lowest: #FFFFFF;
+  --surface-container-low: #F5F4EF;
+  --surface-container: #ECEADB;
+  --surface-container-high: #E5DCC8;
+  --surface-container-highest: #D9D8D0;
+  --surface-variant: #ECEADB;
+  --on-surface-variant: #77766E;
+  --inverse-surface: #151613;
+  --inverse-on-surface: #F1F0E9;
   
-  --primary: #0284c7;
-  --on-primary: #ffffff;
-  --primary-container: #e0f2fe;
-  --on-primary-container: #0c4a6e;
-  --primary-fixed: #bae6fd;
-  --primary-fixed-dim: #7dd3fc;
-  --on-primary-fixed: #082f49;
-  --on-primary-fixed-variant: #0369a1;
-  --inverse-primary: #7dd3fc;
+  --primary: #9D9652;
+  --on-primary: #FFFFFF;
+  --primary-container: #ECEADB;
+  --on-primary-container: #181817;
   
-  --secondary: #475569;
-  --on-secondary: #ffffff;
-  --secondary-container: #f1f5f9;
-  --on-secondary-container: #0f172a;
-  --secondary-fixed: #cbd5e1;
-  --secondary-fixed-dim: #94a3b8;
-  --on-secondary-fixed: #0f172a;
-  --on-secondary-fixed-variant: #334155;
+  --secondary: #77766E;
+  --on-secondary: #FFFFFF;
+  --secondary-container: #ECEADB;
   
-  --tertiary: #6366f1;
-  --on-tertiary: #ffffff;
-  --tertiary-container: #e0e7ff;
-  --on-tertiary-container: #312e81;
-  --tertiary-fixed: #c7d2fe;
-  --tertiary-fixed-dim: #a5b4fc;
-  --on-tertiary-fixed: #1e1b4b;
-  --on-tertiary-fixed-variant: #4338ca;
+  --tertiary: #BBD9DC;
+  --on-tertiary: #181817;
   
-  --error: #ef4444;
-  --on-error: #ffffff;
-  --error-container: #fee2e2;
-  --on-error-container: #7f1d1d;
+  --error: #C97963;
+  --on-error: #FFFFFF;
+  --error-container: #F9EDE9;
+  --on-error-container: #C97963;
   
-  --outline: #94a3b8;
-  --outline-variant: #cbd5e1;
-  --surface-tint: #0284c7;
+  --outline: #77766E;
+  --outline-variant: #D9D8D0;
 }
 
 .dark {
-  --inverse-primary: #066494;
-  --secondary: #b9c7e0;
-  --on-surface: #d4e4fa;
-  --on-primary-fixed-variant: #004b71;
-  --on-error-container: #ffdad6;
-  --on-error: #690005;
-  --on-tertiary: #283044;
-  --inverse-surface: #d4e4fa;
-  --on-primary-fixed: #001e30;
-  --tertiary-fixed: #dae2fd;
-  --tertiary-fixed-dim: #bec6e0;
-  --background: #051424;
-  --outline-variant: #40484f;
-  --on-tertiary-fixed-variant: #3f465c;
-  --surface-container-high: #1c2b3c;
-  --on-secondary-fixed-variant: #3a485c;
-  --surface-container-lowest: #010f1f;
-  --secondary-fixed-dim: #b9c7e0;
-  --on-background: #d4e4fa;
-  --secondary-fixed: #d5e3fd;
-  --on-primary-container: #002d46;
-  --primary-fixed-dim: #8fcdff;
-  --primary-container: #5197ca;
-  --surface-bright: #2c3a4c;
-  --outline: #8a919a;
-  --tertiary: #bec6e0;
-  --on-secondary-fixed: #0d1c2f;
-  --tertiary-container: #8990a8;
-  --on-tertiary-container: #22293d;
-  --on-primary: #003450;
-  --primary: #8fcdff;
-  --surface-container-highest: #273647;
-  --error: #ffb4ab;
-  --on-secondary-container: #abb9d2;
-  --secondary-container: #3c4a5e;
-  --surface-tint: #8fcdff;
-  --surface-container: #122131;
-  --inverse-on-surface: #233143;
-  --surface-container-low: #0d1c2d;
-  --on-tertiary-fixed: #131b2e;
-  --surface-dim: #051424;
-  --surface-variant: #273647;
-  --on-surface-variant: #c0c7d0;
-  --primary-fixed: #cbe6ff;
-  --surface: #051424;
-  --error-container: #93000a;
-  --on-secondary: #233144;
+  --background: #151613;
+  --on-background: #F1F0E9;
+  --surface: #1D1E1A;
+  --on-surface: #F1F0E9;
+  --surface-dim: #151613;
+  --surface-bright: #252620;
+  --surface-container-lowest: #151613;
+  --surface-container-low: #1D1E1A;
+  --surface-container: #252620;
+  --surface-container-high: #2A2B1F;
+  --surface-container-highest: #34352F;
+  --surface-variant: #252620;
+  --on-surface-variant: #A8A79F;
+  --inverse-surface: #F1F0E9;
+  --inverse-on-surface: #151613;
+  
+  --primary: #B1A75D;
+  --on-primary: #151613;
+  --primary-container: #2A2B1F;
+  --on-primary-container: #F1F0E9;
+  
+  --secondary: #A8A79F;
+  --on-secondary: #151613;
+  --secondary-container: #252620;
+  
+  --tertiary: #76999E;
+  --on-tertiary: #151613;
+  
+  --error: #B86E5A;
+  --on-error: #FFFFFF;
+  --error-container: #252620;
+  --on-error-container: #B86E5A;
+  
+  --outline: #A8A79F;
+  --outline-variant: #34352F;
 }
 
-@layer base {
-  * {
-    box-sizing: border-box;
-  }
-
-  html {
-    overflow-x: hidden;
-  }
-
-  body {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
-    font-family: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    /* We handle the actual background and text colors directly in layout.tsx using tailwind classes from the design system, e.g., bg-background text-on-background */
-  }
-
-  .material-symbols-outlined {
-    font-family: 'Material Symbols Outlined', sans-serif;
-    font-weight: 400;
-    font-style: normal;
-    font-size: 18px;
-    line-height: 1;
-    letter-spacing: normal;
-    text-transform: none;
-    display: inline-block;
-    white-space: nowrap;
-    word-wrap: normal;
-    direction: ltr;
-    -webkit-font-feature-settings: 'liga';
-    -webkit-font-smoothing: antialiased;
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  }
-
-  /* ═══ Select Overflow Fix ═══ */
-  /* Force selects to respect their parent container width */
-  select {
-    min-width: 0;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    padding-right: 2rem !important;
-  }
-
-  /* Fix for flex containers with selects */
-  .flex > * > select,
-  .grid > * > select,
-  .flex > select,
-  .grid > select {
-    min-width: 0;
-  }
+html {
+  font-family: var(--font-sans);
+  background-color: #F5F4EF;
+  color: #181817;
 }
 
-/* Dark mode select arrow */
-.dark select,
-[data-theme="dark"] select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23c0c7d0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+html.dark {
+  background-color: #151613;
+  color: #F1F0E9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #D9D8D0;
+  border-radius: 2px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #34352F;
+}
+
+::selection {
+  background-color: #9D9652;
+  color: #FFFFFF;
+}
+.dark ::selection {
+  background-color: #B1A75D;
+  color: #151613;
 }
 
 /* ═══ Scrollbar Hide Utility ═══ */
-
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
-}
-
-/* ═══ Scrollbar ═══ */
-
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #c1c7cf; /* outline-variant */
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #72787f; /* outline */
-}
-
-/* ═══ Focus visible ═══ */
-
-*:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-/* ═══ 404 Error Page ═══ */
-
-.error-grid-bg {
-  position: fixed;
-  inset: 0;
-  background-image: 
-    linear-gradient(var(--outline-variant) 1px, transparent 1px),
-    linear-gradient(90deg, var(--outline-variant) 1px, transparent 1px);
-  background-size: 80px 80px;
-  opacity: 0.25;
-  mask-image: radial-gradient(ellipse 80% 50% at 50% 50%, black 40%, transparent 100%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.error-shape {
-  position: fixed;
-  border-radius: 50%;
-  pointer-events: none;
-  filter: blur(80px);
-  z-index: 0;
-}
-
-.error-shape-primary {
-  width: min(500px, 60vw);
-  height: min(500px, 60vw);
-  background: var(--primary);
-  opacity: 0.1;
-  top: -15%;
-  right: -10%;
-  animation: float-slow 20s ease-in-out infinite;
-}
-
-.error-shape-secondary {
-  width: min(400px, 50vw);
-  height: min(400px, 50vw);
-  background: var(--tertiary);
-  opacity: 0.08;
-  bottom: -10%;
-  left: -10%;
-  animation: float-slow 25s ease-in-out infinite reverse;
-}
-
-.error-shape-accent {
-  width: min(300px, 40vw);
-  height: min(300px, 40vw);
-  background: var(--outline);
-  opacity: 0.05;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  animation: pulse-soft 8s ease-in-out infinite;
-}
-
-@keyframes float-slow {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(30px, -30px) scale(1.05); }
-}
-
-@keyframes pulse-soft {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.05; }
-  50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.08; }
-}
-
-.error-geo-ring {
-  width: 100px;
-  height: 100px;
-  border: 1px solid var(--outline-variant);
-  border-radius: 50%;
-  top: 18%;
-  right: 12%;
-  animation: rotate-slow 35s linear infinite;
-  position: fixed;
-  pointer-events: none;
-}
-
-.error-geo-ring::before {
-  content: "";
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: var(--primary);
-  border-radius: 50%;
-  top: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  box-shadow: 0 0 12px var(--primary);
-}
-
-.error-geo-ring-inner {
-  width: 60px;
-  height: 60px;
-  border: 1px solid var(--outline);
-  border-radius: 50%;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  opacity: 0.4;
-}
-
-.error-geo-dots {
-  width: 70px;
-  height: 70px;
-  bottom: 22%;
-  left: 10%;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  align-content: center;
-  justify-items: center;
-  position: fixed;
-  pointer-events: none;
-}
-
-.error-geo-dots span {
-  width: 6px;
-  height: 6px;
-  background: var(--outline);
-  border-radius: 50%;
-  opacity: 0.5;
-}
-
-.error-geo-dots span:nth-child(5) {
-  background: var(--primary);
-  opacity: 0.7;
-  width: 8px;
-  height: 8px;
-}
-
-.error-geo-line-v {
-  width: 1px;
-  height: 120px;
-  background: linear-gradient(to bottom, transparent, var(--outline-variant), transparent);
-  top: 12%;
-  left: 18%;
-  position: fixed;
-  pointer-events: none;
-}
-
-.error-geo-line-h {
-  height: 1px;
-  width: 100px;
-  background: linear-gradient(to right, transparent, var(--outline-variant), transparent);
-  bottom: 35%;
-  right: 18%;
-  position: fixed;
-  pointer-events: none;
-}
-
-@keyframes rotate-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.error-code-text {
-  font-size: clamp(120px, 22vw, 200px);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 0.85;
-  color: var(--primary);
-  position: relative;
-  display: inline-block;
-  user-select: none;
-  opacity: 0.12;
-}
-
-.error-code-fill {
-  position: absolute;
-  inset: 0;
-  font-size: inherit;
-  font-weight: inherit;
-  letter-spacing: inherit;
-  line-height: inherit;
-  background: linear-gradient(180deg, var(--primary) 0%, transparent 70%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: shimmer 4s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
-
-@media (max-width: 640px) {
-  .error-geo-ring,
-  .error-geo-line-v,
-  .error-geo-line-h {
-    display: none;
-  }
-  .error-geo-dots {
-    width: 50px;
-    height: 50px;
-    gap: 10px;
-  }
 }
 
 /* ═══ Toast Premium Slide-Up Animation ═══ */
@@ -425,16 +182,8 @@
   animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ═══ Custom Utility Classes to Remove Inline Styles (SEO & CSP) ═══ */
-.material-symbols-filled {
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24 !important;
+/* ═══ Select Fix ═══ */
+select {
+  min-width: 0;
+  max-width: 100%;
 }
-
-.scrollbar-thin {
-  scrollbar-width: thin !important;
-}
-
-.custom-support-heading {
-  color: #4f46e5 !important;
-  margin-top: 0 !important;
-}

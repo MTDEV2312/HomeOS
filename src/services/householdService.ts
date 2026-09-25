@@ -188,3 +188,14 @@ export const deleteHousehold = async (householdId: string): Promise<void> => {
 
   if (error) throw error;
 };
+
+export const getHouseholdByInviteCode = async (inviteCode: string): Promise<Household | null> => {
+  const { data, error } = await insforge.database
+    .from('households')
+    .select('*')
+    .eq('invite_code', inviteCode.toUpperCase())
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as Household | null;
+};
