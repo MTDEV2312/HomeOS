@@ -2,15 +2,77 @@
 
 import React from 'react'
 import { useRouter, Link } from '@/lib/navigation'
-import { ArrowRight } from 'lucide-react'
+import {
+  ArrowRight,
+  CheckCircle2,
+  ShoppingBag,
+  TrendingUp,
+  Package,
+  Wrench,
+  FileText,
+} from 'lucide-react'
 
 const features = [
-  { num: '01', title: 'TAREAS', desc: 'Organizá el trabajo cotidiano de tu hogar. Asigná responsables, establecé prioridades y seguí el progreso en tiempo real.' },
-  { num: '02', title: 'COMPRAS', desc: 'Sabé qué necesitás antes de salir. Listas compartidas, categorías y sincronización en tiempo real.' },
-  { num: '03', title: 'GASTOS', desc: 'Entendé cómo se mueve el dinero. Registrá, dividí y administrá presupuestos por categoría.' },
-  { num: '04', title: 'INVENTARIO', desc: 'Lo que tenés. Lo que falta. Alertas antes de quedarte sin algo importante.' },
-  { num: '05', title: 'MANTENIMIENTO', desc: 'Cuidá tu casa antes de que algo falle. Activos, programaciones e historial completo.' },
-  { num: '06', title: 'DOCUMENTOS', desc: 'Todo lo importante en un solo lugar. Garantías, facturas, contratos y manuales.' },
+  {
+    num: '01',
+    title: 'TAREAS',
+    desc: 'Organizá el trabajo cotidiano de tu hogar. Asigná responsables, establecé prioridades y seguí el progreso en tiempo real.',
+    badge: '3 tareas para hoy · Al día',
+    icon: CheckCircle2,
+    image: 'https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=640&h=420&fit=crop&auto=format',
+    imageAlt: 'Planificación doméstica y tareas cotidianas',
+    tag: 'Organización diaria',
+  },
+  {
+    num: '02',
+    title: 'COMPRAS',
+    desc: 'Sabé qué necesitás antes de salir. Listas compartidas, categorías y sincronización en tiempo real.',
+    badge: 'Lista compartida · Sincronizada',
+    icon: ShoppingBag,
+    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=640&h=420&fit=crop&auto=format',
+    imageAlt: 'Ingredientes frescos y compras del hogar',
+    tag: 'Despensa y compras',
+  },
+  {
+    num: '03',
+    title: 'GASTOS',
+    desc: 'Entendé cómo se mueve el dinero. Registrá, dividí y administrá presupuestos por categoría.',
+    badge: 'Presupuesto mensual · Control claro',
+    icon: TrendingUp,
+    image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=640&h=420&fit=crop&auto=format',
+    imageAlt: 'Gestión de finanzas y presupuestos domésticos',
+    tag: 'Finanzas transparentes',
+  },
+  {
+    num: '04',
+    title: 'INVENTARIO',
+    desc: 'Lo que tenés. Lo que falta. Alertas antes de quedarte sin algo importante.',
+    badge: 'Stock y vencimientos · Monitoreados',
+    icon: Package,
+    image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=640&h=420&fit=crop&auto=format',
+    imageAlt: 'Alacena ordenada e inventario del hogar',
+    tag: 'Control de existencias',
+  },
+  {
+    num: '05',
+    title: 'MANTENIMIENTO',
+    desc: 'Cuidá tu casa antes de que algo falle. Activos, programaciones e historial completo.',
+    badge: 'Service preventivo · Programado',
+    icon: Wrench,
+    image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=640&h=420&fit=crop&auto=format',
+    imageAlt: 'Mantenimiento del hogar y equipamiento',
+    tag: 'Prevención activa',
+  },
+  {
+    num: '06',
+    title: 'DOCUMENTOS',
+    desc: 'Todo lo importante en un solo lugar. Garantías, facturas, contratos y manuales.',
+    badge: 'Garantías y contratos · Digitalizados',
+    icon: FileText,
+    image: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=640&h=420&fit=crop&auto=format',
+    imageAlt: 'Archivos y documentos importantes del hogar',
+    tag: 'Bóveda documental',
+  },
 ]
 
 export default function Landing() {
@@ -77,13 +139,18 @@ export default function Landing() {
           </div>
 
           <div className="hidden lg:block">
-            <div className="w-72 h-80 rounded-[6px] overflow-hidden border border-line dark:border-dark-line bg-sage-soft dark:bg-dark-surface">
+            <div className="w-80 h-96 rounded-[6px] overflow-hidden border border-line dark:border-dark-line bg-surface dark:bg-dark-surface relative group shadow-sm">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=576&h=640&fit=crop&auto=format"
+                src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=640&h=760&fit=crop&auto=format"
                 alt="Interior doméstico contemporáneo"
-                className="w-full h-full object-cover opacity-90"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-4 right-4 flex items-center gap-2 px-3 py-2 rounded-[4px] bg-surface/90 dark:bg-dark-surface/90 backdrop-blur-md border border-white/20 dark:border-dark-line shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-olive dark:bg-dark-olive" />
+                <span className="text-[12px] font-medium text-ink dark:text-dark-ink">HomeOS en tu hogar</span>
+              </div>
             </div>
           </div>
         </div>
@@ -100,23 +167,42 @@ export default function Landing() {
         </div>
 
         <div className="space-y-0">
-          {features.map((f, i) => (
-            <div
-              key={f.num}
-              className={`flex flex-col sm:flex-row items-start gap-8 py-10 border-t border-line dark:border-dark-line ${i % 2 === 1 ? 'sm:flex-row-reverse' : ''}`}
-            >
-              <div className="shrink-0 sm:w-56">
-                <span className="text-[11px] font-mono text-olive dark:text-dark-olive">{f.num}</span>
-                <h3 className="text-[28px] font-semibold tracking-[-0.01em] text-ink dark:text-dark-ink mt-1">{f.title}</h3>
+          {features.map((f) => {
+            const Icon = f.icon
+            return (
+              <div
+                key={f.num}
+                className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 py-12 border-t border-line dark:border-dark-line group"
+              >
+                <div className="shrink-0 lg:w-64">
+                  <span className="text-[11px] font-mono text-olive dark:text-dark-olive">{f.num}</span>
+                  <h3 className="text-[30px] font-semibold tracking-[-0.01em] text-ink dark:text-dark-ink mt-1">{f.title}</h3>
+                  <span className="inline-block mt-2 text-[10px] font-medium tracking-wide uppercase text-muted dark:text-dark-muted px-2 py-0.5 rounded bg-bg dark:bg-dark-surface border border-line dark:border-dark-line">
+                    {f.tag}
+                  </span>
+                </div>
+
+                <div className="flex-1 max-w-lg">
+                  <p className="text-[15px] text-muted dark:text-dark-muted leading-relaxed">{f.desc}</p>
+                </div>
+
+                {/* Editorial Visual Card */}
+                <div className="w-full sm:w-80 h-44 rounded-[6px] overflow-hidden border border-line dark:border-dark-line bg-surface dark:bg-dark-surface shrink-0 relative shadow-xs">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={f.image}
+                    alt={f.imageAlt}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 px-3 py-1.5 rounded-[4px] bg-surface/90 dark:bg-dark-surface/90 backdrop-blur-md border border-white/20 dark:border-dark-line shadow-xs">
+                    <Icon size={13} className="text-olive dark:text-dark-olive shrink-0" />
+                    <span className="text-[11px] font-medium text-ink dark:text-dark-ink truncate">{f.badge}</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex-1 sm:pt-6">
-                <p className="text-[15px] text-muted dark:text-dark-muted leading-relaxed max-w-md">{f.desc}</p>
-              </div>
-              {i % 2 === 0 && (
-                <div className="hidden sm:block w-48 h-32 rounded-[4px] overflow-hidden border border-line dark:border-dark-line bg-sand dark:bg-dark-surface shrink-0" />
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
       </section>
 
@@ -161,7 +247,7 @@ export default function Landing() {
               ['Registrarse', '/signup'],
               ['Términos', '/terms'],
               ['Privacidad', '/privacy'],
-              ['Ayuda', '/help']
+              ['Ayuda', '/help'],
             ].map(([label, href]) => (
               <Link key={href} href={href} className="text-[12px] text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors">
                 {label}
