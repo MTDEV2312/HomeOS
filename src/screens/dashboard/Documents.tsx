@@ -27,6 +27,28 @@ export interface DocumentDisplayItem {
 
 const categories = ['Todos', 'Financieros', 'Legales', 'Garantías', 'Manuales', 'Médicos', 'Identificación', 'Otros']
 
+// Documents' file_url values are served from the configured storage backend.
+// Derive the allowed host(s) from that same configuration rather than trusting the URL blindly.
+const ALLOWED_HOSTS: string[] = (() => {
+  try {
+    const base = process.env.NEXT_PUBLIC_INSFORGE_URL || ''
+    return base ? [new URL(base).hostname] : []
+  } catch {
+    return []
+  }
+})()
+
+function isSafeExternalUrl(url: string | undefined, allowedHosts: string[]) {
+  if (!url) return false
+  try {
+    const parsed = new URL(String(url).replace(/[\t\n\r]/g, ''))
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
+    return allowedHosts.some(h => parsed.hostname === h || parsed.hostname.endsWith('.' + h))
+  } catch {
+    return false
+  }
+}
+
 const catColor: Record<string, string> = {
   Financieros: 'bg-olive-soft text-olive dark:bg-dark-surface dark:text-dark-olive',
   Legales: 'bg-softblue-bg text-ink dark:bg-dark-surface dark:text-dark-ink',
@@ -309,7 +331,11 @@ export default function Documents() {
                           <Eye size={13} />
                         </button>
                         <button
-                          onClick={() => window.open(doc.file_url, '_blank')}
+                          onClick={() => {
+                            if (isSafeExternalUrl(doc.file_url, ALLOWED_HOSTS)) {
+                              window.open(doc.file_url, '_blank')
+                            }
+                          }}
                           className="p-1.5 text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors"
                           title="Descargar"
                         >
