@@ -1,7 +1,20 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { Plus, X, ChevronDown, TrendingUp, Trash2 } from 'lucide-react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import {
+  Plus,
+  X,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  Trash2,
+  Download,
+  Edit3,
+  Calendar,
+  Check,
+  RotateCcw,
+} from 'lucide-react'
 import {
   AreaChart,
   Area,
@@ -16,8 +29,26 @@ import {
 import { useToast } from '@/context/ToastContext'
 import { useHousehold } from '@/context/HouseholdContext'
 import { useAuth } from '@/context/AuthContext'
-import { getExpenses, addExpense, deleteExpense, getBudgets } from '@/services/expenseService'
+import {
+  getExpenses,
+  addExpense,
+  deleteExpense,
+  getBudgets,
+  getMonthlyBudget,
+  setMonthlyBudget,
+  Budget,
+} from '@/services/expenseService'
 import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService'
+import {
+  getUserTimeZone,
+  toUTCISOString,
+  getPeriodKey,
+  getCurrentPeriodKey,
+  formatLocalDate,
+  getLastNMonths,
+  formatPeriodLabel,
+} from '@/lib/dateUtils'
+import { generateMonthlyExpensePDF } from '@/lib/pdfReportGenerator'
 
 interface ExpenseDisplayItem {
   id: string
@@ -36,11 +67,24 @@ export default function Expenses() {
   const { toast } = useToast()
   const { currentHousehold } = useHousehold()
   const { user } = useAuth()
-  const [expenses, setExpenses] = useState<ExpenseDisplayItem[]>([])
+
+  const userTimeZone = useMemo(() => getUserTimeZone(), [])
+  const currentPeriodKey = useMemo(() => getCurrentPeriodKey(userTimeZone), [userTimeZone])
+
+  // Selected period state ('YYYY-MM'), defaults to current month in user's timezone
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(currentPeriodKey)
+
+  const [allExpenses, setAllExpenses] = useState<ExpenseDisplayItem[]>([])
+  const [allBudgets, setAllBudgets] = useState<Budget[]>([])
   const [budgetTotal, setBudgetTotal] = useState(0)
   const [members, setMembers] = useState<HouseholdMemberDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [budgetModalOpen, setBudgetModalOpen] = useState(false)
+  const [newBudgetAmount, setNewBudgetAmount] = useState('')
+  const [savingBudget, setSavingBudget] = useState(false)
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+
   const [form, setForm] = useState({
     amount: '',
     description: '',
@@ -50,82 +94,167 @@ export default function Expenses() {
     date: '',
   })
 
-  useEffect(() => {
+  // Load all expenses, budgets and members
+  const loadData = useCallback(async () => {
     if (!currentHousehold) return
-    let mounted = true
     setLoading(true)
 
-    Promise.all([
-      getExpenses(currentHousehold.id).catch(() => []),
-      getBudgets(currentHousehold.id).catch(() => []),
-      getHouseholdMembers(currentHousehold.id).catch(() => []),
-    ])
-      .then(([expData, budgetData, memberData]) => {
-        if (!mounted) return
-        if (memberData) setMembers(memberData)
-        if (budgetData && budgetData.length > 0) {
-          setBudgetTotal(budgetData[0].amount)
-        } else {
-          setBudgetTotal(0)
-        }
+    try {
+      const [expData, budgetData, memberData] = await Promise.all([
+        getExpenses(currentHousehold.id).catch(() => []),
+        getBudgets(currentHousehold.id).catch(() => []),
+        getHouseholdMembers(currentHousehold.id).catch(() => []),
+      ])
 
-        const memberMap = new Map(memberData?.map(m => [m.user_id, m.name]) || [])
+      if (memberData) setMembers(memberData)
+      if (budgetData) setAllBudgets(budgetData)
 
-        if (expData) {
-          setExpenses(
-            expData.map(d => ({
-              id: d.id,
-              date: new Date(d.date || d.created_at).toLocaleDateString('es-AR', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-              }),
-              rawDate: d.date || d.created_at,
-              description: d.description,
-              category: d.category?.name || 'Varios',
-              paidBy: d.payer_id === user?.id ? 'Tú' : memberMap.get(d.payer_id) || 'Miembro',
-              amount: d.amount,
-            }))
-          )
-        }
-      })
-      .finally(() => {
-        if (mounted) setLoading(false)
-      })
+      const memberMap = new Map(memberData?.map(m => [m.user_id, m.name]) || [])
 
-    return () => {
-      mounted = false
+      if (expData) {
+        setAllExpenses(
+          expData.map(d => ({
+            id: d.id,
+            date: formatLocalDate(d.date || d.created_at, userTimeZone),
+            rawDate: d.date || d.created_at,
+            description: d.description,
+            category: d.category?.name || 'Varios',
+            paidBy: d.payer_id === user?.id ? 'Tú' : memberMap.get(d.payer_id) || 'Miembro',
+            amount: d.amount,
+          }))
+        )
+      }
+    } catch (err) {
+      console.error('Error loading expenses data:', err)
+      toast('Error al cargar datos de gastos.')
+    } finally {
+      setLoading(false)
     }
-  }, [currentHousehold, user?.id])
+  }, [currentHousehold, user?.id, userTimeZone, toast])
 
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  // Update active budget when selectedPeriod or allBudgets change
+  useEffect(() => {
+    if (!allBudgets || allBudgets.length === 0) {
+      setBudgetTotal(0)
+      return
+    }
+
+    // Specific budget for selected month
+    const specificBudget = allBudgets.find(
+      b => b.period === 'MONTHLY' && b.start_date && b.start_date.startsWith(selectedPeriod)
+    )
+
+    if (specificBudget) {
+      setBudgetTotal(specificBudget.amount)
+    } else {
+      // Fallback baseline monthly budget
+      const baseline = allBudgets.find(b => b.period === 'MONTHLY')
+      setBudgetTotal(baseline ? baseline.amount : 0)
+    }
+  }, [selectedPeriod, allBudgets])
+
+  // Filter expenses strictly for the selected month in user's timezone
+  const currentMonthExpenses = useMemo(() => {
+    return allExpenses.filter(e => getPeriodKey(e.rawDate, userTimeZone) === selectedPeriod)
+  }, [allExpenses, selectedPeriod, userTimeZone])
+
+  // Trend data: monthly aggregate for all historical data
   const monthlyData = useMemo(() => {
-    if (expenses.length === 0) return []
+    if (allExpenses.length === 0) return []
     const monthsMap: Record<string, number> = {}
-    const sorted = [...expenses].sort((a, b) => new Date(a.rawDate).getTime() - new Date(b.rawDate).getTime())
+    const sorted = [...allExpenses].sort((a, b) => new Date(a.rawDate).getTime() - new Date(b.rawDate).getTime())
+
     sorted.forEach(e => {
-      const d = new Date(e.rawDate)
-      const mName = isNaN(d.getTime()) ? 'Mes' : d.toLocaleDateString('es-AR', { month: 'short' })
+      const periodKey = getPeriodKey(e.rawDate, userTimeZone)
+      const [y, m] = periodKey.split('-').map(Number)
+      const d = new Date(Date.UTC(y, m - 1, 15))
+      const mName = d.toLocaleDateString('es-AR', { timeZone: 'UTC', month: 'short' })
       const capitalized = mName.charAt(0).toUpperCase() + mName.slice(1).replace('.', '')
       monthsMap[capitalized] = (monthsMap[capitalized] || 0) + e.amount
     })
     return Object.entries(monthsMap).map(([mes, total]) => ({ mes, total }))
-  }, [expenses])
+  }, [allExpenses, userTimeZone])
 
+  // Category breakdown computed strictly for the active selected month
   const categoryData = useMemo(() => {
-    if (expenses.length === 0) return []
+    if (currentMonthExpenses.length === 0) return []
     const catMap: Record<string, number> = {}
-    expenses.forEach(e => {
+    currentMonthExpenses.forEach(e => {
       catMap[e.category] = (catMap[e.category] || 0) + e.amount
     })
     return Object.entries(catMap).map(([name, value]) => ({ name, value }))
-  }, [expenses])
+  }, [currentMonthExpenses])
 
-  const totalSpent = expenses.reduce((acc, curr) => acc + curr.amount, 0)
+  // Key monthly metrics
+  const totalSpent = useMemo(() => {
+    return currentMonthExpenses.reduce((acc, curr) => acc + curr.amount, 0)
+  }, [currentMonthExpenses])
+
   const available = budgetTotal > 0 ? Math.max(0, budgetTotal - totalSpent) : 0
-  const daysInMonth = new Date().getDate() || 1
+
+  const daysInMonth = useMemo(() => {
+    const [y, m] = selectedPeriod.split('-').map(Number)
+    if (!y || !m) return 30
+    return new Date(y, m, 0).getDate() || 30
+  }, [selectedPeriod])
+
   const avgDaily = Math.round(totalSpent / daysInMonth)
   const pct = budgetTotal > 0 ? Math.round((totalSpent / budgetTotal) * 100) : 0
 
+  // 6-Month history computation
+  const historyMonths = useMemo(() => {
+    const last6 = getLastNMonths(6, new Date(), userTimeZone)
+    return last6.map(m => {
+      const mExpenses = allExpenses.filter(e => getPeriodKey(e.rawDate, userTimeZone) === m.key)
+      const mSpent = mExpenses.reduce((acc, curr) => acc + curr.amount, 0)
+
+      const specificBudget = allBudgets.find(
+        b => b.period === 'MONTHLY' && b.start_date && b.start_date.startsWith(m.key)
+      )
+      const baseline = allBudgets.find(b => b.period === 'MONTHLY')
+      const mBudget = specificBudget ? specificBudget.amount : (baseline ? baseline.amount : 0)
+      const mRemaining = mBudget > 0 ? Math.max(0, mBudget - mSpent) : 0
+      const mPct = mBudget > 0 ? Math.round((mSpent / mBudget) * 100) : 0
+
+      return {
+        ...m,
+        spent: mSpent,
+        budget: mBudget,
+        remaining: mRemaining,
+        pct: mPct,
+        count: mExpenses.length,
+      }
+    })
+  }, [allExpenses, allBudgets, userTimeZone])
+
+  // Month navigation helpers
+  const handlePrevMonth = () => {
+    const [y, m] = selectedPeriod.split('-').map(Number)
+    let prevYear = y
+    let prevMonth = m - 1
+    if (prevMonth <= 0) {
+      prevMonth = 12
+      prevYear -= 1
+    }
+    setSelectedPeriod(`${prevYear}-${String(prevMonth).padStart(2, '0')}`)
+  }
+
+  const handleNextMonth = () => {
+    const [y, m] = selectedPeriod.split('-').map(Number)
+    let nextYear = y
+    let nextMonth = m + 1
+    if (nextMonth > 12) {
+      nextMonth = 1
+      nextYear += 1
+    }
+    setSelectedPeriod(`${nextYear}-${String(nextMonth).padStart(2, '0')}`)
+  }
+
+  // Save new expense
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!currentHousehold || !user) return
@@ -138,34 +267,32 @@ export default function Expenses() {
 
     const payerId = form.paidBy || user.id
     const payerName = payerId === user.id ? 'Tú' : (members.find(m => m.user_id === payerId)?.name || 'Miembro')
-    const expenseDate = form.date || new Date().toISOString().split('T')[0]
+
+    // Convert date input to full UTC ISO string to ensure accurate timezone projection
+    const utcDate = toUTCISOString(form.date)
 
     try {
       const created = await addExpense(currentHousehold.id, payerId, {
         amount: numericAmount,
         description: form.description,
-        date: expenseDate,
+        date: utcDate,
         category_id: null,
         receipt_url: null,
       })
 
       const newItem: ExpenseDisplayItem = {
         id: created.id,
-        date: new Date(created.date || expenseDate).toLocaleDateString('es-AR', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        }),
-        rawDate: created.date || expenseDate,
+        date: formatLocalDate(created.date || utcDate, userTimeZone),
+        rawDate: created.date || utcDate,
         description: created.description,
         category: form.category,
         paidBy: payerName,
         amount: created.amount,
       }
 
-      setExpenses(prev => [newItem, ...prev])
+      setAllExpenses(prev => [newItem, ...prev])
       setDrawerOpen(false)
-      toast('Gasto registrado con éxito.')
+      toast('Gasto registrado con éxito en UTC.')
       setForm({ amount: '', description: '', category: 'Alimentación', paidBy: '', note: '', date: '' })
     } catch (err) {
       console.error('Failed to sync expense to backend:', err)
@@ -173,10 +300,11 @@ export default function Expenses() {
     }
   }
 
+  // Delete expense
   const handleDelete = async (id: string) => {
     try {
       await deleteExpense(id)
-      setExpenses(prev => prev.filter(e => e.id !== id))
+      setAllExpenses(prev => prev.filter(e => e.id !== id))
       toast('Gasto eliminado.')
     } catch (err) {
       console.error('Failed to delete expense:', err)
@@ -184,29 +312,177 @@ export default function Expenses() {
     }
   }
 
-  const currentMonthName = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })
-  const capitalizedMonth = currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1)
+  // Update monthly budget
+  const handleSaveBudget = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!currentHousehold) return
+
+    const amount = Number(newBudgetAmount.replace(/\D/g, ''))
+    if (isNaN(amount) || amount <= 0) {
+      toast('Ingresá un monto de presupuesto válido.')
+      return
+    }
+
+    const [y, m] = selectedPeriod.split('-').map(Number)
+    setSavingBudget(true)
+
+    try {
+      const updated = await setMonthlyBudget(currentHousehold.id, amount, y, m)
+      setAllBudgets(prev => {
+        const filtered = prev.filter(b => b.id !== updated.id)
+        return [...filtered, updated]
+      })
+      setBudgetTotal(amount)
+      setBudgetModalOpen(false)
+      toast(`Presupuesto para ${formatPeriodLabel(selectedPeriod)} actualizado: $${amount.toLocaleString('es-AR')}`)
+    } catch (err) {
+      console.error('Error updating budget:', err)
+      toast('Error al guardar presupuesto mensual.')
+    } finally {
+      setSavingBudget(false)
+    }
+  }
+
+  // Download PDF Report
+  const handleDownloadPDF = async () => {
+    if (!currentHousehold) return
+    setIsGeneratingPDF(true)
+
+    try {
+      const breakdown = categoryData.map(c => ({
+        name: c.name,
+        amount: c.value,
+        percentage: totalSpent > 0 ? Math.round((c.value / totalSpent) * 100) : 0,
+      }))
+
+      await generateMonthlyExpensePDF({
+        householdName: currentHousehold.name,
+        periodLabel: formatPeriodLabel(selectedPeriod),
+        periodKey: selectedPeriod,
+        allocatedBudget: budgetTotal,
+        totalSpent,
+        remainingBudget: available,
+        usedPercentage: pct,
+        expenseCount: currentMonthExpenses.length,
+        generatedAt: formatLocalDate(new Date(), userTimeZone, {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        } as any),
+        timeZone: userTimeZone,
+        categoryBreakdown: breakdown,
+        expenses: currentMonthExpenses.map(e => ({
+          date: e.date,
+          category: e.category,
+          description: e.description,
+          paidBy: e.paidBy,
+          amount: e.amount,
+        })),
+      })
+
+      toast(`Reporte PDF de ${formatPeriodLabel(selectedPeriod)} descargado.`)
+    } catch (err) {
+      console.error('Failed to generate PDF:', err)
+      toast('Error al generar el reporte en PDF.')
+    } finally {
+      setIsGeneratingPDF(false)
+    }
+  }
+
+  const selectedPeriodLabel = formatPeriodLabel(selectedPeriod)
+  const isCurrentMonth = selectedPeriod === currentPeriodKey
 
   return (
     <div className="px-6 lg:px-10 py-8 max-w-[1280px] mx-auto">
       {/* Header */}
-      <div className="mb-10 border-b border-line dark:border-dark-line pb-8">
-        <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted dark:text-dark-muted mb-2">Finanzas</p>
-        <div className="flex items-end justify-between gap-6">
+      <div className="mb-8 border-b border-line dark:border-dark-line pb-8">
+        <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted dark:text-dark-muted mb-2">
+          Finanzas del Hogar
+        </p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="text-[42px] lg:text-[56px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">
+            <h1 className="text-[38px] lg:text-[52px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">
               GASTOS Y<br />PRESUPUESTOS
             </h1>
-            <p className="text-[14px] text-muted dark:text-dark-muted mt-3">Entendé cómo se mueve el dinero en tu hogar.</p>
+            <p className="text-[14px] text-muted dark:text-dark-muted mt-3">
+              Períodos mensuales independientes en hora local ({userTimeZone}).
+            </p>
           </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={handleDownloadPDF}
+              disabled={isGeneratingPDF}
+              className="flex items-center gap-2 px-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[13px] font-medium text-ink dark:text-dark-ink bg-surface dark:bg-dark-surface hover:bg-bg dark:hover:bg-dark-bg transition-colors disabled:opacity-50"
+              title="Descargar reporte en formato PDF"
+            >
+              <Download size={14} className={isGeneratingPDF ? 'animate-bounce text-olive' : 'text-muted'} />
+              <span>{isGeneratingPDF ? 'Generando PDF...' : 'Reporte PDF'}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setForm(p => ({
+                  ...p,
+                  paidBy: user?.id || '',
+                  date: new Date().toISOString().split('T')[0],
+                }))
+                setDrawerOpen(true)
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[13px] font-medium hover:opacity-80 transition-opacity"
+            >
+              <Plus size={14} /> Registrar gasto
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Month Navigator Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 mb-8 bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-[6px]">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center border border-line dark:border-dark-line rounded-[4px] overflow-hidden bg-bg dark:bg-dark-bg">
+            <button
+              onClick={handlePrevMonth}
+              className="p-2 hover:bg-surface dark:hover:bg-dark-surface text-ink dark:text-dark-ink transition-colors"
+              title="Mes anterior"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <div className="px-4 py-1.5 flex items-center gap-2 text-[14px] font-semibold text-ink dark:text-dark-ink min-w-[170px] justify-center">
+              <Calendar size={15} className="text-olive" />
+              <span>{selectedPeriodLabel}</span>
+            </div>
+            <button
+              onClick={handleNextMonth}
+              className="p-2 hover:bg-surface dark:hover:bg-dark-surface text-ink dark:text-dark-ink transition-colors"
+              title="Mes siguiente"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
+          {!isCurrentMonth && (
+            <button
+              onClick={() => setSelectedPeriod(currentPeriodKey)}
+              className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium text-olive dark:text-dark-olive bg-olive/10 rounded-[4px] hover:bg-olive/20 transition-colors"
+            >
+              <RotateCcw size={13} /> Volver a mes actual
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
           <button
             onClick={() => {
-              setForm(p => ({ ...p, paidBy: user?.id || '' }))
-              setDrawerOpen(true)
+              setNewBudgetAmount(budgetTotal > 0 ? String(budgetTotal) : '')
+              setBudgetModalOpen(true)
             }}
-            className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[13px] font-medium hover:opacity-80 transition-opacity"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-ink dark:text-dark-ink border border-line dark:border-dark-line rounded-[4px] hover:bg-bg dark:hover:bg-dark-bg transition-colors"
           >
-            <Plus size={14} /> Registrar gasto
+            <Edit3 size={13} className="text-muted" />
+            <span>Editar presupuesto de este mes</span>
           </button>
         </div>
       </div>
@@ -217,52 +493,143 @@ export default function Expenses() {
         </div>
       ) : (
         <>
-          {/* Key metrics */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-line dark:bg-dark-line rounded-[4px] overflow-hidden mb-10">
+          {/* Key metrics for the selected month */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-line dark:bg-dark-line rounded-[4px] overflow-hidden mb-8">
             {[
               {
-                label: 'Presupuesto mensual',
+                label: `Presupuesto (${selectedPeriodLabel})`,
                 value: budgetTotal > 0 ? `$ ${budgetTotal.toLocaleString('es-AR')}` : 'Sin límite',
+                sub: budgetTotal > 0 ? 'Asignado a este mes' : 'Configurá un presupuesto',
               },
-              { label: 'Gastado', value: `$ ${totalSpent.toLocaleString('es-AR')}` },
               {
-                label: 'Disponible',
-                value: budgetTotal > 0 ? `$ ${available.toLocaleString('es-AR')}` : '—',
+                label: 'Gastado en el período',
+                value: `$ ${totalSpent.toLocaleString('es-AR')}`,
+                sub: `${currentMonthExpenses.length} transacciones`,
               },
-              { label: 'Promedio diario', value: `$ ${avgDaily.toLocaleString('es-AR')}` },
+              {
+                label: 'Presupuesto disponible',
+                value: budgetTotal > 0 ? `$ ${available.toLocaleString('es-AR')}` : '—',
+                sub: budgetTotal > 0 ? (available === 0 ? 'Presupuesto agotado' : 'Restante') : 'Ilimitado',
+              },
+              {
+                label: 'Promedio diario estimado',
+                value: `$ ${avgDaily.toLocaleString('es-AR')}`,
+                sub: `Calculado sobre ${daysInMonth} días`,
+              },
             ].map(m => (
               <div key={m.label} className="bg-surface dark:bg-dark-surface px-6 py-5">
-                <div className="text-[11px] text-muted dark:text-dark-muted mb-2">{m.label}</div>
+                <div className="text-[11px] text-muted dark:text-dark-muted mb-1.5">{m.label}</div>
                 <div className="font-mono text-[24px] font-light text-ink dark:text-dark-ink">{m.value}</div>
+                <div className="text-[11px] text-muted dark:text-dark-muted mt-1">{m.sub}</div>
               </div>
             ))}
           </div>
 
-          {/* Budget progress */}
+          {/* Budget progress bar */}
           {budgetTotal > 0 && (
-            <div className="border border-line dark:border-dark-line rounded-[4px] p-6 mb-8">
+            <div className="border border-line dark:border-dark-line rounded-[4px] p-6 mb-8 bg-surface dark:bg-dark-surface">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[13px] font-semibold text-ink dark:text-dark-ink">{capitalizedMonth}</span>
-                <span className="font-mono text-[12px] text-muted dark:text-dark-muted">{pct}% utilizado</span>
+                <span className="text-[13px] font-semibold text-ink dark:text-dark-ink">
+                  Consumo de {selectedPeriodLabel}
+                </span>
+                <span className={`font-mono text-[12px] font-semibold ${pct > 100 ? 'text-red-500' : 'text-muted dark:text-dark-muted'}`}>
+                  {pct}% utilizado {pct > 100 && '(Excedido)'}
+                </span>
               </div>
-              <div className="h-2 bg-line dark:bg-dark-line rounded-full overflow-hidden mb-2">
+              <div className="h-2.5 bg-line dark:bg-dark-line rounded-full overflow-hidden mb-2">
                 <div
-                  className={`h-full rounded-full transition-all ${pct > 85 ? 'bg-terracotta dark:bg-dark-terracotta' : 'bg-olive dark:bg-dark-olive'}`}
+                  className={`h-full rounded-full transition-all ${
+                    pct > 100
+                      ? 'bg-red-500'
+                      : pct > 80
+                      ? 'bg-amber-500'
+                      : 'bg-olive dark:bg-dark-olive'
+                  }`}
                   style={{ width: `${Math.min(pct, 100)}%` }}
                 />
               </div>
               <div className="flex justify-between text-[11px] font-mono text-muted dark:text-dark-muted">
                 <span>$ 0</span>
-                <span>$ {budgetTotal.toLocaleString('es-AR')}</span>
+                <span>Gastado: $ {totalSpent.toLocaleString('es-AR')}</span>
+                <span>Límite: $ {budgetTotal.toLocaleString('es-AR')}</span>
               </div>
             </div>
           )}
 
+          {/* Section: Historial de los últimos 6 meses */}
+          <div className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-[13px] font-semibold tracking-[0.1em] uppercase text-ink dark:text-dark-ink">
+                  Historial de los últimos 6 meses
+                </h3>
+                <p className="text-[12px] text-muted dark:text-dark-muted mt-0.5">
+                  Hacé clic en cualquier mes para consultar su detalle y transacciones completas.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {historyMonths.map(m => {
+                const isSelected = m.key === selectedPeriod
+                return (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={() => setSelectedPeriod(m.key)}
+                    className={`text-left p-4 rounded-[6px] border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-ink dark:border-dark-ink bg-bg dark:bg-dark-bg ring-1 ring-ink dark:ring-dark-ink shadow-sm'
+                        : 'border-line dark:border-dark-line bg-surface dark:bg-dark-surface hover:border-olive/60'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[12px] font-bold text-ink dark:text-dark-ink">{m.shortLabel}</span>
+                      {isSelected && (
+                        <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded">
+                          Activo
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-1 text-[11px]">
+                      <div className="flex justify-between text-muted dark:text-dark-muted">
+                        <span>Gastado:</span>
+                        <span className="font-mono font-medium text-ink dark:text-dark-ink">$ {m.spent.toLocaleString('es-AR')}</span>
+                      </div>
+                      <div className="flex justify-between text-muted dark:text-dark-muted">
+                        <span>Presupuesto:</span>
+                        <span className="font-mono">{m.budget > 0 ? `$ ${m.budget.toLocaleString('es-AR')}` : '—'}</span>
+                      </div>
+                      <div className="flex justify-between text-muted dark:text-dark-muted">
+                        <span>Restante:</span>
+                        <span className={`font-mono ${m.remaining <= 0 && m.budget > 0 ? 'text-red-500 font-medium' : ''}`}>
+                          {m.budget > 0 ? `$ ${m.remaining.toLocaleString('es-AR')}` : '—'}
+                        </span>
+                      </div>
+                      <div className="pt-1.5 border-t border-line/60 dark:border-dark-line/60 flex justify-between items-center text-[10px] text-muted">
+                        <span>{m.count} {m.count === 1 ? 'gasto' : 'gastos'}</span>
+                        <span className={`font-mono font-semibold ${m.pct > 100 ? 'text-red-500' : 'text-olive'}`}>
+                          {m.pct}%
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Charts section */}
           <div className="grid lg:grid-cols-[1fr_320px] gap-8 mb-10">
             {/* Trend chart */}
-            <div className="border border-line dark:border-dark-line rounded-[4px] p-5">
+            <div className="border border-line dark:border-dark-line rounded-[4px] p-5 bg-surface dark:bg-dark-surface">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-[13px] font-semibold tracking-[0.05em] text-ink dark:text-dark-ink">Tendencia de gastos</h3>
+                <div>
+                  <h3 className="text-[13px] font-semibold tracking-[0.05em] text-ink dark:text-dark-ink">
+                    Tendencia histórica general
+                  </h3>
+                  <p className="text-[11px] text-muted dark:text-dark-muted mt-0.5">Evolución mensual consolidada</p>
+                </div>
                 <TrendingUp size={14} className="text-muted dark:text-dark-muted" />
               </div>
               {monthlyData.length > 0 ? (
@@ -270,7 +637,7 @@ export default function Expenses() {
                   <AreaChart data={monthlyData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                     <defs>
                       <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#9D9652" stopOpacity={0.15} />
+                        <stop offset="5%" stopColor="#9D9652" stopOpacity={0.2} />
                         <stop offset="95%" stopColor="#9D9652" stopOpacity={0} />
                       </linearGradient>
                     </defs>
@@ -290,9 +657,12 @@ export default function Expenses() {
               )}
             </div>
 
-            {/* Category breakdown */}
-            <div className="border border-line dark:border-dark-line rounded-[4px] p-5">
-              <h3 className="text-[13px] font-semibold tracking-[0.05em] text-ink dark:text-dark-ink mb-5">Por categoría</h3>
+            {/* Category breakdown for the active month */}
+            <div className="border border-line dark:border-dark-line rounded-[4px] p-5 bg-surface dark:bg-dark-surface">
+              <h3 className="text-[13px] font-semibold tracking-[0.05em] text-ink dark:text-dark-ink mb-1">
+                Por categoría
+              </h3>
+              <p className="text-[11px] text-muted dark:text-dark-muted mb-4">{selectedPeriodLabel}</p>
               {categoryData.length > 0 ? (
                 <>
                   <ResponsiveContainer width="100%" height={120}>
@@ -308,7 +678,7 @@ export default function Expenses() {
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                  <div className="mt-3 space-y-1">
+                  <div className="mt-3 space-y-1 max-h-[140px] overflow-y-auto">
                     {categoryData.map((c, i) => (
                       <div key={c.name} className="flex items-center justify-between text-[11px]">
                         <div className="flex items-center gap-1.5">
@@ -322,31 +692,45 @@ export default function Expenses() {
                 </>
               ) : (
                 <div className="h-[160px] flex items-center justify-center text-center">
-                  <p className="text-[13px] text-muted dark:text-dark-muted">Sin categorías registradas.</p>
+                  <p className="text-[13px] text-muted dark:text-dark-muted">Sin gastos en {selectedPeriodLabel}.</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Expense table */}
+          {/* Itemized Expense Table for the selected month */}
           <div>
-            <h3 className="text-[13px] font-semibold tracking-[0.1em] uppercase text-ink dark:text-dark-ink mb-4">Gastos recientes</h3>
-            <div className="border border-line dark:border-dark-line rounded-[4px] overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-[13px] font-semibold tracking-[0.1em] uppercase text-ink dark:text-dark-ink">
+                  Gastos de {selectedPeriodLabel}
+                </h3>
+                <p className="text-[12px] text-muted dark:text-dark-muted mt-0.5">
+                  Listado exclusivo del período seleccionado ({currentMonthExpenses.length} registrados).
+                </p>
+              </div>
+            </div>
+
+            <div className="border border-line dark:border-dark-line rounded-[4px] overflow-hidden bg-surface dark:bg-dark-surface">
               <div className="hidden sm:grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 px-5 py-3 border-b border-line dark:border-dark-line bg-bg dark:bg-dark-bg text-[10px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted">
-                <span>Fecha</span>
+                <span>Fecha (Local)</span>
                 <span>Descripción</span>
                 <span>Categoría</span>
                 <span>Pagado por</span>
                 <span className="text-right">Monto</span>
                 <span></span>
               </div>
-              {expenses.length === 0 ? (
+              {currentMonthExpenses.length === 0 ? (
                 <div className="py-16 text-center">
-                  <p className="text-[15px] text-ink dark:text-dark-ink mb-1">No hay gastos registrados.</p>
-                  <p className="text-[13px] text-muted dark:text-dark-muted">Registrá el primer gasto del hogar para empezar a llevar las cuentas.</p>
+                  <p className="text-[15px] font-medium text-ink dark:text-dark-ink mb-1">
+                    No hay gastos en {selectedPeriodLabel}.
+                  </p>
+                  <p className="text-[13px] text-muted dark:text-dark-muted max-w-md mx-auto">
+                    El total de este período inicia en <strong>$ 0</strong>. Podés registrar nuevos gastos con el botón superior.
+                  </p>
                 </div>
               ) : (
-                expenses.map((exp, i) => (
+                currentMonthExpenses.map((exp, i) => (
                   <div
                     key={exp.id}
                     className={`flex sm:grid sm:grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3.5 ${
@@ -362,7 +746,7 @@ export default function Expenses() {
                     </span>
                     <button
                       onClick={() => handleDelete(exp.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-muted hover:text-terracotta dark:hover:text-dark-terracotta transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 p-1 text-muted hover:text-terracotta dark:hover:text-dark-terracotta transition-opacity cursor-pointer"
                       title="Eliminar gasto"
                     >
                       <Trash2 size={13} />
@@ -375,7 +759,7 @@ export default function Expenses() {
         </>
       )}
 
-      {/* Drawer */}
+      {/* Drawer: Add Expense */}
       {drawerOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-ink/20 dark:bg-black/40" onClick={() => setDrawerOpen(false)} />
@@ -440,18 +824,79 @@ export default function Expenses() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted mb-1.5">Fecha</label>
+                  <label className="block text-[11px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted mb-1.5">
+                    Fecha del gasto (Hora local)
+                  </label>
                   <input
                     type="date"
                     value={form.date}
                     onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
                     className="w-full px-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[13px] text-ink dark:text-dark-ink bg-bg dark:bg-dark-bg focus:outline-none focus:border-olive"
                   />
+                  <p className="text-[11px] text-muted dark:text-dark-muted mt-1">
+                    Se almacena con precisión UTC y se asigna al mes comercial correspondiente.
+                  </p>
                 </div>
               </div>
               <div className="px-6 py-5 border-t border-line dark:border-dark-line flex gap-3">
                 <button type="button" onClick={() => setDrawerOpen(false)} className="flex-1 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[13px] text-muted dark:text-dark-muted hover:text-ink transition-colors">Cancelar</button>
                 <button type="submit" className="flex-1 py-2.5 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[13px] font-medium hover:opacity-80 transition-opacity">Guardar gasto</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Monthly Budget */}
+      {budgetModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-ink/30 dark:bg-black/50" onClick={() => setBudgetModalOpen(false)} />
+          <div className="relative w-full max-w-sm bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-[6px] shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[15px] font-semibold text-ink dark:text-dark-ink">
+                Presupuesto de {selectedPeriodLabel}
+              </h3>
+              <button onClick={() => setBudgetModalOpen(false)} className="text-muted hover:text-ink">
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveBudget} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted mb-1.5">
+                  Monto mensual asignado
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted text-[14px] font-mono">$</span>
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={newBudgetAmount}
+                    onChange={e => setNewBudgetAmount(e.target.value)}
+                    placeholder="350000"
+                    className="w-full pl-8 pr-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[18px] font-mono text-ink dark:text-dark-ink bg-bg dark:bg-dark-bg focus:outline-none focus:border-olive"
+                  />
+                </div>
+                <p className="text-[11px] text-muted dark:text-dark-muted mt-1.5">
+                  Este límite aplicará exclusivamente al mes de {selectedPeriodLabel}.
+                </p>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setBudgetModalOpen(false)}
+                  className="flex-1 py-2 text-[13px] border border-line dark:border-dark-line rounded-[4px] text-muted hover:text-ink transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingBudget}
+                  className="flex-1 py-2 text-[13px] bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] font-medium hover:opacity-80 transition-opacity disabled:opacity-50"
+                >
+                  {savingBudget ? 'Guardando...' : 'Asignar'}
+                </button>
               </div>
             </form>
           </div>
