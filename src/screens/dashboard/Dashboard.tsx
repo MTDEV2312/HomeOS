@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useHousehold } from '@/lib/household-context'
 import { getTasks, updateTaskStatus, Task } from '@/services/taskService'
 import { getExpenses, getBudgets, Expense } from '@/services/expenseService'
+import { getCurrentPeriodKey, getPeriodKey } from '@/lib/dateUtils'
 
 const priorities: Record<string, string> = {
   Urgente: 'bg-terracotta-bg dark:bg-dark-surface text-terracotta dark:text-dark-terracotta',
@@ -49,19 +50,24 @@ export default function Dashboard() {
       setTasksList(fetchedTasks || [])
       setExpensesList(fetchedExpenses || [])
 
+      const currentPeriod = getCurrentPeriodKey()
+
       if (fetchedBudgets && fetchedBudgets.length > 0) {
-        const total = fetchedBudgets.reduce((acc, b) => acc + (b.amount || 0), 0)
-        setBudgetTotal(total)
+        const specificBudget = fetchedBudgets.find(
+          b => b.period === 'MONTHLY' && b.start_date && b.start_date.startsWith(currentPeriod)
+        )
+        const baseline = specificBudget || fetchedBudgets.find(b => b.period === 'MONTHLY') || fetchedBudgets[0]
+        setBudgetTotal(baseline?.amount || 0)
       } else {
         setBudgetTotal(0)
       }
 
-      if (fetchedExpenses && fetchedExpenses.length > 0) {
-        const spent = fetchedExpenses.reduce((acc, e) => acc + (e.amount || 0), 0)
-        setBudgetSpent(spent)
-      } else {
-        setBudgetSpent(0)
-      }
+      // Filter expenses strictly to the current month in user's timezone
+      const currentMonthExpenses = (fetchedExpenses || []).filter(
+        e => getPeriodKey(e.date) === currentPeriod
+      )
+      const spent = currentMonthExpenses.reduce((acc, e) => acc + (e.amount || 0), 0)
+      setBudgetSpent(spent)
     } catch (err) {
       console.error('Error loading dashboard data', err)
     } finally {

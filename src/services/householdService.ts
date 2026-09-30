@@ -84,7 +84,7 @@ export const getUserHouseholds = async (userId: string): Promise<UserHousehold[]
     
   if (error) throw error;
   const normalized = (data || [])
-    .map((item) => {
+    .map((item: any) => {
       const household = Array.isArray(item.households)
         ? item.households[0]
         : item.households;
@@ -97,7 +97,7 @@ export const getUserHouseholds = async (userId: string): Promise<UserHousehold[]
         households: household as Household,
       };
     })
-    .filter((item): item is UserHousehold => Boolean(item));
+    .filter((item: any): item is UserHousehold => Boolean(item));
 
   return normalized;
 };
