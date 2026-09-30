@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { insforge } from '@/lib/insforge';
+import { insforge, hasPotentialSession, markSessionActive, clearSessionMarkers } from '@/lib/insforge';
 
 // InsForge user type based on SDK docs
 interface InsForgeUser {
@@ -41,15 +41,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
+    if (typeof window !== 'undefined' && !hasPotentialSession()) {
+      setUser(null);
+      return;
+    }
+
     try {
       const { data, error } = await insforge.auth.getCurrentUser();
       if (error || !data?.user) {
         setUser(null);
+        clearSessionMarkers();
       } else {
         setUser(data.user as InsForgeUser);
+        markSessionActive();
       }
     } catch {
       setUser(null);
+      clearSessionMarkers();
     }
   }, []);
 
@@ -64,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: error as Error };
     }
     if (data?.user) {
+      markSessionActive();
       setUser(data.user as InsForgeUser);
     }
     return { error: null };
@@ -78,6 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       return { error: error as Error, requireEmailVerification: false };
     }
+    if (data?.user) {
+      markSessionActive();
+      setUser(data.user as InsForgeUser);
+    }
     return {
       error: null,
       requireEmailVerification: data?.requireEmailVerification ?? false,
@@ -90,13 +103,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: error as Error };
     }
     if (data?.user) {
+      markSessionActive();
       setUser(data.user as InsForgeUser);
     }
     return { error: null };
   };
 
   const signOut = async () => {
-    await insforge.auth.signOut();
+    clearSessionMarkers();
+    try {
+      await insforge.auth.signOut();
+    } catch {
+      // Ignorar fallo de red en logout
+    }
     setUser(null);
   };
 
