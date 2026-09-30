@@ -146,3 +146,68 @@ export const addBudget = async (
   if (error) throw error;
   return newBudget;
 };
+
+export const getMonthlyBudget = async (
+  householdId: string,
+  year: number,
+  month: number
+): Promise<Budget | null> => {
+  const allBudgets = await getBudgets(householdId);
+  if (!allBudgets || allBudgets.length === 0) return null;
+
+  const monthPrefix = `${year}-${String(month).padStart(2, '0')}`;
+  
+  // Specific budget for this month and year
+  const specificBudget = allBudgets.find(
+    (b) => b.period === 'MONTHLY' && b.start_date && b.start_date.startsWith(monthPrefix)
+  );
+  if (specificBudget) return specificBudget;
+
+  // Fallback: general baseline monthly budget
+  const baselineBudget = allBudgets.find((b) => b.period === 'MONTHLY');
+  return baselineBudget || null;
+};
+
+export const setMonthlyBudget = async (
+  householdId: string,
+  amount: number,
+  year: number,
+  month: number
+): Promise<Budget> => {
+  const allBudgets = await getBudgets(householdId);
+  const monthPrefix = `${year}-${String(month).padStart(2, '0')}`;
+  const startDate = `${monthPrefix}-01`;
+
+  const existing = allBudgets.find(
+    (b) => b.period === 'MONTHLY' && b.start_date && b.start_date.startsWith(monthPrefix)
+  );
+
+  if (existing) {
+    const { data: updated, error } = await insforge.database
+      .from('budgets')
+      .update({ amount })
+      .eq('id', existing.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return updated as Budget;
+  }
+
+  // Create new monthly budget
+  const { data: created, error } = await insforge.database
+    .from('budgets')
+    .insert([{
+      household_id: householdId,
+      amount,
+      period: 'MONTHLY',
+      start_date: startDate,
+      category_id: null,
+    }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return created as Budget;
+};
+
