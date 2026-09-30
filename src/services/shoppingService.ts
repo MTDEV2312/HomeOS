@@ -98,7 +98,7 @@ export const getAllItemsForHousehold = async (householdId: string): Promise<Shop
   if (!data) return [];
 
   // Flatten nested shopping list items into a single array
-  return data.flatMap(list => (list as unknown as { shopping_list_items: ShoppingListItem[] }).shopping_list_items || []);
+  return data.flatMap((list: any) => (list as unknown as { shopping_list_items: ShoppingListItem[] }).shopping_list_items || []);
 };
 
 export const addShoppingListItem = async (
