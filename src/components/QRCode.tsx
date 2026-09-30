@@ -24,8 +24,8 @@ export function QRCode({ value, size = 200, className = '' }: QRCodeProps) {
           errorCorrectionLevel: 'M',
         });
         setDataUrl(qrDataUrl);
-      } catch (err) {
-        console.error('Error generating QR code:', err);
+      } catch {
+        // Fallback gracefully without polluting the client console
       }
     };
 

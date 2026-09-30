@@ -70,8 +70,7 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
         setActiveRole(null);
         localStorage.removeItem('homeos-active-household');
       }
-    } catch (error) {
-      console.error("Error loading household context", error);
+    } catch {
       setActiveHousehold(null);
       setActiveRole(null);
     } finally {
