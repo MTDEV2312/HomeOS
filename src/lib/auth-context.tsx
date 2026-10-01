@@ -14,6 +14,7 @@ interface InsForgeUser {
   profile: {
     name?: string;
     avatar_url?: string;
+    avatar_key?: string | null;
     [key: string]: unknown;
   };
   metadata: Record<string, unknown>;

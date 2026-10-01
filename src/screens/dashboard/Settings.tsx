@@ -27,6 +27,20 @@ const DEFAULT_NOTIFS: NotificationPreferences = {
   shopping: false,
 }
 
+function extractKeyFromAvatarUrl(url?: string | null): string | null {
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    const pathname = decodeURIComponent(parsed.pathname)
+    const match = pathname.match(/\/objects\/(.+)$/)
+    if (match && match[1]) return match[1]
+  } catch {
+    const match = decodeURIComponent(url).match(/\/objects\/(.+)$/)
+    if (match && match[1]) return match[1]
+  }
+  return null
+}
+
 function Section({ title, children }: SectionProps) {
   return (
     <div className="border border-line dark:border-dark-line rounded-[6px] overflow-hidden">
@@ -137,6 +151,8 @@ export default function Settings() {
       return
     }
 
+    const previousKey = (user.profile?.avatar_key as string) || extractKeyFromAvatarUrl(user.profile?.avatar_url as string)
+
     setUploadingAvatar(true)
     toast('Subiendo foto de perfil...')
 
@@ -154,10 +170,39 @@ export default function Settings() {
 
       const { error: profileError } = await updateProfile({
         avatar_url: uploadData.url,
+        avatar_key: uploadData.key,
       })
 
       if (profileError) {
         throw profileError
+      }
+
+      // Synchronously await the purge of older avatar files
+      try {
+        const keysToDelete = new Set<string>()
+        if (previousKey && previousKey !== uploadData.key) {
+          keysToDelete.add(previousKey)
+        }
+
+        const { data: listData } = await insforge.storage
+          .from('avatars')
+          .list({ prefix: `${user.id}/` })
+
+        if (listData?.objects && listData.objects.length > 0) {
+          for (const obj of listData.objects) {
+            if (obj.key !== uploadData.key) {
+              keysToDelete.add(obj.key)
+            }
+          }
+        }
+
+        if (keysToDelete.size > 0) {
+          await Promise.allSettled(
+            Array.from(keysToDelete).map(key => insforge.storage.from('avatars').remove(key))
+          )
+        }
+      } catch (cleanupErr) {
+        console.warn('Automatic avatar cleanup warning:', cleanupErr)
       }
 
       toast('Foto de perfil actualizada.')
@@ -259,13 +304,13 @@ export default function Settings() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingAvatar}
-                  className="absolute -bottom-1 -right-1 w-6 h-6 bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-full flex items-center justify-center text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors cursor-pointer"
+                  className="absolute -bottom-1 -right-1 w-6 h-6 bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-full flex items-center justify-center text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors cursor-pointer disabled:opacity-50"
                   title="Cambiar foto de perfil"
                 >
                   <Camera size={11} />
                 </button>
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <div className="text-[14px] font-semibold text-ink dark:text-dark-ink">{displayName}</div>
                 <div className="text-[12px] text-muted dark:text-dark-muted">{displayEmail}</div>
               </div>
