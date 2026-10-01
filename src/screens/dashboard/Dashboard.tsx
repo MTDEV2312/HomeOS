@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from '@/lib/navigation'
-import { CheckSquare, AlertTriangle, ShoppingCart, DollarSign, Plus, ArrowRight, Loader2 } from 'lucide-react'
+import { CheckSquare, AlertTriangle, ShoppingCart, DollarSign, Plus, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 import { useHousehold } from '@/lib/household-context'
 import { getTasks, updateTaskStatus, Task } from '@/services/taskService'
 import { getExpenses, getBudgets, Expense } from '@/services/expenseService'
-import { getCurrentPeriodKey, getPeriodKey } from '@/lib/dateUtils'
+import { getCurrentPeriodKey, getPeriodKey, getUserTimeZone, formatLocalDate } from '@/lib/dateUtils'
 
 const priorities: Record<string, string> = {
   Urgente: 'bg-terracotta-bg dark:bg-dark-surface text-terracotta dark:text-dark-terracotta',
@@ -22,8 +22,8 @@ const priorities: Record<string, string> = {
 
 export default function Dashboard() {
   const router = useRouter()
-  const { user } = useAuth()
-  const { activeHousehold } = useHousehold()
+  const { user, loading: authLoading } = useAuth()
+  const { activeHousehold, isLoadingHousehold } = useHousehold()
 
   const [tasksList, setTasksList] = useState<Task[]>([])
   const [expensesList, setExpensesList] = useState<Expense[]>([])
@@ -36,7 +36,9 @@ export default function Dashboard() {
 
   const loadData = useCallback(async () => {
     if (!householdId) {
-      setLoading(false)
+      if (!isLoadingHousehold && !authLoading) {
+        setLoading(false)
+      }
       return
     }
     setLoading(true)
@@ -50,7 +52,8 @@ export default function Dashboard() {
       setTasksList(fetchedTasks || [])
       setExpensesList(fetchedExpenses || [])
 
-      const currentPeriod = getCurrentPeriodKey()
+      const tz = getUserTimeZone()
+      const currentPeriod = getCurrentPeriodKey(tz)
 
       if (fetchedBudgets && fetchedBudgets.length > 0) {
         const specificBudget = fetchedBudgets.find(
@@ -64,7 +67,7 @@ export default function Dashboard() {
 
       // Filter expenses strictly to the current month in user's timezone
       const currentMonthExpenses = (fetchedExpenses || []).filter(
-        e => getPeriodKey(e.date) === currentPeriod
+        e => getPeriodKey(e.date, tz) === currentPeriod
       )
       const spent = currentMonthExpenses.reduce((acc, e) => acc + (e.amount || 0), 0)
       setBudgetSpent(spent)
@@ -73,31 +76,32 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
-  }, [householdId])
+  }, [householdId, isLoadingHousehold, authLoading])
 
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  const isInitializing = loading || isLoadingHousehold || authLoading
+
+  const userTimeZone = getUserTimeZone()
+  const currentPeriod = getCurrentPeriodKey(userTimeZone)
+
+  const currentMonthExpenses = useMemo(
+    () => (expensesList || []).filter(e => getPeriodKey(e.date, userTimeZone) === currentPeriod),
+    [expensesList, currentPeriod, userTimeZone]
+  )
 
   const effectiveTasks = tasksList.map(t => ({
     id: t.id,
     title: t.title,
     done: t.status === 'COMPLETED' || checkedTasks.has(t.id),
     priority: t.priority === 'URGENT' ? 'Urgente' : t.priority === 'HIGH' ? 'Alta' : t.priority === 'LOW' ? 'Baja' : 'Media',
-    dueDate: t.due_date ? new Date(t.due_date).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : 'Sin fecha',
+    dueDate: t.due_date ? formatLocalDate(t.due_date, userTimeZone, { day: 'numeric', month: 'short' }) : 'Sin fecha',
     assignee: t.assignee?.name || 'Miembro',
   }))
 
   const todayTasks = effectiveTasks.filter(t => !t.done).slice(0, 5)
-
-  const effectiveExpenses = expensesList.map(e => ({
-    id: e.id,
-    date: new Date(e.date).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }),
-    description: e.description,
-    category: e.category?.name || 'General',
-    paidBy: 'Hogar',
-    amount: e.amount,
-  }))
 
   const pct = budgetTotal > 0 ? Math.min(100, Math.round((budgetSpent / budgetTotal) * 100)) : 0
   const availableBudget = Math.max(0, budgetTotal - budgetSpent)
@@ -124,21 +128,21 @@ export default function Dashboard() {
   const activities = [
     ...expensesList.slice(0, 3).map(e => ({
       id: `exp-${e.id}`,
-      text: `Gasto registrado: ${e.description} ($${e.amount.toLocaleString('es-AR')})`,
-      time: new Date(e.date).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }),
+      text: `Gasto registrado: ${e.description} ($${e.amount.toLocaleString('es-EC')})`,
+      time: formatLocalDate(e.date, userTimeZone, { day: 'numeric', month: 'short' }),
       icon: '💰',
     })),
     ...tasksList.slice(0, 3).map(t => ({
       id: `task-${t.id}`,
       text: `Tarea: ${t.title} (${t.status === 'COMPLETED' ? 'Completada' : 'Pendiente'})`,
-      time: t.due_date ? new Date(t.due_date).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) : 'Reciente',
+      time: t.due_date ? formatLocalDate(t.due_date, userTimeZone, { day: 'numeric', month: 'short' }) : 'Reciente',
       icon: '📋',
     })),
   ].slice(0, 4)
 
   const userName = (user?.profile?.name as string) || user?.email?.split('@')[0] || 'Usuario'
   const householdName = (activeHousehold?.name || 'MI HOGAR').toUpperCase()
-  const todayFormatted = new Date().toLocaleDateString('es-AR', {
+  const todayFormatted = new Date().toLocaleDateString('es-EC', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -174,9 +178,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-line dark:bg-dark-line rounded-[4px] overflow-hidden mb-12 border border-line dark:border-dark-line">
         {[
           { label: 'Tareas pendientes', value: tasksList.filter(t => t.status !== 'COMPLETED').length, icon: CheckSquare, color: 'text-softblue dark:text-dark-softblue', to: '/dashboard/tasks' },
-          { label: 'Gastos registrados', value: expensesList.length, icon: AlertTriangle, color: 'text-terracotta dark:text-dark-terracotta', to: '/dashboard/expenses' },
-          { label: 'Presupuesto total', value: budgetTotal > 0 ? `$ ${budgetTotal.toLocaleString('es-AR')}` : 'Sin definir', icon: ShoppingCart, color: 'text-sand dark:text-dark-sand', to: '/dashboard/expenses' },
-          { label: 'Gastado este mes', value: `$ ${budgetSpent.toLocaleString('es-AR')}`, icon: DollarSign, color: 'text-olive dark:text-dark-olive', to: '/dashboard/expenses' },
+          { label: 'Gastos registrados', value: currentMonthExpenses.length, icon: AlertTriangle, color: 'text-terracotta dark:text-dark-terracotta', to: '/dashboard/expenses' },
+          { label: 'Presupuesto total', value: budgetTotal > 0 ? `$ ${budgetTotal.toLocaleString('es-EC')}` : 'Sin definir', icon: ShoppingCart, color: 'text-sand dark:text-dark-sand', to: '/dashboard/expenses' },
+          { label: 'Gastado este mes', value: `$ ${budgetSpent.toLocaleString('es-EC')}`, icon: DollarSign, color: 'text-olive dark:text-dark-olive', to: '/dashboard/expenses' },
         ].map(m => (
           <button
             key={m.label}
@@ -184,7 +188,11 @@ export default function Dashboard() {
             className="bg-surface dark:bg-dark-surface p-6 text-left hover:bg-olive-soft dark:hover:bg-dark-olive-soft transition-colors group cursor-pointer"
           >
             <m.icon size={16} className={`${m.color} mb-3`} />
-            <div className="text-[32px] font-light tracking-[-0.02em] font-mono text-ink dark:text-dark-ink">{m.value}</div>
+            {isInitializing ? (
+              <div className="h-7 w-16 bg-line/70 dark:bg-dark-line/70 rounded animate-pulse my-1" />
+            ) : (
+              <div className="text-[32px] font-light tracking-[-0.02em] font-mono text-ink dark:text-dark-ink">{m.value}</div>
+            )}
             <div className="text-[11px] text-muted dark:text-dark-muted mt-1">{m.label}</div>
           </button>
         ))}
@@ -204,16 +212,25 @@ export default function Dashboard() {
                 Ver todas <ArrowRight size={11} />
               </button>
             </div>
-            <div className="border border-line dark:border-dark-line rounded-[4px] overflow-hidden bg-surface dark:bg-dark-surface">
-              {loading ? (
-                <div className="py-8 flex items-center justify-center text-muted dark:text-dark-muted gap-2 text-[13px]">
-                  <Loader2 size={16} className="animate-spin text-olive" /> Cargando tareas...
-                </div>
+            <div className="border border-line dark:border-dark-line rounded-[4px] overflow-hidden bg-surface dark:bg-dark-surface divide-y divide-line dark:divide-dark-line">
+              {isInitializing ? (
+                [1, 2, 3].map((n) => (
+                  <div key={n} className="flex items-center gap-4 px-4 py-3.5 animate-pulse">
+                    <div className="w-4 h-4 rounded-[2px] bg-line/70 dark:bg-dark-line/70 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="h-4 bg-line/70 dark:bg-dark-line/70 rounded w-3/5" />
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="h-3 w-12 bg-line/70 dark:bg-dark-line/70 rounded" />
+                      <div className="h-4 w-10 bg-line/70 dark:bg-dark-line/70 rounded" />
+                    </div>
+                  </div>
+                ))
               ) : todayTasks.length > 0 ? (
-                todayTasks.map((task, i) => (
+                todayTasks.map((task) => (
                   <div
                     key={task.id}
-                    className={`flex items-center gap-4 px-4 py-3.5 hover:bg-bg dark:hover:bg-dark-bg transition-colors ${i > 0 ? 'border-t border-line dark:border-dark-line' : ''}`}
+                    className="flex items-center gap-4 px-4 py-3.5 hover:bg-bg dark:hover:bg-dark-bg transition-colors"
                   >
                     <button
                       onClick={() => toggle(task.id)}
@@ -257,23 +274,31 @@ export default function Dashboard() {
                 Ver todos <ArrowRight size={11} />
               </button>
             </div>
-            <div className="border border-line dark:border-dark-line rounded-[4px] overflow-hidden bg-surface dark:bg-dark-surface">
-              {loading ? (
-                <div className="py-8 flex items-center justify-center text-muted dark:text-dark-muted gap-2 text-[13px]">
-                  <Loader2 size={16} className="animate-spin text-olive" /> Cargando gastos...
-                </div>
-              ) : effectiveExpenses.length > 0 ? (
-                effectiveExpenses.slice(0, 4).map((exp, i) => (
+            <div className="border border-line dark:border-dark-line rounded-[4px] overflow-hidden bg-surface dark:bg-dark-surface divide-y divide-line dark:divide-dark-line">
+              {isInitializing ? (
+                [1, 2, 3].map((n) => (
+                  <div key={n} className="flex items-center justify-between px-4 py-3 animate-pulse">
+                    <div className="space-y-1.5 flex-1 min-w-0 pr-4">
+                      <div className="h-4 bg-line/70 dark:bg-dark-line/70 rounded w-2/5" />
+                      <div className="h-3 bg-line/70 dark:bg-dark-line/70 rounded w-1/4" />
+                    </div>
+                    <div className="h-4 w-14 bg-line/70 dark:bg-dark-line/70 rounded shrink-0" />
+                  </div>
+                ))
+              ) : currentMonthExpenses.length > 0 ? (
+                currentMonthExpenses.slice(0, 4).map((exp) => (
                   <div
                     key={exp.id}
-                    className={`flex items-center justify-between px-4 py-3 ${i > 0 ? 'border-t border-line dark:border-dark-line' : ''} hover:bg-bg dark:hover:bg-dark-bg transition-colors`}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-bg dark:hover:bg-dark-bg transition-colors"
                   >
                     <div>
                       <div className="text-[13px] font-medium text-ink dark:text-dark-ink">{exp.description}</div>
-                      <div className="text-[11px] text-muted dark:text-dark-muted mt-0.5">{exp.date} · {exp.category}</div>
+                      <div className="text-[11px] text-muted dark:text-dark-muted mt-0.5">
+                        {formatLocalDate(exp.date, userTimeZone, { day: 'numeric', month: 'short' })} · {exp.category?.name || 'General'}
+                      </div>
                     </div>
                     <span className="font-mono text-[13px] font-medium text-ink dark:text-dark-ink">
-                      $ {exp.amount.toLocaleString('es-AR')}
+                      $ {exp.amount.toLocaleString('es-EC')}
                     </span>
                   </div>
                 ))
@@ -293,22 +318,38 @@ export default function Dashboard() {
             <h3 className="text-[11px] font-semibold tracking-[0.1em] uppercase text-muted dark:text-dark-muted mb-4">
               Presupuesto mensual
             </h3>
-            <div className="flex justify-between mb-2">
-              <span className="text-[12px] text-muted dark:text-dark-muted">Gastado</span>
-              <span className="font-mono text-[13px] text-ink dark:text-dark-ink">$ {budgetSpent.toLocaleString('es-AR')}</span>
-            </div>
-            <div className="h-1.5 bg-line dark:bg-dark-line rounded-full overflow-hidden mb-3">
-              <div
-                className="h-full bg-olive dark:bg-dark-olive rounded-full transition-all"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[11px]">
-              <span className="text-muted dark:text-dark-muted">{budgetTotal > 0 ? `${pct}% usado` : 'Sin presupuesto'}</span>
-              <span className="font-mono text-muted dark:text-dark-muted">
-                {budgetTotal > 0 ? `$ ${availableBudget.toLocaleString('es-AR')} disponible` : 'Definir en Gastos'}
-              </span>
-            </div>
+            {isInitializing ? (
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[12px] text-muted dark:text-dark-muted">Gastado</span>
+                  <div className="h-4 w-16 bg-line/70 dark:bg-dark-line/70 rounded animate-pulse" />
+                </div>
+                <div className="h-1.5 bg-line/70 dark:bg-dark-line/70 rounded-full overflow-hidden mb-3 animate-pulse" />
+                <div className="flex justify-between items-center text-[11px]">
+                  <div className="h-3 w-14 bg-line/70 dark:bg-dark-line/70 rounded animate-pulse" />
+                  <div className="h-3 w-20 bg-line/70 dark:bg-dark-line/70 rounded animate-pulse" />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between mb-2">
+                  <span className="text-[12px] text-muted dark:text-dark-muted">Gastado</span>
+                  <span className="font-mono text-[13px] text-ink dark:text-dark-ink">$ {budgetSpent.toLocaleString('es-EC')}</span>
+                </div>
+                <div className="h-1.5 bg-line dark:bg-dark-line rounded-full overflow-hidden mb-3">
+                  <div
+                    className="h-full bg-olive dark:bg-dark-olive rounded-full transition-all"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-muted dark:text-dark-muted">{budgetTotal > 0 ? `${pct}% usado` : 'Sin presupuesto'}</span>
+                  <span className="font-mono text-muted dark:text-dark-muted">
+                    {budgetTotal > 0 ? `$ ${availableBudget.toLocaleString('es-EC')} disponible` : 'Definir en Gastos'}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Acciones rápidas */}
@@ -336,10 +377,20 @@ export default function Dashboard() {
           {/* Actividad reciente */}
           <div>
             <h3 className="text-[11px] font-semibold tracking-[0.1em] uppercase text-muted dark:text-dark-muted mb-3">Actividad reciente</h3>
-            <div className="space-y-0 border border-line dark:border-dark-line rounded-[4px] overflow-hidden bg-surface dark:bg-dark-surface">
-              {activities.length > 0 ? (
-                activities.map((a, i) => (
-                  <div key={a.id} className={`flex items-start gap-3 px-4 py-3 ${i > 0 ? 'border-t border-line dark:border-dark-line' : ''}`}>
+            <div className="space-y-0 border border-line dark:border-dark-line rounded-[4px] overflow-hidden bg-surface dark:bg-dark-surface divide-y divide-line dark:divide-dark-line">
+              {isInitializing ? (
+                [1, 2, 3].map((n) => (
+                  <div key={n} className="flex items-start gap-3 px-4 py-3 animate-pulse">
+                    <div className="w-6 h-6 rounded-full bg-line/70 dark:bg-dark-line/70 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="h-3.5 bg-line/70 dark:bg-dark-line/70 rounded w-4/5" />
+                      <div className="h-2.5 bg-line/70 dark:bg-dark-line/70 rounded w-1/3" />
+                    </div>
+                  </div>
+                ))
+              ) : activities.length > 0 ? (
+                activities.map((a) => (
+                  <div key={a.id} className="flex items-start gap-3 px-4 py-3">
                     <div className="w-6 h-6 rounded-full bg-sage-soft dark:bg-dark-surface-2 text-[12px] flex items-center justify-center shrink-0 mt-0.5">
                       {a.icon}
                     </div>
