@@ -4,6 +4,7 @@ import './globals.css';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { AuthProvider } from '@/lib/auth-context';
+import { NotificationProvider } from '@/context/NotificationContext';
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -88,7 +89,9 @@ export default function RootLayout({
         <ThemeProvider>
           <ToastProvider>
             <AuthProvider>
-              {children}
+              <NotificationProvider>
+                {children}
+              </NotificationProvider>
             </AuthProvider>
           </ToastProvider>
         </ThemeProvider>

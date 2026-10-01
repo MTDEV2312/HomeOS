@@ -16,6 +16,8 @@ import type { UserHousehold } from '@/services/householdService'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import HouseholdGuard from '@/components/HouseholdGuard'
 import CommandPalette from '@/components/CommandPalette'
+import { useNotifications } from '@/context/NotificationContext'
+import NotificationPanel from '@/components/notifications/NotificationPanel'
 
 type NavEntry = {
   to: string
@@ -241,6 +243,7 @@ function SidebarContent({
 function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, setTheme, isDark } = useTheme()
   const { toast } = useToast()
+  const { unreadCount } = useNotifications()
   const router = useRouter()
   const pathname = usePathname()
   const { user, signOut } = useAuth()
@@ -250,6 +253,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const [cmdOpen, setCmdOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [houseMenuOpen, setHouseMenuOpen] = useState(false)
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false)
+  const notificationRef = React.useRef<HTMLDivElement>(null)
 
   // Keyboard shortcut for command palette
   useEffect(() => {
@@ -275,6 +280,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
     setSidebarOpen(false)
     setUserMenuOpen(false)
     setHouseMenuOpen(false)
+    setIsNotificationOpen(false)
   }, [pathname])
 
   const userName = (user?.profile?.name as string) || user?.email?.split('@')[0] || 'Usuario'
@@ -377,14 +383,26 @@ function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-1.5">
-            <button
-              className="relative p-2 text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors rounded"
-              onClick={() => toast('No hay notificaciones nuevas.')}
-              title="Notificaciones"
-            >
-              <Bell size={16} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-terracotta rounded-full" />
-            </button>
+            <div className="relative" ref={notificationRef}>
+              <button
+                className="relative p-2 text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors rounded"
+                onClick={() => setIsNotificationOpen(prev => !prev)}
+                title="Notificaciones"
+                aria-expanded={isNotificationOpen}
+                aria-label="Notificaciones"
+              >
+                <Bell size={16} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-terracotta rounded-full" />
+                )}
+              </button>
+
+              <NotificationPanel
+                isOpen={isNotificationOpen}
+                onClose={() => setIsNotificationOpen(false)}
+                anchorRef={notificationRef}
+              />
+            </div>
 
             <div className="relative">
               <button
