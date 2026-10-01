@@ -31,6 +31,7 @@ import {
   HouseholdMemberDetails,
 } from '@/services/householdService'
 import { Switch } from '@/components/ui/Switch'
+import { UserAvatar } from '@/components/ui/UserAvatar'
 
 interface DisplayTask {
   id: string
@@ -642,9 +643,27 @@ export default function Tasks() {
                   <span className="text-muted dark:text-dark-muted flex items-center gap-2">
                     <User size={14} /> Asignada a
                   </span>
-                  <span className="font-medium text-ink dark:text-dark-ink">
-                    {detailTask.assigneeName}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const assignedMember = members.find((m) => m.user_id === detailTask.assignedToId)
+                      return assignedMember ? (
+                        <UserAvatar
+                          name={assignedMember?.name || detailTask.assigneeName}
+                          email={assignedMember?.email}
+                          avatarUrl={
+                            assignedMember?.avatar_url ||
+                            (assignedMember?.user_id === user?.id
+                              ? (user?.profile?.avatar_url as string)
+                              : undefined)
+                          }
+                          size="xs"
+                        />
+                      ) : null
+                    })()}
+                    <span className="font-medium text-ink dark:text-dark-ink">
+                      {detailTask.assigneeName}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between text-[13px]">

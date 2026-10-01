@@ -18,6 +18,7 @@ import HouseholdGuard from '@/components/HouseholdGuard'
 import CommandPalette from '@/components/CommandPalette'
 import { useNotifications } from '@/context/NotificationContext'
 import NotificationPanel from '@/components/notifications/NotificationPanel'
+import { UserAvatar } from '@/components/ui/UserAvatar'
 
 type NavEntry = {
   to: string
@@ -222,14 +223,7 @@ function SidebarContent({
           onClick={onNavigate}
           className="flex items-center gap-2.5 p-1 rounded hover:bg-olive-soft/50 dark:hover:bg-dark-olive-soft/50 transition-colors"
         >
-          <div className="w-7 h-7 rounded-full bg-olive dark:bg-dark-olive text-white text-[11px] font-semibold flex items-center justify-center shrink-0 overflow-hidden">
-            {userAvatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={userAvatar} alt={userName} className="w-full h-full object-cover" />
-            ) : (
-              initials
-            )}
-          </div>
+          <UserAvatar name={userName} email={userEmail} avatarUrl={userAvatar} size="sm" />
           <div className="flex-1 min-w-0">
             <div className="text-[12px] font-semibold text-ink dark:text-dark-ink truncate">{userName}</div>
             <div className="text-[11px] text-muted dark:text-dark-muted truncate">{userEmail}</div>
@@ -409,14 +403,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="flex items-center gap-2 p-1 rounded hover:bg-olive-soft dark:hover:bg-dark-olive-soft transition-colors"
               >
-                <div className="w-7 h-7 rounded-full bg-olive dark:bg-dark-olive text-white text-[11px] font-semibold flex items-center justify-center shrink-0 overflow-hidden">
-                  {userAvatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={userAvatar} alt={userName} className="w-full h-full object-cover" />
-                  ) : (
-                    initials
-                  )}
-                </div>
+                <UserAvatar name={userName} email={userEmail} avatarUrl={userAvatar} size="sm" />
                 <ChevronDown size={12} className="text-muted dark:text-dark-muted hidden sm:block" />
               </button>
 
@@ -425,9 +412,12 @@ function AppShell({ children }: { children: React.ReactNode }) {
                   className="absolute right-0 top-10 w-56 bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-[6px] shadow-xl z-50 py-1"
                   onClick={() => setUserMenuOpen(false)}
                 >
-                  <div className="px-4 py-3 border-b border-line dark:border-dark-line">
-                    <div className="text-[13px] font-semibold text-ink dark:text-dark-ink truncate">{userName}</div>
-                    <div className="text-[11px] text-muted dark:text-dark-muted mt-0.5 truncate">{userEmail}</div>
+                  <div className="px-4 py-3 border-b border-line dark:border-dark-line flex items-center gap-3">
+                    <UserAvatar name={userName} email={userEmail} avatarUrl={userAvatar} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-semibold text-ink dark:text-dark-ink truncate">{userName}</div>
+                      <div className="text-[11px] text-muted dark:text-dark-muted mt-0.5 truncate">{userEmail}</div>
+                    </div>
                   </div>
 
                   <button

@@ -6,6 +6,7 @@ import { useToast } from '@/context/ToastContext'
 import { useHousehold } from '@/context/HouseholdContext'
 import { useAuth } from '@/context/AuthContext'
 import { QRCode } from '@/components/QRCode'
+import { UserAvatar } from '@/components/ui/UserAvatar'
 import {
   updateHousehold,
   regenerateInviteCode,
@@ -237,17 +238,18 @@ export default function Household() {
                   <Loader2 size={16} className="animate-spin" /> Cargando miembros...
                 </div>
               ) : membersList.length > 0 ? (
-                membersList.map(m => (
-                  <div key={m.member_id} className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-olive text-white text-[11px] font-semibold flex items-center justify-center flex-shrink-0">
-                      {m.name?.[0]?.toUpperCase() || m.email?.[0]?.toUpperCase() || 'M'}
+                membersList.map(m => {
+                  const avatarUrl = m.avatar_url || (m.user_id === user?.id ? (user?.profile?.avatar_url as string) : undefined);
+                  return (
+                    <div key={m.member_id} className="flex items-center gap-3">
+                      <UserAvatar name={m.name} email={m.email} avatarUrl={avatarUrl} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium text-ink dark:text-dark-ink truncate">{m.name || m.email}</div>
+                        <div className="text-[11px] text-muted dark:text-dark-muted capitalize">{m.role.toLowerCase()}</div>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-medium text-ink dark:text-dark-ink truncate">{m.name || m.email}</div>
-                      <div className="text-[11px] text-muted dark:text-dark-muted capitalize">{m.role.toLowerCase()}</div>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-[12px] text-muted dark:text-dark-muted py-4 text-center">
                   No hay otros miembros registrados en este hogar.
