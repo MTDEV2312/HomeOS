@@ -11,17 +11,17 @@ export interface InventoryCategory {
 export interface InventoryItem {
   id: string;
   household_id: string;
-  category_id?: string;
+  category_id?: string | null;
   name: string;
-  brand?: string;
+  brand?: string | null;
   current_quantity: number;
   unit: string;
   minimum_threshold: number;
-  expiration_date?: string;
-  location?: string;
-  last_restocked_at?: string;
+  expiration_date?: string | null;
+  location?: string | null;
+  last_restocked_at?: string | null;
   created_at?: string;
-  category?: InventoryCategory;
+  category?: InventoryCategory | null;
 }
 
 export async function getInventoryCategories(householdId: string): Promise<InventoryCategory[]> {
@@ -73,7 +73,7 @@ export async function addInventoryItem(item: Partial<InventoryItem>): Promise<In
   const { data, error } = await insforge.database
     .from('inventory_items')
     .insert([item])
-    .select()
+    .select('*, category:inventory_categories(id, name, icon)')
     .single();
 
   if (error) throw error;
@@ -85,7 +85,7 @@ export async function updateInventoryItem(itemId: string, updates: Partial<Inven
     .from('inventory_items')
     .update(updates)
     .eq('id', itemId)
-    .select()
+    .select('*, category:inventory_categories(id, name, icon)')
     .single();
 
   if (error) throw error;
