@@ -1,16 +1,19 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Plus, X, ChevronDown, Loader2 } from 'lucide-react'
+import { Plus, X, ChevronDown, Loader2, Pencil, Trash2 } from 'lucide-react'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/lib/auth-context'
 import { useHousehold } from '@/lib/household-context'
 import {
   getShoppingLists,
   createShoppingList,
+  updateShoppingList,
+  deleteShoppingList,
   getShoppingListItems,
   addShoppingListItem,
   updateShoppingListItem,
+  deleteShoppingListItem,
   ShoppingList as ApiList,
   ShoppingListItem as ApiItem
 } from '@/services/shoppingService'
@@ -42,6 +45,11 @@ export default function Shopping() {
   const [newListModal, setNewListModal] = useState(false)
   const [newListName, setNewListName] = useState('')
   const [newItem, setNewItem] = useState({ name: '', qty: 1, unit: 'unidades', category: 'Supermercado' })
+  const [editingItem, setEditingItem] = useState<ListItem | null>(null)
+  const [editingListModal, setEditingListModal] = useState(false)
+  const [editListName, setEditListName] = useState('')
+  const [deletingListModal, setDeletingListModal] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   const householdId = activeHousehold?.id
 
@@ -121,42 +129,122 @@ export default function Shopping() {
     }
   }
 
-  const addItem = async (e: React.FormEvent) => {
+  const handleStartEditItem = (item: ListItem) => {
+    setEditingItem(item)
+    setNewItem({
+      name: item.name,
+      qty: item.qty,
+      unit: item.unit,
+      category: item.category,
+    })
+    setDrawerOpen(true)
+  }
+
+  const handleDeleteItem = async (itemId: string) => {
+    setLists(prev => prev.map(l => {
+      if (l.id !== activeList.id) return l
+      const filtered = l.items.filter(i => i.id !== itemId)
+      return {
+        ...l,
+        items: filtered,
+        total: filtered.length,
+        bought: filtered.filter(i => i.done).length,
+      }
+    }))
+    toast('Ítem eliminado.', 'info')
+
+    try {
+      await deleteShoppingListItem(itemId)
+    } catch (err) {
+      console.error('Error deleting item from DB', err)
+      toast('Error al eliminar el ítem.', 'error')
+    }
+  }
+
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false)
+    setEditingItem(null)
+    setNewItem({ name: '', qty: 1, unit: 'unidades', category: 'Supermercado' })
+  }
+
+  const saveItem = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newItem.name.trim()) return
 
-    const tempId = Date.now().toString()
-    const item: ListItem = {
-      id: tempId,
-      ...newItem,
-      qty: Number(newItem.qty),
-      done: false,
-    }
+    setSubmitting(true)
+    try {
+      if (editingItem) {
+        const itemToUpdate = editingItem
+        const updatedName = newItem.name.trim()
+        const updatedQty = Number(newItem.qty)
+        const updatedUnit = newItem.unit
+        const updatedCategory = newItem.category
 
-    setLists(prev => prev.map(l =>
-      l.id === activeList.id
-        ? { ...l, items: [...l.items, item], total: l.total + 1 }
-        : l
-    ))
-    setNewItem({ name: '', qty: 1, unit: 'unidades', category: 'Supermercado' })
-    setDrawerOpen(false)
-    toast('Ítem agregado a la lista.', 'success')
-
-    if (activeList.id && user?.id) {
-      try {
-        const created = await addShoppingListItem(activeList.id, user.id, {
-          item_name: item.name,
-          quantity: `${item.qty} ${item.unit}`,
-          category: item.category,
-        })
         setLists(prev => prev.map(l =>
           l.id === activeList.id
-            ? { ...l, items: l.items.map(i => i.id === tempId ? { ...i, id: created.id } : i) }
+            ? {
+                ...l,
+                items: l.items.map(i =>
+                  i.id === itemToUpdate.id
+                    ? { ...i, name: updatedName, qty: updatedQty, unit: updatedUnit, category: updatedCategory }
+                    : i
+                ),
+              }
             : l
         ))
-      } catch (err) {
-        console.error('Error adding item to DB', err)
+        setDrawerOpen(false)
+        setEditingItem(null)
+        setNewItem({ name: '', qty: 1, unit: 'unidades', category: 'Supermercado' })
+        toast('Ítem actualizado.', 'success')
+
+        try {
+          await updateShoppingListItem(itemToUpdate.id, {
+            name: updatedName,
+            item_name: updatedName,
+            quantity: `${updatedQty} ${updatedUnit}`,
+            category: updatedCategory,
+          })
+        } catch (err) {
+          console.error('Error updating item in DB', err)
+          toast('Error al actualizar el ítem.', 'error')
+        }
+      } else {
+        const tempId = Date.now().toString()
+        const item: ListItem = {
+          id: tempId,
+          ...newItem,
+          qty: Number(newItem.qty),
+          done: false,
+        }
+
+        setLists(prev => prev.map(l =>
+          l.id === activeList.id
+            ? { ...l, items: [...l.items, item], total: l.total + 1 }
+            : l
+        ))
+        setNewItem({ name: '', qty: 1, unit: 'unidades', category: 'Supermercado' })
+        setDrawerOpen(false)
+        toast('Ítem agregado a la lista.', 'success')
+
+        if (activeList.id && user?.id) {
+          try {
+            const created = await addShoppingListItem(activeList.id, user.id, {
+              item_name: item.name,
+              quantity: `${item.qty} ${item.unit}`,
+              category: item.category,
+            })
+            setLists(prev => prev.map(l =>
+              l.id === activeList.id
+                ? { ...l, items: l.items.map(i => i.id === tempId ? { ...i, id: created.id } : i) }
+                : l
+            ))
+          } catch (err) {
+            console.error('Error adding item to DB', err)
+          }
+        }
       }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -190,6 +278,41 @@ export default function Shopping() {
     }
   }
 
+  const handleRenameList = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const trimmed = editListName.trim()
+    if (!trimmed || !activeList.id) return
+
+    setLists(prev => prev.map(l => (l.id === activeList.id ? { ...l, name: trimmed } : l)))
+    setEditingListModal(false)
+    toast('Lista actualizada.', 'success')
+
+    try {
+      await updateShoppingList(activeList.id, { name: trimmed })
+    } catch (err) {
+      console.error('Error renaming list in DB', err)
+      toast('Error al actualizar la lista.', 'error')
+    }
+  }
+
+  const handleDeleteList = async () => {
+    if (!activeList.id) return
+
+    const listToDeleteId = activeList.id
+    const remaining = lists.filter(l => l.id !== listToDeleteId)
+    setLists(remaining)
+    setActiveListId(remaining[0]?.id || '')
+    setDeletingListModal(false)
+    toast('Lista eliminada.', 'info')
+
+    try {
+      await deleteShoppingList(listToDeleteId)
+    } catch (err) {
+      console.error('Error deleting list from DB', err)
+      toast('Error al eliminar la lista.', 'error')
+    }
+  }
+
   return (
     <div className="px-6 lg:px-10 py-8 max-w-[1280px] mx-auto font-sans">
       {/* Header */}
@@ -203,7 +326,11 @@ export default function Shopping() {
             <p className="text-[14px] text-muted dark:text-dark-muted mt-3">Lo que necesitamos para la semana.</p>
           </div>
           <button
-            onClick={() => setDrawerOpen(true)}
+            onClick={() => {
+              setEditingItem(null)
+              setNewItem({ name: '', qty: 1, unit: 'unidades', category: 'Supermercado' })
+              setDrawerOpen(true)
+            }}
             className="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[13px] font-medium hover:opacity-80 transition-opacity cursor-pointer"
           >
             <Plus size={14} /> Agregar ítem
@@ -262,7 +389,28 @@ export default function Shopping() {
           {/* Progress */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[13px] font-medium text-ink dark:text-dark-ink">{activeList.name}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-medium text-ink dark:text-dark-ink">{activeList.name}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditListName(activeList.name)
+                    setEditingListModal(true)
+                  }}
+                  title="Editar nombre de lista"
+                  className="p-1 text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors cursor-pointer rounded"
+                >
+                  <Pencil size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeletingListModal(true)}
+                  title="Eliminar lista"
+                  className="p-1 text-muted dark:text-dark-muted hover:text-terracotta dark:hover:text-terracotta transition-colors cursor-pointer rounded"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
               <span className="font-mono text-[12px] text-muted dark:text-dark-muted">
                 {boughtCount} / {activeList.items.length} comprados
               </span>
@@ -286,7 +434,7 @@ export default function Shopping() {
               activeList.items.map((item, i) => (
                 <div
                   key={item.id}
-                  className={`flex items-center gap-4 px-5 py-4 hover:bg-bg dark:hover:bg-dark-bg transition-colors ${
+                  className={`group flex items-center gap-4 px-5 py-4 hover:bg-bg dark:hover:bg-dark-bg transition-colors ${
                     i > 0 ? 'border-t border-line dark:border-dark-line' : ''
                   }`}
                 >
@@ -313,6 +461,25 @@ export default function Shopping() {
                   <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${catColor[item.category] || catColor.Otros}`}>
                     {item.category}
                   </span>
+
+                  <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => handleStartEditItem(item)}
+                      title="Editar ítem"
+                      className="p-1.5 text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors cursor-pointer rounded"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteItem(item.id)}
+                      title="Eliminar ítem"
+                      className="p-1.5 text-muted dark:text-dark-muted hover:text-terracotta dark:hover:text-terracotta transition-colors cursor-pointer rounded"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
               ))
             )}
@@ -341,13 +508,13 @@ export default function Shopping() {
                 <button
                   type="button"
                   onClick={() => setNewListModal(false)}
-                  className="px-4 py-2 border border-line dark:border-dark-line rounded-[4px] text-[12px] text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink"
+                  className="px-4 py-2 border border-line dark:border-dark-line rounded-[4px] text-[12px] text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[12px] font-medium hover:opacity-80"
+                  className="px-4 py-2 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[12px] font-medium hover:opacity-80 cursor-pointer"
                 >
                   Crear lista
                 </button>
@@ -357,18 +524,86 @@ export default function Shopping() {
         </div>
       )}
 
+      {/* Rename List Modal */}
+      {editingListModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-ink/20 dark:bg-black/50 backdrop-blur-xs" onClick={() => setEditingListModal(false)} />
+          <div className="relative w-full max-w-sm bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-[6px] shadow-2xl p-6">
+            <h3 className="text-[16px] font-semibold text-ink dark:text-dark-ink mb-4">Editar nombre de lista</h3>
+            <form onSubmit={handleRenameList} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted mb-1.5">Nombre</label>
+                <input
+                  required
+                  value={editListName}
+                  onChange={e => setEditListName(e.target.value)}
+                  placeholder="Nombre de la lista…"
+                  className="w-full px-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[13px] text-ink dark:text-dark-ink bg-bg dark:bg-dark-bg focus:outline-none focus:border-olive"
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingListModal(false)}
+                  className="px-4 py-2 border border-line dark:border-dark-line rounded-[4px] text-[12px] text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[12px] font-medium hover:opacity-80 cursor-pointer"
+                >
+                  Guardar cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete List Modal */}
+      {deletingListModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-ink/20 dark:bg-black/50 backdrop-blur-xs" onClick={() => setDeletingListModal(false)} />
+          <div className="relative w-full max-w-sm bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-[6px] shadow-2xl p-6">
+            <h3 className="text-[16px] font-semibold text-ink dark:text-dark-ink mb-2">Eliminar lista</h3>
+            <p className="text-[13px] text-muted dark:text-dark-muted mb-6 leading-relaxed">
+              ¿Estás seguro de que deseas eliminar la lista &ldquo;{activeList.name}&rdquo; y todos sus productos?
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setDeletingListModal(false)}
+                className="px-4 py-2 border border-line dark:border-dark-line rounded-[4px] text-[12px] text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteList}
+                className="px-4 py-2 bg-terracotta hover:bg-terracotta/90 text-white rounded-[4px] text-[12px] font-medium transition-opacity cursor-pointer"
+              >
+                Eliminar lista
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Drawer */}
       {drawerOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-ink/20 dark:bg-black/40" onClick={() => setDrawerOpen(false)} />
+          <div className="absolute inset-0 bg-ink/20 dark:bg-black/40" onClick={handleCloseDrawer} />
           <div className="relative w-full max-w-md h-full bg-surface dark:bg-dark-surface border-l border-line dark:border-dark-line shadow-2xl flex flex-col">
             <div className="flex items-center justify-between px-6 py-5 border-b border-line dark:border-dark-line">
-              <h3 className="text-[16px] font-semibold text-ink dark:text-dark-ink">Agregar ítem</h3>
-              <button onClick={() => setDrawerOpen(false)} className="text-muted dark:text-dark-muted hover:text-ink p-1">
+              <h3 className="text-[16px] font-semibold text-ink dark:text-dark-ink">
+                {editingItem ? 'Editar ítem' : 'Agregar ítem'}
+              </h3>
+              <button onClick={handleCloseDrawer} className="text-muted dark:text-dark-muted hover:text-ink p-1 cursor-pointer">
                 <X size={18} />
               </button>
             </div>
-            <form onSubmit={addItem} className="flex-1 flex flex-col">
+            <form onSubmit={saveItem} className="flex-1 flex flex-col">
               <div className="flex-1 px-6 py-6 space-y-5">
                 <div>
                   <label className="block text-[11px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted mb-1.5">Producto</label>
@@ -397,7 +632,7 @@ export default function Shopping() {
                       <select
                         value={newItem.unit}
                         onChange={e => setNewItem(p => ({ ...p, unit: e.target.value }))}
-                        className="w-full px-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[13px] text-ink dark:text-dark-ink bg-bg dark:bg-dark-bg focus:outline-none focus:border-olive appearance-none"
+                        className="w-full px-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[13px] text-ink dark:text-dark-ink bg-bg dark:bg-dark-bg focus:outline-none focus:border-olive appearance-none cursor-pointer"
                       >
                         {['unidades', 'kg', 'g', 'litros', 'ml', 'paquetes', 'cajas', 'rollos', 'bolsas'].map(u => <option key={u}>{u}</option>)}
                       </select>
@@ -428,16 +663,17 @@ export default function Shopping() {
               <div className="px-6 py-5 border-t border-line dark:border-dark-line flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setDrawerOpen(false)}
+                  onClick={handleCloseDrawer}
                   className="flex-1 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[13px] text-muted dark:text-dark-muted hover:text-ink transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[13px] font-medium hover:opacity-80 cursor-pointer"
+                  disabled={submitting}
+                  className="flex-1 py-2.5 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[13px] font-medium hover:opacity-80 cursor-pointer disabled:opacity-50"
                 >
-                  Agregar ítem
+                  {editingItem ? (submitting ? 'Guardando...' : 'Guardar cambios') : (submitting ? 'Agregando...' : 'Agregar ítem')}
                 </button>
               </div>
             </form>

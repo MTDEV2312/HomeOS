@@ -95,6 +95,19 @@ export const getMaintenanceLogs = async (assetId: string): Promise<MaintenanceLo
   return data as MaintenanceLog[];
 };
 
+export const getAllMaintenanceLogs = async (householdId: string): Promise<MaintenanceLog[]> => {
+  const { data, error } = await insforge.database
+    .from('maintenance_logs')
+    .select('*, assets!inner(household_id)')
+    .eq('assets.household_id', householdId)
+    .order('service_date', { ascending: false });
+  if (error) throw error;
+  return ((data || []) as any[]).map(item => {
+    const { assets, ...log } = item;
+    return log as MaintenanceLog;
+  });
+};
+
 export const addMaintenanceLog = async (payload: Partial<MaintenanceLog>): Promise<MaintenanceLog> => {
   const { data, error } = await insforge.database
     .from('maintenance_logs')

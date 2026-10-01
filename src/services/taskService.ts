@@ -7,7 +7,7 @@ export interface Task {
   id: string;
   household_id: string;
   creator_id: string;
-  assigned_to?: string;
+  assigned_to?: string | null;
   title: string;
   description?: string;
   due_date?: string;
@@ -86,12 +86,26 @@ export const updateTaskStatus = async (taskId: string, status: TaskStatus): Prom
 };
 
 export const updateTask = async (taskId: string, updates: Partial<Task>): Promise<Task> => {
+  const payload: Record<string, any> = {
+    ...updates,
+    updated_at: new Date().toISOString()
+  };
+  if ('assigned_to' in updates) {
+    payload.assigned_to = updates.assigned_to || null;
+  }
+  if ('due_date' in updates) {
+    payload.due_date = updates.due_date || null;
+  }
+  if ('description' in updates) {
+    payload.description = updates.description || null;
+  }
+  if ('recurrence_rule' in updates) {
+    payload.recurrence_rule = updates.recurrence_rule || null;
+  }
+
   const { data, error } = await insforge.database
     .from('tasks')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString()
-    })
+    .update(payload)
     .eq('id', taskId)
     .select()
     .single();

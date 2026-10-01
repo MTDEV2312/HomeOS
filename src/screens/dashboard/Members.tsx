@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react'
 import { Plus, X, Copy, QrCode, ChevronDown, Loader2 } from 'lucide-react'
 import { useToast } from '@/context/ToastContext'
 import { useHousehold } from '@/context/HouseholdContext'
+import { useAuth } from '@/lib/auth-context'
 import { QRCode } from '@/components/QRCode'
+import { UserAvatar } from '@/components/ui/UserAvatar'
 import {
   getHouseholdMembers,
   updateMemberRole,
@@ -19,6 +21,7 @@ export interface MemberDisplayItem {
   joinedAt: string
   avatar: string
   color: string
+  avatarUrl?: string | null
 }
 
 const colors = ['#9D9652', '#7A8B7B', '#8FA89B', '#C97963', '#B8977E']
@@ -37,6 +40,7 @@ const roles = ['Propietario', 'Administrador', 'Miembro']
 export default function Members() {
   const { toast } = useToast()
   const { currentHousehold } = useHousehold()
+  const { user } = useAuth()
   const [members, setMembers] = useState<MemberDisplayItem[]>([])
   const [loading, setLoading] = useState(true)
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -56,15 +60,19 @@ export default function Members() {
       .then(res => {
         if (mounted && res) {
           setMembers(
-            res.map((m, idx) => ({
-              id: m.user_id,
-              name: m.name || m.email.split('@')[0],
-              email: m.email,
-              role: roleLabels[m.role] || 'Miembro',
-              joinedAt: new Date(m.joined_at).toLocaleDateString('es-AR', { month: 'short', year: 'numeric' }),
-              avatar: (m.name || m.email)?.[0]?.toUpperCase() || 'U',
-              color: colors[idx % colors.length],
-            }))
+            res.map((m, idx) => {
+              const avatarUrl = m.avatar_url || (m.user_id === user?.id ? (user?.profile?.avatar_url as string) : undefined)
+              return {
+                id: m.user_id,
+                name: m.name || m.email.split('@')[0],
+                email: m.email,
+                role: roleLabels[m.role] || 'Miembro',
+                joinedAt: new Date(m.joined_at).toLocaleDateString('es-EC', { month: 'short', year: 'numeric' }),
+                avatar: (m.name || m.email)?.[0]?.toUpperCase() || 'U',
+                color: colors[idx % colors.length],
+                avatarUrl,
+              }
+            })
           )
         }
       })
@@ -77,7 +85,7 @@ export default function Members() {
     return () => {
       mounted = false
     }
-  }, [currentHousehold])
+  }, [currentHousehold, user])
 
   const copy = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -164,12 +172,13 @@ export default function Members() {
         ) : (
           members.map(m => (
             <div key={m.id} className="p-5 flex items-center gap-4 hover:bg-bg/40 dark:hover:bg-dark-surface/40 transition-colors group">
-              <div
-                className="w-10 h-10 rounded-full text-white text-[13px] font-semibold flex items-center justify-center flex-shrink-0"
-                style={{ background: m.color }}
-              >
-                {m.avatar}
-              </div>
+              <UserAvatar
+                name={m.name}
+                email={m.email}
+                avatarUrl={m.avatarUrl}
+                size="md"
+                fallbackBg={m.color}
+              />
               <div className="flex-1 min-w-0">
                 <div className="text-[14px] font-semibold text-ink dark:text-dark-ink truncate">{m.name}</div>
                 <div className="text-[12px] text-muted dark:text-dark-muted truncate">{m.email}</div>

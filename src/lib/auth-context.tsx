@@ -14,6 +14,7 @@ interface InsForgeUser {
   profile: {
     name?: string;
     avatar_url?: string;
+    avatar_key?: string | null;
     [key: string]: unknown;
   };
   metadata: Record<string, unknown>;
@@ -29,8 +30,8 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   updateProfile: (profile: Record<string, unknown>) => Promise<{ error: Error | null }>;
   sendResetPasswordEmail: (email: string) => Promise<{ error: Error | null; success?: boolean }>;
-  exchangeResetPasswordToken: (email: string, code: string) => Promise<{ error: Error | null; token?: string }>;
-  resetPassword: (newPassword: string, otp: string) => Promise<{ error: Error | null }>;
+  exchangeResetPasswordToken: (email: string, code: string) => Promise<{ error: Error | null; resetToken?: string; token?: string }>;
+  resetPassword: (newPassword: string, token: string) => Promise<{ error: Error | null }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: Error | null }>;
 }
 
@@ -143,13 +144,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const exchangeResetPasswordToken = async (email: string, code: string) => {
     const { data, error } = await insforge.auth.exchangeResetPasswordToken({ email, code });
     if (error) {
-      return { error: error as Error, token: undefined };
+      return { error: error as Error, resetToken: undefined, token: undefined };
     }
-    return { error: null, token: data?.token };
+    return { error: null, resetToken: data?.token, token: data?.token };
   };
 
-  const resetPassword = async (newPassword: string, otp: string) => {
-    const { error } = await insforge.auth.resetPassword({ newPassword, otp });
+  const resetPassword = async (newPassword: string, token: string) => {
+    const { error } = await insforge.auth.resetPassword({ newPassword, otp: token });
     if (error) {
       return { error: error as Error };
     }

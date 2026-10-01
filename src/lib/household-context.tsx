@@ -31,16 +31,21 @@ const HouseholdContext = createContext<ActiveHouseholdContextType>({
 });
 
 export function HouseholdProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [activeHousehold, setActiveHousehold] = useState<Household | null>(null);
   const [activeRole, setActiveRole] = useState<HouseholdMember['role'] | null>(null);
   const [householdsList, setHouseholdsList] = useState<UserHousehold[]>([]);
   const [isLoadingHousehold, setIsLoadingHousehold] = useState(true);
 
   const refreshHousehold = useCallback(async () => {
+    if (authLoading) {
+      return;
+    }
+
     if (!user) {
       setActiveHousehold(null);
       setActiveRole(null);
+      setHouseholdsList([]);
       setIsLoadingHousehold(false);
       return;
     }
@@ -76,7 +81,7 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoadingHousehold(false);
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   const switchHousehold = (householdId: string) => {
     const selected = householdsList.find(h => h.households.id === householdId);
@@ -89,7 +94,7 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshHousehold();
-  }, [refreshHousehold]);
+  }, [refreshHousehold, authLoading]);
 
   return (
     <HouseholdContext.Provider

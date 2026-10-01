@@ -23,6 +23,7 @@ export type HouseholdMemberDetails = {
   joined_at: string;
   email: string;
   name: string;
+  avatar_url?: string | null;
 };
 
 export type UserHousehold = {
@@ -73,7 +74,36 @@ export const getHouseholdMembers = async (householdId: string): Promise<Househol
     .rpc('get_household_members_details', { h_id: householdId });
 
   if (error) throw error;
-  return data as HouseholdMemberDetails[];
+  const members = (data || []) as HouseholdMemberDetails[];
+
+  if (members.length === 0) {
+    return [];
+  }
+
+  try {
+    const userIds = members.map((m) => m.user_id).filter(Boolean);
+    if (userIds.length > 0) {
+      const { data: profiles, error: profilesError } = await insforge.database
+        .from('profiles')
+        .select('id, avatar_url')
+        .in('id', userIds);
+
+      if (!profilesError && Array.isArray(profiles)) {
+        const avatarMap = new Map<string, string | null>();
+        for (const p of profiles) {
+          avatarMap.set(p.id, (p as { id: string; avatar_url?: string | null }).avatar_url ?? null);
+        }
+        return members.map((m) => ({
+          ...m,
+          avatar_url: avatarMap.get(m.user_id) ?? m.avatar_url ?? null,
+        }));
+      }
+    }
+  } catch (enrichError) {
+    console.warn('Could not enrich household members with profiles:', enrichError);
+  }
+
+  return members;
 };
 
 export const getUserHouseholds = async (userId: string): Promise<UserHousehold[]> => {

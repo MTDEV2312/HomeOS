@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Sun, Moon, Monitor, Camera, Loader2 } from 'lucide-react'
+import { Sun, Moon, Monitor, Camera, Loader2, Eye, EyeOff } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/lib/auth-context'
@@ -11,6 +11,34 @@ import { Switch } from '@/components/ui/Switch'
 interface SectionProps {
   title: string
   children: React.ReactNode
+}
+
+interface NotificationPreferences {
+  tasks: boolean
+  expenses: boolean
+  maintenance: boolean
+  shopping: boolean
+}
+
+const DEFAULT_NOTIFS: NotificationPreferences = {
+  tasks: true,
+  expenses: true,
+  maintenance: true,
+  shopping: false,
+}
+
+function extractKeyFromAvatarUrl(url?: string | null): string | null {
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    const pathname = decodeURIComponent(parsed.pathname)
+    const match = pathname.match(/\/objects\/(.+)$/)
+    if (match && match[1]) return match[1]
+  } catch {
+    const match = decodeURIComponent(url).match(/\/objects\/(.+)$/)
+    if (match && match[1]) return match[1]
+  }
+  return null
 }
 
 function Section({ title, children }: SectionProps) {
@@ -32,7 +60,16 @@ export default function Settings() {
 
   const [profile, setProfile] = useState({ name: (user?.profile?.name as string) || '' })
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' })
-  const [notifs, setNotifs] = useState({ tasks: true, expenses: true, maintenance: true, shopping: false })
+  const [showPasswords, setShowPasswords] = useState<{
+    current: boolean
+    next: boolean
+    confirm: boolean
+  }>({
+    current: false,
+    next: false,
+    confirm: false,
+  })
+  const [notifs, setNotifs] = useState<NotificationPreferences>(DEFAULT_NOTIFS)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   useEffect(() => {
@@ -40,6 +77,65 @@ export default function Settings() {
       setProfile({ name: user.profile.name as string })
     }
   }, [user])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const notifPrefsKey = user?.id ? `homeos_notif_prefs_${user.id}` : 'homeos_notif_prefs_guest'
+    let parsedLocal: Partial<NotificationPreferences> | null = null
+
+    try {
+      const rawLocal = localStorage.getItem(notifPrefsKey)
+      if (rawLocal) {
+        parsedLocal = JSON.parse(rawLocal)
+      }
+    } catch (e) {
+      console.error('Error reading notification preferences from localStorage:', e)
+    }
+
+    const cloudPrefs = user?.profile?.notification_preferences as Partial<NotificationPreferences> | undefined
+
+    if (cloudPrefs || parsedLocal) {
+      const merged: NotificationPreferences = {
+        ...DEFAULT_NOTIFS,
+        ...(parsedLocal || {}),
+        ...(cloudPrefs || {}),
+      }
+      setNotifs(merged)
+      try {
+        localStorage.setItem(notifPrefsKey, JSON.stringify(merged))
+      } catch (e) {
+        console.error('Error syncing notification preferences to localStorage:', e)
+      }
+    }
+  }, [user])
+
+  const handleToggleNotification = async (key: keyof NotificationPreferences, checked: boolean) => {
+    const updatedNotifs: NotificationPreferences = {
+      ...notifs,
+      [key]: checked,
+    }
+    setNotifs(updatedNotifs)
+
+    const notifPrefsKey = user?.id ? `homeos_notif_prefs_${user.id}` : 'homeos_notif_prefs_guest'
+    try {
+      localStorage.setItem(notifPrefsKey, JSON.stringify(updatedNotifs))
+    } catch (err) {
+      console.error('Error saving notification preferences to localStorage:', err)
+    }
+
+    if (user && updateProfile) {
+      try {
+        await updateProfile({
+          ...user.profile,
+          notification_preferences: updatedNotifs,
+        })
+      } catch (err) {
+        console.error('Error syncing notification preferences to profile:', err)
+      }
+    }
+    toast('Preferencia guardada.')
+  }
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -54,6 +150,8 @@ export default function Settings() {
       toast('La imagen debe pesar menos de 5MB.')
       return
     }
+
+    const previousKey = (user.profile?.avatar_key as string) || extractKeyFromAvatarUrl(user.profile?.avatar_url as string)
 
     setUploadingAvatar(true)
     toast('Subiendo foto de perfil...')
@@ -76,10 +174,39 @@ export default function Settings() {
 
       const { error: profileError } = await updateProfile({
         avatar_url: uploadData.url,
+        avatar_key: uploadData.key,
       })
 
       if (profileError) {
         throw profileError
+      }
+
+      // Synchronously await the purge of older avatar files
+      try {
+        const keysToDelete = new Set<string>()
+        if (previousKey && previousKey !== uploadData.key) {
+          keysToDelete.add(previousKey)
+        }
+
+        const { data: listData } = await insforge.storage
+          .from('avatars')
+          .list({ prefix: `${user.id}/` })
+
+        if (listData?.objects && listData.objects.length > 0) {
+          for (const obj of listData.objects) {
+            if (obj.key !== uploadData.key) {
+              keysToDelete.add(obj.key)
+            }
+          }
+        }
+
+        if (keysToDelete.size > 0) {
+          await Promise.allSettled(
+            Array.from(keysToDelete).map(key => insforge.storage.from('avatars').remove(key))
+          )
+        }
+      } catch (cleanupErr) {
+        console.warn('Automatic avatar cleanup warning:', cleanupErr)
       }
 
       toast('Foto de perfil actualizada.')
@@ -128,6 +255,7 @@ export default function Settings() {
     }
     toast('Contraseña actualizada.')
     setPasswords({ current: '', next: '', confirm: '' })
+    setShowPasswords({ current: false, next: false, confirm: false })
   }
 
   const displayName = (user?.profile?.name as string) || profile.name || user?.email?.split('@')[0] || 'Usuario'
@@ -180,13 +308,13 @@ export default function Settings() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingAvatar}
-                  className="absolute -bottom-1 -right-1 w-6 h-6 bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-full flex items-center justify-center text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors cursor-pointer"
+                  className="absolute -bottom-1 -right-1 w-6 h-6 bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-full flex items-center justify-center text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors cursor-pointer disabled:opacity-50"
                   title="Cambiar foto de perfil"
                 >
                   <Camera size={11} />
                 </button>
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <div className="text-[14px] font-semibold text-ink dark:text-dark-ink">{displayName}</div>
                 <div className="text-[12px] text-muted dark:text-dark-muted">{displayEmail}</div>
               </div>
@@ -222,22 +350,38 @@ export default function Settings() {
         {/* Security */}
         <Section title="Seguridad">
           <form onSubmit={savePassword} className="space-y-4">
-            {[
-              { label: 'Contraseña actual', key: 'current' },
-              { label: 'Nueva contraseña', key: 'next' },
-              { label: 'Confirmar nueva contraseña', key: 'confirm' },
-            ].map(f => (
-              <div key={f.key}>
-                <label className="block text-[11px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted mb-1.5">{f.label}</label>
-                <input
-                  type="password"
-                  value={passwords[f.key as keyof typeof passwords]}
-                  onChange={e => setPasswords(p => ({ ...p, [f.key]: e.target.value }))}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[13px] text-ink dark:text-dark-ink bg-bg dark:bg-dark-bg placeholder:text-muted/40 focus:outline-none focus:border-olive"
-                />
-              </div>
-            ))}
+            {(
+              [
+                { label: 'Contraseña actual', key: 'current' },
+                { label: 'Nueva contraseña', key: 'next' },
+                { label: 'Confirmar nueva contraseña', key: 'confirm' },
+              ] as const
+            ).map(f => {
+              const isVisible = showPasswords[f.key]
+              return (
+                <div key={f.key}>
+                  <label className="block text-[11px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted mb-1.5">{f.label}</label>
+                  <div className="relative">
+                    <input
+                      type={isVisible ? 'text' : 'password'}
+                      value={passwords[f.key]}
+                      onChange={e => setPasswords(p => ({ ...p, [f.key]: e.target.value }))}
+                      placeholder="••••••••"
+                      className="w-full px-3.5 pr-10 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[13px] text-ink dark:text-dark-ink bg-bg dark:bg-dark-bg placeholder:text-muted/40 focus:outline-none focus:border-olive"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords(p => ({ ...p, [f.key]: !p[f.key] }))}
+                      aria-label={isVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      title={isVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink dark:text-dark-muted dark:hover:text-dark-ink transition-colors cursor-pointer"
+                    >
+                      {isVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
             <div className="flex justify-end">
               <button
                 type="submit"
@@ -252,7 +396,7 @@ export default function Settings() {
         {/* Theme */}
         <Section title="Apariencia">
           <div>
-            <p className="text-[13px] text-muted dark:text-dark-muted mb-4">Elegí cómo querés que se vea HomeOS.</p>
+            <p className="text-[13px] text-muted dark:text-dark-muted mb-4">Elige cómo deseas que se vea HomeOS.</p>
             <div className="grid grid-cols-3 gap-2">
               {([
                 { key: 'light', label: 'Claro', icon: Sun },
@@ -280,20 +424,22 @@ export default function Settings() {
         {/* Notifications */}
         <Section title="Notificaciones">
           <div className="space-y-4">
-            {[
-              { key: 'tasks', label: 'Tareas', desc: 'Tareas asignadas y vencidas' },
-              { key: 'expenses', label: 'Gastos', desc: 'Nuevos gastos registrados' },
-              { key: 'maintenance', label: 'Mantenimiento', desc: 'Servicios próximos o atrasados' },
-              { key: 'shopping', label: 'Compras', desc: 'Cambios en listas de compras' },
-            ].map(n => (
+            {(
+              [
+                { key: 'tasks', label: 'Tareas', desc: 'Tareas asignadas y vencidas' },
+                { key: 'expenses', label: 'Gastos', desc: 'Nuevos gastos registrados' },
+                { key: 'maintenance', label: 'Mantenimiento', desc: 'Servicios próximos o atrasados' },
+                { key: 'shopping', label: 'Compras', desc: 'Cambios en listas de compras' },
+              ] as const
+            ).map(n => (
               <div key={n.key} className="flex items-center justify-between">
                 <div>
                   <div className="text-[13px] font-medium text-ink dark:text-dark-ink">{n.label}</div>
                   <div className="text-[11px] text-muted dark:text-dark-muted">{n.desc}</div>
                 </div>
                 <Switch
-                  checked={Boolean(notifs[n.key as keyof typeof notifs])}
-                  onChange={checked => setNotifs(p => ({ ...p, [n.key]: checked }))}
+                  checked={Boolean(notifs[n.key])}
+                  onChange={checked => handleToggleNotification(n.key, checked)}
                   aria-label={n.label}
                 />
               </div>

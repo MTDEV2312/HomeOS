@@ -86,3 +86,21 @@ export const downloadHouseholdDocument = async (fileKey: string): Promise<Blob> 
   if (error || !data) throw error || new Error('Download failed');
   return data;
 };
+
+export const updateHouseholdDocument = async (
+  id: string,
+  updates: Partial<Pick<HouseholdDocument, 'title' | 'category' | 'related_type' | 'related_id'>>
+): Promise<HouseholdDocument> => {
+  const { data, error } = await insforge.database
+    .from('household_documents')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as HouseholdDocument;
+};

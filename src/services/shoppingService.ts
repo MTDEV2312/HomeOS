@@ -68,6 +68,14 @@ export const updateShoppingList = async (
 };
 
 export const deleteShoppingList = async (listId: string): Promise<void> => {
+  // Defensively delete child items before deleting list to avoid foreign key constraint errors
+  const { error: itemsError } = await insforge.database
+    .from('shopping_list_items')
+    .delete()
+    .eq('list_id', listId);
+
+  if (itemsError) throw itemsError;
+
   const { error } = await insforge.database
     .from('shopping_lists')
     .delete()
@@ -125,11 +133,17 @@ export const addShoppingListItem = async (
 
 export const updateShoppingListItem = async (
   itemId: string,
-  updates: Partial<ShoppingListItem>
+  updates: Partial<ShoppingListItem> & { name?: string }
 ): Promise<ShoppingListItem> => {
+  const dbUpdates: any = { ...updates, updated_at: new Date().toISOString() };
+  if (dbUpdates.name !== undefined) {
+    dbUpdates.item_name = dbUpdates.name;
+    delete dbUpdates.name;
+  }
+
   const { data, error } = await insforge.database
     .from('shopping_list_items')
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update(dbUpdates)
     .eq('id', itemId)
     .select()
     .single();
