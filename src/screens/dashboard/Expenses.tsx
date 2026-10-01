@@ -14,6 +14,7 @@ import {
   Calendar,
   Check,
   RotateCcw,
+  Pencil,
 } from 'lucide-react'
 import {
   AreaChart,
@@ -32,11 +33,14 @@ import { useAuth } from '@/context/AuthContext'
 import {
   getExpenses,
   addExpense,
+  updateExpense,
   deleteExpense,
   getBudgets,
   getMonthlyBudget,
   setMonthlyBudget,
+  getExpenseCategories,
   Budget,
+  ExpenseCategory,
 } from '@/services/expenseService'
 import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService'
 import {
@@ -56,7 +60,9 @@ interface ExpenseDisplayItem {
   rawDate: string
   description: string
   category: string
+  categoryId?: string | null
   paidBy: string
+  payerId?: string | null
   amount: number
 }
 
@@ -75,6 +81,8 @@ export default function Expenses() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>(currentPeriodKey)
 
   const [allExpenses, setAllExpenses] = useState<ExpenseDisplayItem[]>([])
+  const [editingExpense, setEditingExpense] = useState<ExpenseDisplayItem | null>(null)
+  const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [allBudgets, setAllBudgets] = useState<Budget[]>([])
   const [budgetTotal, setBudgetTotal] = useState(0)
   const [members, setMembers] = useState<HouseholdMemberDetails[]>([])
@@ -94,20 +102,22 @@ export default function Expenses() {
     date: '',
   })
 
-  // Load all expenses, budgets and members
+  // Load all expenses, budgets, members and categories
   const loadData = useCallback(async () => {
     if (!currentHousehold) return
     setLoading(true)
 
     try {
-      const [expData, budgetData, memberData] = await Promise.all([
+      const [expData, budgetData, memberData, categoryData] = await Promise.all([
         getExpenses(currentHousehold.id).catch(() => []),
         getBudgets(currentHousehold.id).catch(() => []),
         getHouseholdMembers(currentHousehold.id).catch(() => []),
+        getExpenseCategories(currentHousehold.id).catch(() => []),
       ])
 
       if (memberData) setMembers(memberData)
       if (budgetData) setAllBudgets(budgetData)
+      if (categoryData) setCategories(categoryData)
 
       const memberMap = new Map(memberData?.map(m => [m.user_id, m.name]) || [])
 
@@ -119,7 +129,9 @@ export default function Expenses() {
             rawDate: d.date || d.created_at,
             description: d.description,
             category: d.category?.name || 'Varios',
+            categoryId: d.category_id || null,
             paidBy: d.payer_id === user?.id ? 'Tú' : memberMap.get(d.payer_id) || 'Miembro',
+            payerId: d.payer_id || null,
             amount: d.amount,
           }))
         )
@@ -172,7 +184,7 @@ export default function Expenses() {
       const periodKey = getPeriodKey(e.rawDate, userTimeZone)
       const [y, m] = periodKey.split('-').map(Number)
       const d = new Date(Date.UTC(y, m - 1, 15))
-      const mName = d.toLocaleDateString('es-AR', { timeZone: 'UTC', month: 'short' })
+      const mName = d.toLocaleDateString('es-419', { timeZone: 'UTC', month: 'short' })
       const capitalized = mName.charAt(0).toUpperCase() + mName.slice(1).replace('.', '')
       monthsMap[capitalized] = (monthsMap[capitalized] || 0) + e.amount
     })
@@ -254,49 +266,120 @@ export default function Expenses() {
     setSelectedPeriod(`${nextYear}-${String(nextMonth).padStart(2, '0')}`)
   }
 
-  // Save new expense
+  const handleOpenCreate = () => {
+    setEditingExpense(null)
+    setForm({
+      amount: '',
+      description: '',
+      category: categories[0]?.id || 'Alimentación',
+      paidBy: user?.id || '',
+      note: '',
+      date: new Date().toISOString().split('T')[0],
+    })
+    setDrawerOpen(true)
+  }
+
+  const handleEdit = (item: ExpenseDisplayItem) => {
+    setEditingExpense(item)
+    const matchedCat = categories.find(c => c.id === item.categoryId || c.name === item.category)
+    const initialCat = matchedCat ? matchedCat.id : (item.categoryId || item.category || '')
+    setForm({
+      amount: item.amount.toString(),
+      description: item.description,
+      category: initialCat,
+      paidBy: item.payerId || user?.id || '',
+      note: '',
+      date: item.rawDate ? item.rawDate.split('T')[0] : new Date().toISOString().split('T')[0],
+    })
+    setDrawerOpen(true)
+  }
+
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false)
+    setEditingExpense(null)
+  }
+
+  // Save expense (Create or Edit)
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!currentHousehold || !user) return
 
     const numericAmount = Number(form.amount.replace(/\D/g, '')) || 0
     if (numericAmount <= 0) {
-      toast('Ingresá un monto válido.')
+      toast('Ingresa un monto válido.')
       return
     }
 
     const payerId = form.paidBy || user.id
     const payerName = payerId === user.id ? 'Tú' : (members.find(m => m.user_id === payerId)?.name || 'Miembro')
 
+    const selectedCat = categories.find(c => c.id === form.category || c.name === form.category)
+    const resolvedCategoryId = selectedCat ? selectedCat.id : (form.category || null)
+    const resolvedCategoryName = selectedCat ? selectedCat.name : (form.category || 'Varios')
+
     // Convert date input to full UTC ISO string to ensure accurate timezone projection
     const utcDate = toUTCISOString(form.date)
 
-    try {
-      const created = await addExpense(currentHousehold.id, payerId, {
-        amount: numericAmount,
-        description: form.description,
-        date: utcDate,
-        category_id: null,
-        receipt_url: null,
-      })
+    if (editingExpense) {
+      try {
+        const updated = await updateExpense(editingExpense.id, {
+          amount: numericAmount,
+          description: form.description,
+          category_id: resolvedCategoryId,
+          payer_id: payerId,
+          date: utcDate,
+        })
 
-      const newItem: ExpenseDisplayItem = {
-        id: created.id,
-        date: formatLocalDate(created.date || utcDate, userTimeZone),
-        rawDate: created.date || utcDate,
-        description: created.description,
-        category: form.category,
-        paidBy: payerName,
-        amount: created.amount,
+        const updatedItem: ExpenseDisplayItem = {
+          id: editingExpense.id,
+          date: formatLocalDate(updated.date || utcDate, userTimeZone),
+          rawDate: updated.date || utcDate,
+          description: form.description,
+          category: resolvedCategoryName,
+          categoryId: resolvedCategoryId,
+          paidBy: payerName,
+          payerId: payerId,
+          amount: numericAmount,
+        }
+
+        setAllExpenses(prev => prev.map(item => item.id === editingExpense.id ? updatedItem : item))
+        handleCloseDrawer()
+        toast('Gasto actualizado correctamente.')
+        setForm({ amount: '', description: '', category: categories[0]?.id || 'Alimentación', paidBy: '', note: '', date: '' })
+      } catch (err) {
+        console.error('Failed to update expense:', err)
+        toast('Error al actualizar gasto en la base de datos.')
       }
+    } else {
+      try {
+        const created = await addExpense(currentHousehold.id, payerId, {
+          amount: numericAmount,
+          description: form.description,
+          date: utcDate,
+          category_id: resolvedCategoryId,
+          receipt_url: null,
+        })
 
-      setAllExpenses(prev => [newItem, ...prev])
-      setDrawerOpen(false)
-      toast('Gasto registrado con éxito en UTC.')
-      setForm({ amount: '', description: '', category: 'Alimentación', paidBy: '', note: '', date: '' })
-    } catch (err) {
-      console.error('Failed to sync expense to backend:', err)
-      toast('Error al registrar gasto en la base de datos.')
+        const newItem: ExpenseDisplayItem = {
+          id: created.id,
+          date: formatLocalDate(created.date || utcDate, userTimeZone),
+          rawDate: created.date || utcDate,
+          description: created.description,
+          category: resolvedCategoryName,
+          categoryId: resolvedCategoryId,
+          paidBy: payerName,
+          payerId: payerId,
+          amount: created.amount,
+        }
+
+        setAllExpenses(prev => [newItem, ...prev])
+        handleCloseDrawer()
+        toast('Gasto registrado correctamente.')
+        setForm({ amount: '', description: '', category: categories[0]?.id || 'Alimentación', paidBy: '', note: '', date: '' })
+      } catch (err) {
+        console.error('Failed to sync expense to backend:', err)
+        toast('Error al registrar gasto en la base de datos.')
+      }
     }
   }
 
@@ -319,7 +402,7 @@ export default function Expenses() {
 
     const amount = Number(newBudgetAmount.replace(/\D/g, ''))
     if (isNaN(amount) || amount <= 0) {
-      toast('Ingresá un monto de presupuesto válido.')
+      toast('Ingresa un monto de presupuesto válido.')
       return
     }
 
@@ -334,7 +417,7 @@ export default function Expenses() {
       })
       setBudgetTotal(amount)
       setBudgetModalOpen(false)
-      toast(`Presupuesto para ${formatPeriodLabel(selectedPeriod)} actualizado: $${amount.toLocaleString('es-AR')}`)
+      toast(`Presupuesto para ${formatPeriodLabel(selectedPeriod)} actualizado: $${amount.toLocaleString('es-EC')}`)
     } catch (err) {
       console.error('Error updating budget:', err)
       toast('Error al guardar presupuesto mensual.')
@@ -423,17 +506,10 @@ export default function Expenses() {
             </button>
 
             <button
-              onClick={() => {
-                setForm(p => ({
-                  ...p,
-                  paidBy: user?.id || '',
-                  date: new Date().toISOString().split('T')[0],
-                }))
-                setDrawerOpen(true)
-              }}
+              onClick={handleOpenCreate}
               className="flex items-center gap-2 px-4 py-2.5 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[13px] font-medium hover:opacity-80 transition-opacity"
             >
-              <Plus size={14} /> Registrar gasto
+              <Plus size={14} /> Nuevo gasto
             </button>
           </div>
         </div>
@@ -498,22 +574,22 @@ export default function Expenses() {
             {[
               {
                 label: `Presupuesto (${selectedPeriodLabel})`,
-                value: budgetTotal > 0 ? `$ ${budgetTotal.toLocaleString('es-AR')}` : 'Sin límite',
-                sub: budgetTotal > 0 ? 'Asignado a este mes' : 'Configurá un presupuesto',
+                value: budgetTotal > 0 ? `$ ${budgetTotal.toLocaleString('es-EC')}` : 'Sin límite',
+                sub: budgetTotal > 0 ? 'Asignado a este mes' : 'Configura un presupuesto',
               },
               {
                 label: 'Gastado en el período',
-                value: `$ ${totalSpent.toLocaleString('es-AR')}`,
+                value: `$ ${totalSpent.toLocaleString('es-EC')}`,
                 sub: `${currentMonthExpenses.length} transacciones`,
               },
               {
                 label: 'Presupuesto disponible',
-                value: budgetTotal > 0 ? `$ ${available.toLocaleString('es-AR')}` : '—',
+                value: budgetTotal > 0 ? `$ ${available.toLocaleString('es-EC')}` : '—',
                 sub: budgetTotal > 0 ? (available === 0 ? 'Presupuesto agotado' : 'Restante') : 'Ilimitado',
               },
               {
                 label: 'Promedio diario estimado',
-                value: `$ ${avgDaily.toLocaleString('es-AR')}`,
+                value: `$ ${avgDaily.toLocaleString('es-EC')}`,
                 sub: `Calculado sobre ${daysInMonth} días`,
               },
             ].map(m => (
@@ -550,8 +626,8 @@ export default function Expenses() {
               </div>
               <div className="flex justify-between text-[11px] font-mono text-muted dark:text-dark-muted">
                 <span>$ 0</span>
-                <span>Gastado: $ {totalSpent.toLocaleString('es-AR')}</span>
-                <span>Límite: $ {budgetTotal.toLocaleString('es-AR')}</span>
+                <span>Gastado: $ {totalSpent.toLocaleString('es-EC')}</span>
+                <span>Límite: $ {budgetTotal.toLocaleString('es-EC')}</span>
               </div>
             </div>
           )}
@@ -564,7 +640,7 @@ export default function Expenses() {
                   Historial de los últimos 6 meses
                 </h3>
                 <p className="text-[12px] text-muted dark:text-dark-muted mt-0.5">
-                  Hacé clic en cualquier mes para consultar su detalle y transacciones completas.
+                  Haz clic en cualquier mes para consultar su detalle y transacciones completas.
                 </p>
               </div>
             </div>
@@ -594,16 +670,16 @@ export default function Expenses() {
                     <div className="space-y-1 text-[11px]">
                       <div className="flex justify-between text-muted dark:text-dark-muted">
                         <span>Gastado:</span>
-                        <span className="font-mono font-medium text-ink dark:text-dark-ink">$ {m.spent.toLocaleString('es-AR')}</span>
+                        <span className="font-mono font-medium text-ink dark:text-dark-ink">$ {m.spent.toLocaleString('es-EC')}</span>
                       </div>
                       <div className="flex justify-between text-muted dark:text-dark-muted">
                         <span>Presupuesto:</span>
-                        <span className="font-mono">{m.budget > 0 ? `$ ${m.budget.toLocaleString('es-AR')}` : '—'}</span>
+                        <span className="font-mono">{m.budget > 0 ? `$ ${m.budget.toLocaleString('es-EC')}` : '—'}</span>
                       </div>
                       <div className="flex justify-between text-muted dark:text-dark-muted">
                         <span>Restante:</span>
                         <span className={`font-mono ${m.remaining <= 0 && m.budget > 0 ? 'text-red-500 font-medium' : ''}`}>
-                          {m.budget > 0 ? `$ ${m.remaining.toLocaleString('es-AR')}` : '—'}
+                          {m.budget > 0 ? `$ ${m.remaining.toLocaleString('es-EC')}` : '—'}
                         </span>
                       </div>
                       <div className="pt-1.5 border-t border-line/60 dark:border-dark-line/60 flex justify-between items-center text-[10px] text-muted">
@@ -645,7 +721,7 @@ export default function Expenses() {
                     <YAxis hide />
                     <Tooltip
                       contentStyle={{ background: 'var(--color-surface, #fff)', border: '1px solid #D9D8D0', borderRadius: '4px', fontSize: '12px' }}
-                      formatter={(v: unknown) => { const n = Number(v ?? 0); return [`$ ${n.toLocaleString('es-AR')}`, 'Total'] as [string, string]}}
+                      formatter={(v: unknown) => { const n = Number(v ?? 0); return [`$ ${n.toLocaleString('es-EC')}`, 'Total'] as [string, string]}}
                     />
                     <Area type="monotone" dataKey="total" stroke="#9D9652" strokeWidth={1.5} fill="url(#grad)" dot={false} />
                   </AreaChart>
@@ -671,7 +747,7 @@ export default function Expenses() {
                       <YAxis hide />
                       <Tooltip
                         contentStyle={{ background: 'var(--color-surface, #fff)', border: '1px solid #D9D8D0', borderRadius: '4px', fontSize: '11px' }}
-                        formatter={(v: unknown) => { const n = Number(v ?? 0); return [`$ ${n.toLocaleString('es-AR')}`, ''] as [string, string]}}
+                        formatter={(v: unknown) => { const n = Number(v ?? 0); return [`$ ${n.toLocaleString('es-EC')}`, ''] as [string, string]}}
                       />
                       <Bar dataKey="value" radius={[2, 2, 0, 0]}>
                         {categoryData.map((_, i) => <Cell key={i} fill={catColors[i % catColors.length]} />)}
@@ -685,7 +761,7 @@ export default function Expenses() {
                           <span className="w-2 h-2 rounded-full" style={{ background: catColors[i % catColors.length] }} />
                           <span className="text-muted dark:text-dark-muted">{c.name}</span>
                         </div>
-                        <span className="font-mono text-ink dark:text-dark-ink">$ {c.value.toLocaleString('es-AR')}</span>
+                        <span className="font-mono text-ink dark:text-dark-ink">$ {c.value.toLocaleString('es-EC')}</span>
                       </div>
                     ))}
                   </div>
@@ -712,61 +788,90 @@ export default function Expenses() {
             </div>
 
             <div className="border border-line dark:border-dark-line rounded-[4px] overflow-hidden bg-surface dark:bg-dark-surface">
-              <div className="hidden sm:grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-4 px-5 py-3 border-b border-line dark:border-dark-line bg-bg dark:bg-dark-bg text-[10px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted">
-                <span>Fecha (Local)</span>
-                <span>Descripción</span>
-                <span>Categoría</span>
-                <span>Pagado por</span>
-                <span className="text-right">Monto</span>
-                <span></span>
-              </div>
               {currentMonthExpenses.length === 0 ? (
                 <div className="py-16 text-center">
                   <p className="text-[15px] font-medium text-ink dark:text-dark-ink mb-1">
                     No hay gastos en {selectedPeriodLabel}.
                   </p>
                   <p className="text-[13px] text-muted dark:text-dark-muted max-w-md mx-auto">
-                    El total de este período inicia en <strong>$ 0</strong>. Podés registrar nuevos gastos con el botón superior.
+                    El total de este período inicia en <strong>$ 0</strong>. Puedes registrar nuevos gastos con el botón superior.
                   </p>
                 </div>
               ) : (
-                currentMonthExpenses.map((exp, i) => (
-                  <div
-                    key={exp.id}
-                    className={`flex sm:grid sm:grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-4 px-5 py-3.5 ${
-                      i > 0 ? 'border-t border-line dark:border-dark-line' : ''
-                    } hover:bg-bg dark:hover:bg-dark-bg transition-colors group`}
-                  >
-                    <span className="font-mono text-[11px] text-muted dark:text-dark-muted flex-shrink-0">{exp.date}</span>
-                    <span className="text-[13px] font-medium text-ink dark:text-dark-ink flex-1 min-w-0 truncate">{exp.description}</span>
-                    <span className="text-[11px] text-muted dark:text-dark-muted hidden sm:block">{exp.category}</span>
-                    <span className="text-[11px] text-muted dark:text-dark-muted hidden sm:block">{exp.paidBy}</span>
-                    <span className="font-mono text-[14px] font-medium text-ink dark:text-dark-ink text-right flex-shrink-0">
-                      $ {exp.amount.toLocaleString('es-AR')}
-                    </span>
-                    <button
-                      onClick={() => handleDelete(exp.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-muted hover:text-terracotta dark:hover:text-dark-terracotta transition-opacity cursor-pointer"
-                      title="Eliminar gasto"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                ))
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[640px]">
+                    <thead>
+                      <tr className="border-b border-line dark:border-dark-line bg-bg dark:bg-dark-bg text-[10px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted">
+                        <th className="py-3 px-5 w-32 font-mono text-[12px]">Fecha</th>
+                        <th className="py-3 px-5 font-medium text-ink dark:text-dark-ink">Descripción</th>
+                        <th className="py-3 px-5 w-36">Categoría</th>
+                        <th className="py-3 px-5 w-36">Pagado por</th>
+                        <th className="py-3 px-5 w-28 text-right font-mono font-medium">Monto</th>
+                        <th className="py-3 px-5 w-20 text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line dark:divide-dark-line">
+                      {currentMonthExpenses.map(exp => (
+                        <tr
+                          key={exp.id}
+                          className="hover:bg-bg dark:hover:bg-dark-bg transition-colors group"
+                        >
+                          <td className="py-3.5 px-5 w-32 font-mono text-[12px] text-muted dark:text-dark-muted whitespace-nowrap">
+                            {exp.date}
+                          </td>
+                          <td className="py-3.5 px-5 font-medium text-[13px] text-ink dark:text-dark-ink">
+                            {exp.description}
+                          </td>
+                          <td className="py-3.5 px-5 w-36 whitespace-nowrap">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-line/60 dark:bg-dark-line/60 text-ink dark:text-dark-ink">
+                              {exp.category}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-5 w-36 text-[12px] text-muted dark:text-dark-muted whitespace-nowrap">
+                            {exp.paidBy}
+                          </td>
+                          <td className="py-3.5 px-5 w-28 text-right font-mono text-[14px] font-medium text-ink dark:text-dark-ink whitespace-nowrap">
+                            $ {exp.amount.toLocaleString('es-EC')}
+                          </td>
+                          <td className="py-3.5 px-5 w-20 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleEdit(exp)}
+                                className="p-1 text-muted hover:text-ink dark:hover:text-dark-ink transition-colors cursor-pointer"
+                                title="Editar gasto"
+                              >
+                                <Pencil size={13} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(exp.id)}
+                                className="p-1 text-muted hover:text-terracotta dark:hover:text-dark-terracotta transition-colors cursor-pointer"
+                                title="Eliminar gasto"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
         </>
       )}
 
-      {/* Drawer: Add Expense */}
+      {/* Drawer: Add / Edit Expense */}
       {drawerOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-ink/20 dark:bg-black/40" onClick={() => setDrawerOpen(false)} />
+          <div className="absolute inset-0 bg-ink/20 dark:bg-black/40" onClick={handleCloseDrawer} />
           <div className="relative w-full max-w-md h-full bg-surface dark:bg-dark-surface border-l border-line dark:border-dark-line shadow-2xl flex flex-col overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-5 border-b border-line dark:border-dark-line">
-              <h3 className="text-[16px] font-semibold text-ink dark:text-dark-ink">Registrar gasto</h3>
-              <button onClick={() => setDrawerOpen(false)} className="text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink"><X size={18} /></button>
+              <h3 className="text-[16px] font-semibold text-ink dark:text-dark-ink">
+                {editingExpense ? 'Editar gasto' : 'Registrar gasto'}
+              </h3>
+              <button onClick={handleCloseDrawer} className="text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink"><X size={18} /></button>
             </div>
             <form onSubmit={save} className="flex-1 flex flex-col">
               <div className="flex-1 px-6 py-6 space-y-5">
@@ -802,7 +907,20 @@ export default function Expenses() {
                       onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
                       className="w-full px-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[13px] text-ink dark:text-dark-ink bg-bg dark:bg-dark-bg focus:outline-none focus:border-olive appearance-none"
                     >
-                      {defaultCategories.map(c => <option key={c}>{c}</option>)}
+                      {categories.length > 0 ? (
+                        <>
+                          {categories.map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                          {form.category && !categories.some(c => c.id === form.category) && (
+                            <option value={form.category}>{form.category}</option>
+                          )}
+                        </>
+                      ) : (
+                        defaultCategories.map(c => <option key={c} value={c}>{c}</option>)
+                      )}
                     </select>
                     <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
                   </div>
@@ -839,8 +957,10 @@ export default function Expenses() {
                 </div>
               </div>
               <div className="px-6 py-5 border-t border-line dark:border-dark-line flex gap-3">
-                <button type="button" onClick={() => setDrawerOpen(false)} className="flex-1 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[13px] text-muted dark:text-dark-muted hover:text-ink transition-colors">Cancelar</button>
-                <button type="submit" className="flex-1 py-2.5 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[13px] font-medium hover:opacity-80 transition-opacity">Guardar gasto</button>
+                <button type="button" onClick={handleCloseDrawer} className="flex-1 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[13px] text-muted dark:text-dark-muted hover:text-ink transition-colors">Cancelar</button>
+                <button type="submit" className="flex-1 py-2.5 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[13px] font-medium hover:opacity-80 transition-opacity">
+                  {editingExpense ? 'Guardar cambios' : 'Guardar gasto'}
+                </button>
               </div>
             </form>
           </div>

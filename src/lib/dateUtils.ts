@@ -114,21 +114,33 @@ export function formatLocalDate(
 ): string {
   if (!dateInput) return '-'
   const tz = timeZone || getUserTimeZone()
-  const d = dateInput instanceof Date ? dateInput : new Date(dateInput)
+  let d: Date
+  if (dateInput instanceof Date) {
+    d = dateInput
+  } else if (typeof dateInput === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+      const [y, m, day] = dateInput.split('-').map(Number)
+      d = new Date(Date.UTC(y, m - 1, day, 12, 0, 0))
+    } else {
+      d = new Date(dateInput)
+    }
+  } else {
+    d = new Date(dateInput)
+  }
   if (isNaN(d.getTime())) return String(dateInput)
 
   const defaultOptions: Intl.DateTimeFormatOptions = {
     timeZone: tz,
     day: '2-digit',
-    month: 'short',
+    month: '2-digit',
     year: 'numeric',
     ...options,
   }
 
   try {
-    return new Intl.DateTimeFormat('es-AR', defaultOptions).format(d)
+    return new Intl.DateTimeFormat('es-EC', defaultOptions).format(d)
   } catch {
-    return d.toLocaleDateString()
+    return d.toLocaleDateString('es-EC')
   }
 }
 
@@ -162,12 +174,12 @@ export function getLastNMonths(count = 6, referenceDate = new Date(), timeZone?:
     const key = `${year}-${String(month).padStart(2, '0')}`
     const dateForFormatting = new Date(Date.UTC(year, month - 1, 15))
 
-    const labelFormatter = new Intl.DateTimeFormat('es-AR', {
+    const labelFormatter = new Intl.DateTimeFormat('es-419', {
       timeZone: 'UTC',
       month: 'long',
       year: 'numeric',
     })
-    const shortFormatter = new Intl.DateTimeFormat('es-AR', {
+    const shortFormatter = new Intl.DateTimeFormat('es-419', {
       timeZone: 'UTC',
       month: 'short',
       year: '2-digit',
@@ -197,7 +209,7 @@ export function formatPeriodLabel(periodKey: string): string {
   const [y, m] = periodKey.split('-').map(Number)
   if (!y || !m) return periodKey
   const d = new Date(Date.UTC(y, m - 1, 15))
-  const formatter = new Intl.DateTimeFormat('es-AR', {
+  const formatter = new Intl.DateTimeFormat('es-419', {
     timeZone: 'UTC',
     month: 'long',
     year: 'numeric',
