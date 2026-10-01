@@ -43,6 +43,28 @@ export interface DocumentDisplayItem {
 
 const categories = ['Todos', 'Financieros', 'Legales', 'Garantías', 'Manuales', 'Médicos', 'Identificación', 'Otros']
 
+// Documents' file_url values are served from the configured storage backend.
+// Derive the allowed host(s) from that same configuration rather than trusting the URL blindly.
+const ALLOWED_HOSTS: string[] = (() => {
+  try {
+    const base = process.env.NEXT_PUBLIC_INSFORGE_URL || ''
+    return base ? [new URL(base).hostname] : []
+  } catch {
+    return []
+  }
+})()
+
+function isSafeExternalUrl(url: string | undefined, allowedHosts: string[]) {
+  if (!url) return false
+  try {
+    const parsed = new URL(String(url).replace(/[\t\n\r]/g, ''))
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false
+    return allowedHosts.some(h => parsed.hostname === h || parsed.hostname.endsWith('.' + h))
+  } catch {
+    return false
+  }
+}
+
 const catColor: Record<string, string> = {
   Financieros: 'bg-olive-soft text-olive dark:bg-dark-surface dark:text-dark-olive',
   Legales: 'bg-softblue-bg text-ink dark:bg-dark-surface dark:text-dark-ink',
@@ -550,6 +572,80 @@ export default function Documents() {
                 </tbody>
               </table>
             </div>
+
+            {filtered.length === 0 ? (
+              <div className="py-16 text-center">
+                <p className="text-[15px] text-ink dark:text-dark-ink mb-1">Aún no has guardado documentos.</p>
+                <p className="text-[13px] text-muted dark:text-dark-muted">Subí garantías, facturas, contratos y más con el botón superior.</p>
+              </div>
+            ) : (
+              filtered.map((doc, i) => (
+                <div
+                  key={doc.id}
+                  className={`flex lg:grid lg:grid-cols-[auto_1fr_1fr_auto_auto_auto] items-center gap-4 px-5 py-4 ${
+                    i > 0 ? 'border-t border-line dark:border-dark-line' : ''
+                  } hover:bg-bg dark:hover:bg-dark-bg transition-colors group`}
+                >
+                  <div className="w-8 h-8 bg-bg dark:bg-dark-bg rounded-[4px] flex items-center justify-center flex-shrink-0 border border-line dark:border-dark-line">
+                    {['JPG', 'JPEG', 'PNG', 'WEBP'].includes(doc.type) ? (
+                      <ImageIcon size={14} className="text-muted dark:text-dark-muted" />
+                    ) : (
+                      <FileText size={14} className="text-muted dark:text-dark-muted" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-medium text-ink dark:text-dark-ink truncate">{doc.name}</div>
+                    <div className="text-[11px] text-muted dark:text-dark-muted mt-0.5 font-mono">{doc.type} · {doc.size}</div>
+                  </div>
+                  <span className={`hidden lg:inline-flex text-[10px] font-medium px-2 py-0.5 rounded ${catColor[doc.category] || catColor.Otros}`}>
+                    {doc.category}
+                  </span>
+                  <span className="hidden lg:block font-mono text-[11px] text-muted dark:text-dark-muted">{doc.date}</span>
+                  <div className="hidden lg:block">
+                    {doc.status && (
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                        doc.status === 'Vigente'
+                          ? 'text-olive bg-olive-soft dark:bg-dark-olive-soft dark:text-dark-olive'
+                          : 'text-sand bg-sand-bg dark:bg-dark-surface'
+                      }`}>
+                        {doc.status}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 ml-auto lg:ml-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {doc.file_url && (
+                      <>
+                        <button
+                          onClick={() => setPreview(doc)}
+                          className="p-1.5 text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors"
+                          title="Ver"
+                        >
+                          <Eye size={13} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (isSafeExternalUrl(doc.file_url, ALLOWED_HOSTS)) {
+                              window.open(doc.file_url, '_blank')
+                            }
+                          }}
+                          className="p-1.5 text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors"
+                          title="Descargar"
+                        >
+                          <Download size={13} />
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => handleDelete(doc.id, doc.file_key)}
+                      className="p-1.5 text-muted dark:text-dark-muted hover:text-terracotta dark:hover:text-dark-terracotta transition-colors"
+                      title="Eliminar"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </>
       )}

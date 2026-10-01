@@ -160,6 +160,10 @@ export default function Settings() {
       const fileExt = file.name.split('.').pop() || 'jpg'
       const filePath = `${user.id}/avatar_${Date.now()}.${fileExt}`
 
+      if (filePath.includes('..')) {
+        throw new Error('Invalid file path')
+      }
+
       const { data: uploadData, error: uploadError } = await insforge.storage
         .from('avatars')
         .upload(filePath, file)

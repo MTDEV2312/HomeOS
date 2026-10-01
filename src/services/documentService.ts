@@ -35,6 +35,7 @@ export const addHouseholdDocument = async (
   const fileExt = file.name.split('.').pop();
   const filePath = `${payload.household_id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
   
+  if (filePath.includes('..')) throw new Error('Invalid file path');
   const { data: uploadData, error: uploadError } = await insforge.storage
     .from('household-documents')
     .upload(filePath, file);
@@ -60,6 +61,7 @@ export const addHouseholdDocument = async (
 
 export const deleteHouseholdDocument = async (id: string, fileKey: string): Promise<void> => {
   // 1. Delete from storage
+  if (fileKey.includes('..')) throw new Error('Invalid file key');
   const { error: storageError } = await insforge.storage
     .from('household-documents')
     .remove(fileKey);
@@ -76,6 +78,7 @@ export const deleteHouseholdDocument = async (id: string, fileKey: string): Prom
 };
 
 export const downloadHouseholdDocument = async (fileKey: string): Promise<Blob> => {
+  if (fileKey.includes('..')) throw new Error('Invalid file key');
   const { data, error } = await insforge.storage
     .from('household-documents')
     .download(fileKey);
