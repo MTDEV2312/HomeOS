@@ -69,38 +69,66 @@ export const joinHousehold = async (inviteCode: string): Promise<Household> => {
   return data as Household;
 };
 
+const avatarCache = new Map<string, string | null>();
+
+export const invalidateAvatarCache = (userId?: string) => {
+  if (userId) {
+    avatarCache.delete(userId);
+  } else {
+    avatarCache.clear();
+  }
+};
+
 export const getHouseholdMembers = async (householdId: string): Promise<HouseholdMemberDetails[]> => {
   const { data, error } = await insforge.database
     .rpc('get_household_members_details', { h_id: householdId });
 
   if (error) throw error;
-  const members = (data || []) as HouseholdMemberDetails[];
+  const rawMembers = (data || []) as HouseholdMemberDetails[];
 
-  if (members.length === 0) {
+  if (rawMembers.length === 0) {
     return [];
   }
 
-  try {
-    const userIds = members.map((m) => m.user_id).filter(Boolean);
-    if (userIds.length > 0) {
-      const { data: profiles, error: profilesError } = await insforge.database
-        .from('profiles')
-        .select('id, avatar_url')
-        .in('id', userIds);
+  const members = rawMembers.map((m) => ({ ...m }));
+  const missingUserIds: string[] = [];
 
-      if (!profilesError && Array.isArray(profiles)) {
-        const avatarMap = new Map<string, string | null>();
-        for (const p of profiles) {
-          avatarMap.set(p.id, (p as { id: string; avatar_url?: string | null }).avatar_url ?? null);
-        }
-        return members.map((m) => ({
-          ...m,
-          avatar_url: avatarMap.get(m.user_id) ?? m.avatar_url ?? null,
-        }));
-      }
+  for (const m of members) {
+    if (m.avatar_url) {
+      avatarCache.set(m.user_id, m.avatar_url);
+    } else if (avatarCache.has(m.user_id)) {
+      m.avatar_url = avatarCache.get(m.user_id) || null;
+    } else if (m.user_id) {
+      missingUserIds.push(m.user_id);
     }
-  } catch (enrichError) {
-    console.warn('Could not enrich household members with profiles:', enrichError);
+  }
+
+  const uniqueMissingIds = Array.from(new Set(missingUserIds));
+
+  if (uniqueMissingIds.length > 0) {
+    try {
+      const results = await Promise.allSettled(
+        uniqueMissingIds.map((userId) => insforge.auth.getProfile(userId))
+      );
+
+      results.forEach((res, index) => {
+        const userId = uniqueMissingIds[index];
+        if (res.status === 'fulfilled' && !res.value.error && res.value.data?.profile) {
+          const avatarUrl = res.value.data.profile.avatar_url ?? null;
+          avatarCache.set(userId, avatarUrl);
+        } else {
+          avatarCache.set(userId, null);
+        }
+      });
+
+      for (const m of members) {
+        if (!m.avatar_url && avatarCache.has(m.user_id)) {
+          m.avatar_url = avatarCache.get(m.user_id) || null;
+        }
+      }
+    } catch (enrichError) {
+      console.warn('Could not enrich household members with auth profiles:', enrichError);
+    }
   }
 
   return members;
