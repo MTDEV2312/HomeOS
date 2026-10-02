@@ -419,13 +419,13 @@ export default function Documents() {
   }
 
   return (
-    <div className="px-6 lg:px-10 py-8 max-w-[1280px] mx-auto">
+    <div className="px-4 sm:px-6 lg:px-10 py-6 sm:py-8 max-w-[1280px] mx-auto">
       {/* Header */}
       <div className="mb-10 border-b border-line dark:border-dark-line pb-8">
         <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted dark:text-dark-muted mb-2">Hogar</p>
-        <div className="flex items-end justify-between gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
           <div>
-            <h1 className="text-[42px] lg:text-[56px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">DOCUMENTOS</h1>
+            <h1 className="text-[32px] sm:text-[42px] lg:text-[56px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">DOCUMENTOS</h1>
             <p className="text-[14px] text-muted dark:text-dark-muted mt-3">Todo lo importante de tu hogar, en un solo lugar.</p>
           </div>
           <button
@@ -444,7 +444,7 @@ export default function Documents() {
       ) : (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-px bg-line dark:bg-dark-line rounded-[4px] overflow-hidden mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-line dark:bg-dark-line rounded-[4px] overflow-hidden mb-8">
             {[
               { label: 'Total de documentos', value: docs.length },
               { label: 'Por vencer', value: docs.filter(d => d.status === 'Vigente' && d.expiry).length },
@@ -572,80 +572,6 @@ export default function Documents() {
                 </tbody>
               </table>
             </div>
-
-            {filtered.length === 0 ? (
-              <div className="py-16 text-center">
-                <p className="text-[15px] text-ink dark:text-dark-ink mb-1">Aún no has guardado documentos.</p>
-                <p className="text-[13px] text-muted dark:text-dark-muted">Subí garantías, facturas, contratos y más con el botón superior.</p>
-              </div>
-            ) : (
-              filtered.map((doc, i) => (
-                <div
-                  key={doc.id}
-                  className={`flex lg:grid lg:grid-cols-[auto_1fr_1fr_auto_auto_auto] items-center gap-4 px-5 py-4 ${
-                    i > 0 ? 'border-t border-line dark:border-dark-line' : ''
-                  } hover:bg-bg dark:hover:bg-dark-bg transition-colors group`}
-                >
-                  <div className="w-8 h-8 bg-bg dark:bg-dark-bg rounded-[4px] flex items-center justify-center flex-shrink-0 border border-line dark:border-dark-line">
-                    {['JPG', 'JPEG', 'PNG', 'WEBP'].includes(doc.type) ? (
-                      <ImageIcon size={14} className="text-muted dark:text-dark-muted" />
-                    ) : (
-                      <FileText size={14} className="text-muted dark:text-dark-muted" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-medium text-ink dark:text-dark-ink truncate">{doc.name}</div>
-                    <div className="text-[11px] text-muted dark:text-dark-muted mt-0.5 font-mono">{doc.type} · {doc.size}</div>
-                  </div>
-                  <span className={`hidden lg:inline-flex text-[10px] font-medium px-2 py-0.5 rounded ${catColor[doc.category] || catColor.Otros}`}>
-                    {doc.category}
-                  </span>
-                  <span className="hidden lg:block font-mono text-[11px] text-muted dark:text-dark-muted">{doc.date}</span>
-                  <div className="hidden lg:block">
-                    {doc.status && (
-                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                        doc.status === 'Vigente'
-                          ? 'text-olive bg-olive-soft dark:bg-dark-olive-soft dark:text-dark-olive'
-                          : 'text-sand bg-sand-bg dark:bg-dark-surface'
-                      }`}>
-                        {doc.status}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 ml-auto lg:ml-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {doc.file_url && (
-                      <>
-                        <button
-                          onClick={() => setPreview(doc)}
-                          className="p-1.5 text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors"
-                          title="Ver"
-                        >
-                          <Eye size={13} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (isSafeExternalUrl(doc.file_url, ALLOWED_HOSTS)) {
-                              window.open(doc.file_url, '_blank')
-                            }
-                          }}
-                          className="p-1.5 text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors"
-                          title="Descargar"
-                        >
-                          <Download size={13} />
-                        </button>
-                      </>
-                    )}
-                    <button
-                      onClick={() => handleDelete(doc.id, doc.file_key)}
-                      className="p-1.5 text-muted dark:text-dark-muted hover:text-terracotta dark:hover:text-dark-terracotta transition-colors"
-                      title="Eliminar"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
           </div>
         </>
       )}
