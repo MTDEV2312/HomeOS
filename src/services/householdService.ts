@@ -69,38 +69,218 @@ export const joinHousehold = async (inviteCode: string): Promise<Household> => {
   return data as Household;
 };
 
-export const getHouseholdMembers = async (householdId: string): Promise<HouseholdMemberDetails[]> => {
+export interface CachedAvatar {
+  url: string | null;
+  timestamp: number;
+}
+
+export const AVATAR_CACHE_KEY = 'homeos_avatar_cache_v1';
+export const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+const avatarMemoryCache = new Map<string, CachedAvatar>();
+const inFlightAvatarRequests = new Map<string, Promise<string | null>>();
+
+function getSessionStorageMap(): Record<string, CachedAvatar> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = sessionStorage.getItem(AVATAR_CACHE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as Record<string, CachedAvatar>;
+  } catch {
+    return {};
+  }
+}
+
+function setSessionStorageMap(map: Record<string, CachedAvatar>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(AVATAR_CACHE_KEY, JSON.stringify(map));
+  } catch {
+    // Ignore storage errors in restricted contexts
+  }
+}
+
+export const getCachedAvatar = (userId: string): { hit: boolean; url: string | null } => {
+  const now = Date.now();
+
+  // Tier 1: In-memory cache
+  const mem = avatarMemoryCache.get(userId);
+  if (mem) {
+    if (now - mem.timestamp < CACHE_TTL_MS) {
+      return { hit: true, url: mem.url };
+    }
+    avatarMemoryCache.delete(userId);
+  }
+
+  // Tier 2: sessionStorage
+  if (typeof window !== 'undefined') {
+    try {
+      const sessionMap = getSessionStorageMap();
+      const sessionItem = sessionMap[userId];
+      if (sessionItem) {
+        if (now - sessionItem.timestamp < CACHE_TTL_MS) {
+          avatarMemoryCache.set(userId, sessionItem);
+          return { hit: true, url: sessionItem.url };
+        }
+        delete sessionMap[userId];
+        setSessionStorageMap(sessionMap);
+      }
+    } catch {
+      // Ignore sessionStorage read errors
+    }
+  }
+
+  return { hit: false, url: null };
+};
+
+export const setCachedAvatar = (userId: string, url: string | null): void => {
+  const item: CachedAvatar = {
+    url,
+    timestamp: Date.now(),
+  };
+  avatarMemoryCache.set(userId, item);
+
+  if (typeof window !== 'undefined') {
+    try {
+      const map = getSessionStorageMap();
+      map[userId] = item;
+      setSessionStorageMap(map);
+    } catch {
+      // Ignore sessionStorage write errors
+    }
+  }
+};
+
+export const invalidateAvatarCache = (userId?: string): void => {
+  if (userId) {
+    avatarMemoryCache.delete(userId);
+    inFlightAvatarRequests.delete(userId);
+    if (typeof window !== 'undefined') {
+      try {
+        const map = getSessionStorageMap();
+        if (userId in map) {
+          delete map[userId];
+          setSessionStorageMap(map);
+        }
+      } catch {
+        // Ignore sessionStorage write errors
+      }
+    }
+  } else {
+    avatarMemoryCache.clear();
+    inFlightAvatarRequests.clear();
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.removeItem(AVATAR_CACHE_KEY);
+      } catch {
+        // Ignore sessionStorage errors
+      }
+    }
+  }
+};
+
+export const fetchUserAvatarWithDeduplication = async (userId: string): Promise<string | null> => {
+  const cached = getCachedAvatar(userId);
+  if (cached.hit) {
+    return cached.url;
+  }
+
+  const existingRequest = inFlightAvatarRequests.get(userId);
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const promise = (async (): Promise<string | null> => {
+    try {
+      const { data, error } = await insforge.auth.getProfile(userId);
+      if (error) {
+        setCachedAvatar(userId, null);
+        return null;
+      }
+      const rawData = data as unknown as {
+        profile?: { avatar_url?: string | null };
+        avatar_url?: string | null;
+      };
+      const avatarUrl = rawData?.profile?.avatar_url || rawData?.avatar_url || null;
+      setCachedAvatar(userId, avatarUrl);
+      return avatarUrl;
+    } catch {
+      setCachedAvatar(userId, null);
+      return null;
+    } finally {
+      inFlightAvatarRequests.delete(userId);
+    }
+  })();
+
+  inFlightAvatarRequests.set(userId, promise);
+  return promise;
+};
+
+export const getHouseholdMembers = async (
+  householdId: string,
+  currentUserId?: string
+): Promise<HouseholdMemberDetails[]> => {
   const { data, error } = await insforge.database
     .rpc('get_household_members_details', { h_id: householdId });
 
   if (error) throw error;
-  const members = (data || []) as HouseholdMemberDetails[];
+  const rawMembers = (data || []) as HouseholdMemberDetails[];
 
-  if (members.length === 0) {
+  if (rawMembers.length === 0) {
     return [];
   }
 
-  try {
-    const userIds = members.map((m) => m.user_id).filter(Boolean);
-    if (userIds.length > 0) {
-      const { data: profiles, error: profilesError } = await insforge.database
-        .from('profiles')
-        .select('id, avatar_url')
-        .in('id', userIds);
+  const members: HouseholdMemberDetails[] = rawMembers.map((m) => ({ ...m }));
+  const uncachedUserIds = new Set<string>();
 
-      if (!profilesError && Array.isArray(profiles)) {
-        const avatarMap = new Map<string, string | null>();
-        for (const p of profiles) {
-          avatarMap.set(p.id, (p as { id: string; avatar_url?: string | null }).avatar_url ?? null);
-        }
-        return members.map((m) => ({
-          ...m,
-          avatar_url: avatarMap.get(m.user_id) ?? m.avatar_url ?? null,
-        }));
+  for (const m of members) {
+    // 1. If avatar_url is already returned by DB RPC, store in cache and keep
+    if (m.avatar_url) {
+      setCachedAvatar(m.user_id, m.avatar_url);
+      continue;
+    }
+
+    // 2. If current user, skip fetching
+    if (currentUserId && m.user_id === currentUserId) {
+      const cached = getCachedAvatar(m.user_id);
+      if (cached.hit) {
+        m.avatar_url = cached.url;
+      }
+      continue;
+    }
+
+    // 3. Check multi-tier cache (including null negative cache hits)
+    const cached = getCachedAvatar(m.user_id);
+    if (cached.hit) {
+      m.avatar_url = cached.url;
+    } else {
+      // 4. Otherwise, queue for parallel fetch
+      uncachedUserIds.add(m.user_id);
+    }
+  }
+
+  // Fetch uncached members in parallel via Promise.allSettled
+  if (uncachedUserIds.size > 0) {
+    const uniqueIds = Array.from(uncachedUserIds);
+    const results = await Promise.allSettled(
+      uniqueIds.map((id) => fetchUserAvatarWithDeduplication(id))
+    );
+
+    const resolvedMap = new Map<string, string | null>();
+    results.forEach((res, index) => {
+      const id = uniqueIds[index];
+      if (res.status === 'fulfilled') {
+        resolvedMap.set(id, res.value);
+      } else {
+        resolvedMap.set(id, null);
+      }
+    });
+
+    for (const m of members) {
+      if (resolvedMap.has(m.user_id)) {
+        m.avatar_url = resolvedMap.get(m.user_id) ?? null;
       }
     }
-  } catch (enrichError) {
-    console.warn('Could not enrich household members with profiles:', enrichError);
   }
 
   return members;
@@ -113,8 +293,15 @@ export const getUserHouseholds = async (userId: string): Promise<UserHousehold[]
     .eq('user_id', userId);
     
   if (error) throw error;
-  const normalized = (data || [])
-    .map((item: any) => {
+
+  type RawHouseholdRow = {
+    household_id: string;
+    role: HouseholdMember['role'];
+    households: Household | Household[] | null;
+  };
+
+  const normalized = ((data as unknown as RawHouseholdRow[]) || [])
+    .map((item) => {
       const household = Array.isArray(item.households)
         ? item.households[0]
         : item.households;
@@ -127,7 +314,7 @@ export const getUserHouseholds = async (userId: string): Promise<UserHousehold[]
         households: household as Household,
       };
     })
-    .filter((item: any): item is UserHousehold => Boolean(item));
+    .filter((item): item is UserHousehold => Boolean(item));
 
   return normalized;
 };

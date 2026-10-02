@@ -2,7 +2,14 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useAuth } from './auth-context';
-import { getUserHouseholds, Household, HouseholdMember, UserHousehold } from '@/services/householdService';
+import {
+  getHouseholdMembers,
+  getUserHouseholds,
+  Household,
+  HouseholdMember,
+  HouseholdMemberDetails,
+  UserHousehold,
+} from '@/services/householdService';
 
 type ActiveHouseholdContextType = {
   activeHousehold: Household | null;
@@ -11,6 +18,10 @@ type ActiveHouseholdContextType = {
   isLoadingHousehold: boolean;
   refreshHousehold: () => Promise<void>;
   switchHousehold: (householdId: string) => void;
+  // Household members
+  members: HouseholdMemberDetails[];
+  isLoadingMembers: boolean;
+  refreshMembers: () => Promise<void>;
   // Aliases for compatibility
   currentHousehold: Household | null;
   households: UserHousehold[];
@@ -25,6 +36,9 @@ const HouseholdContext = createContext<ActiveHouseholdContextType>({
   isLoadingHousehold: true,
   refreshHousehold: async () => {},
   switchHousehold: () => {},
+  members: [],
+  isLoadingMembers: false,
+  refreshMembers: async () => {},
   currentHousehold: null,
   households: [],
   refreshHouseholds: async () => {},
@@ -36,6 +50,8 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
   const [activeRole, setActiveRole] = useState<HouseholdMember['role'] | null>(null);
   const [householdsList, setHouseholdsList] = useState<UserHousehold[]>([]);
   const [isLoadingHousehold, setIsLoadingHousehold] = useState(true);
+  const [members, setMembers] = useState<HouseholdMemberDetails[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
   const refreshHousehold = useCallback(async () => {
     if (authLoading) {
@@ -83,6 +99,30 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, authLoading]);
 
+  const activeHouseholdId = activeHousehold?.id;
+
+  const refreshMembers = useCallback(async () => {
+    if (!activeHouseholdId) {
+      setMembers([]);
+      return;
+    }
+
+    try {
+      setIsLoadingMembers(true);
+      const data = await getHouseholdMembers(activeHouseholdId, user?.id);
+      if (user?.id && user.profile?.avatar_url) {
+        setMembers(data.map(m => m.user_id === user.id ? { ...m, avatar_url: (user.profile.avatar_url as string) || m.avatar_url } : m));
+      } else {
+        setMembers(data);
+      }
+    } catch (err) {
+      console.error('Failed to load household members:', err);
+      setMembers([]);
+    } finally {
+      setIsLoadingMembers(false);
+    }
+  }, [activeHouseholdId, user]);
+
   const switchHousehold = (householdId: string) => {
     const selected = householdsList.find(h => h.households.id === householdId);
     if (selected) {
@@ -96,6 +136,14 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
     refreshHousehold();
   }, [refreshHousehold, authLoading]);
 
+  useEffect(() => {
+    if (activeHousehold?.id) {
+      refreshMembers();
+    } else {
+      setMembers([]);
+    }
+  }, [activeHousehold?.id, refreshMembers]);
+
   return (
     <HouseholdContext.Provider
       value={{
@@ -105,6 +153,9 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
         isLoadingHousehold,
         refreshHousehold,
         switchHousehold,
+        members,
+        isLoadingMembers,
+        refreshMembers,
         currentHousehold: activeHousehold,
         households: householdsList,
         setCurrentHousehold: setActiveHousehold,

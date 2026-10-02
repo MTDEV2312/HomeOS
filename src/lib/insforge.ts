@@ -67,13 +67,12 @@ const customFetch: typeof fetch = async (input, init) => {
   if (url.includes('/api/auth/refresh') && typeof window !== 'undefined' && !hasPotentialSession()) {
     return new Response(
       JSON.stringify({
-        statusCode: 401,
-        error: 'UNAUTHORIZED',
-        message: 'No active session',
+        user: null,
+        accessToken: null,
       }),
       {
-        status: 401,
-        statusText: 'Unauthorized',
+        status: 200,
+        statusText: 'OK',
         headers: { 'Content-Type': 'application/json' },
       }
     );

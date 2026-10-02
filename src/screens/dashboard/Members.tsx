@@ -8,7 +8,6 @@ import { useAuth } from '@/lib/auth-context'
 import { QRCode } from '@/components/QRCode'
 import { UserAvatar } from '@/components/ui/UserAvatar'
 import {
-  getHouseholdMembers,
   updateMemberRole,
   removeMember,
 } from '@/services/householdService'
@@ -39,53 +38,28 @@ const roles = ['Propietario', 'Administrador', 'Miembro']
 
 export default function Members() {
   const { toast } = useToast()
-  const { currentHousehold } = useHousehold()
+  const { currentHousehold, members: householdMembers, isLoadingMembers, refreshMembers } = useHousehold()
   const { user } = useAuth()
-  const [members, setMembers] = useState<MemberDisplayItem[]>([])
-  const [loading, setLoading] = useState(true)
   const [inviteOpen, setInviteOpen] = useState(false)
   const [showQR, setShowQR] = useState(false)
 
   const householdCode = currentHousehold?.invite_code || ''
   const householdName = currentHousehold?.name || 'Mi residencia'
 
-  useEffect(() => {
-    if (!currentHousehold) {
-      setLoading(false)
-      return
+  const members: MemberDisplayItem[] = householdMembers.map((m, idx) => {
+    const avatarUrl = m.avatar_url || (m.user_id === user?.id ? (user?.profile?.avatar_url as string) : undefined)
+    return {
+      id: m.user_id,
+      name: m.name || m.email.split('@')[0],
+      email: m.email,
+      role: roleLabels[m.role] || 'Miembro',
+      joinedAt: new Date(m.joined_at).toLocaleDateString('es-EC', { month: 'short', year: 'numeric' }),
+      avatar: (m.name || m.email)?.[0]?.toUpperCase() || 'U',
+      color: colors[idx % colors.length],
+      avatarUrl,
     }
-    let mounted = true
-    setLoading(true)
-    getHouseholdMembers(currentHousehold.id)
-      .then(res => {
-        if (mounted && res) {
-          setMembers(
-            res.map((m, idx) => {
-              const avatarUrl = m.avatar_url || (m.user_id === user?.id ? (user?.profile?.avatar_url as string) : undefined)
-              return {
-                id: m.user_id,
-                name: m.name || m.email.split('@')[0],
-                email: m.email,
-                role: roleLabels[m.role] || 'Miembro',
-                joinedAt: new Date(m.joined_at).toLocaleDateString('es-EC', { month: 'short', year: 'numeric' }),
-                avatar: (m.name || m.email)?.[0]?.toUpperCase() || 'U',
-                color: colors[idx % colors.length],
-                avatarUrl,
-              }
-            })
-          )
-        }
-      })
-      .catch(err => {
-        console.error('Failed to load members:', err)
-      })
-      .finally(() => {
-        if (mounted) setLoading(false)
-      })
-    return () => {
-      mounted = false
-    }
-  }, [currentHousehold, user])
+  })
+  const loading = isLoadingMembers
 
   const copy = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -93,29 +67,27 @@ export default function Members() {
   }
 
   const changeRole = async (id: string, newRoleText: string) => {
-    setMembers(prev => prev.map(m => (m.id === id ? { ...m, role: newRoleText } : m)))
-    toast('Rol actualizado.')
-
-    if (currentHousehold) {
-      try {
-        const backendRole = newRoleText === 'Administrador' ? 'ADMIN' : 'MEMBER'
-        await updateMemberRole(currentHousehold.id, id, backendRole)
-      } catch (err) {
-        console.error('Failed to update member role on server:', err)
-      }
+    if (!currentHousehold) return
+    try {
+      const backendRole = newRoleText === 'Administrador' ? 'ADMIN' : 'MEMBER'
+      await updateMemberRole(currentHousehold.id, id, backendRole)
+      toast('Rol actualizado.')
+      await refreshMembers()
+    } catch (err) {
+      console.error('Failed to update member role on server:', err)
+      toast('Error al actualizar el rol.')
     }
   }
 
   const remove = async (id: string) => {
-    setMembers(prev => prev.filter(m => m.id !== id))
-    toast('Miembro eliminado.')
-
-    if (currentHousehold) {
-      try {
-        await removeMember(currentHousehold.id, id)
-      } catch (err) {
-        console.error('Failed to remove member on server:', err)
-      }
+    if (!currentHousehold) return
+    try {
+      await removeMember(currentHousehold.id, id)
+      toast('Miembro eliminado.')
+      await refreshMembers()
+    } catch (err) {
+      console.error('Failed to remove member on server:', err)
+      toast('Error al eliminar el miembro.')
     }
   }
 

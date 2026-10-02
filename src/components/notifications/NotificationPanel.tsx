@@ -122,7 +122,7 @@ export default function NotificationPanel({
       ref={panelRef}
       role="dialog"
       aria-label="Notificaciones"
-      className="absolute right-0 top-11 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-[8px] shadow-2xl z-50 overflow-hidden flex flex-col max-h-[80vh] sm:max-h-[500px] animate-in fade-in zoom-in-95 duration-150"
+      className="fixed inset-x-4 top-14 sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:w-96 sm:max-w-sm bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-[8px] shadow-2xl z-50 overflow-hidden flex flex-col max-h-[80vh] sm:max-h-[500px] animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-line dark:border-dark-line bg-surface dark:bg-dark-surface shrink-0">
