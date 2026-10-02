@@ -99,23 +99,29 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, authLoading]);
 
+  const activeHouseholdId = activeHousehold?.id;
+
   const refreshMembers = useCallback(async () => {
-    if (!activeHousehold?.id) {
+    if (!activeHouseholdId) {
       setMembers([]);
       return;
     }
 
     try {
       setIsLoadingMembers(true);
-      const data = await getHouseholdMembers(activeHousehold.id);
-      setMembers(data);
+      const data = await getHouseholdMembers(activeHouseholdId, user?.id);
+      if (user?.id && user.profile?.avatar_url) {
+        setMembers(data.map(m => m.user_id === user.id ? { ...m, avatar_url: (user.profile.avatar_url as string) || m.avatar_url } : m));
+      } else {
+        setMembers(data);
+      }
     } catch (err) {
       console.error('Failed to load household members:', err);
       setMembers([]);
     } finally {
       setIsLoadingMembers(false);
     }
-  }, [activeHousehold?.id]);
+  }, [activeHouseholdId, user]);
 
   const switchHousehold = (householdId: string) => {
     const selected = householdsList.find(h => h.households.id === householdId);
