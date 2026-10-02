@@ -27,7 +27,6 @@ import {
   AssetCategory,
   MaintenanceLog,
 } from '@/services/maintenanceService'
-import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService'
 
 export interface MaintenanceAssetItem {
   id: string
@@ -115,12 +114,11 @@ const formatDisplayDate = (dateStr: string | null | undefined): string => {
 
 export default function Maintenance() {
   const { toast } = useToast()
-  const { currentHousehold } = useHousehold()
+  const { currentHousehold, members } = useHousehold()
   const { user } = useAuth()
 
   const [rawAssets, setRawAssets] = useState<Asset[]>([])
   const [logs, setLogs] = useState<MaintenanceLog[]>([])
-  const [members, setMembers] = useState<HouseholdMemberDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
@@ -163,13 +161,11 @@ export default function Maintenance() {
   const loadData = useCallback(async () => {
     if (!currentHousehold) return
     try {
-      const [assetsData, membersData, logsData] = await Promise.all([
+      const [assetsData, logsData] = await Promise.all([
         getAssets(currentHousehold.id).catch(() => []),
-        getHouseholdMembers(currentHousehold.id).catch(() => []),
         getAllMaintenanceLogs(currentHousehold.id).catch(() => []),
       ])
       setRawAssets(assetsData || [])
-      setMembers(membersData || [])
       setLogs(logsData || [])
     } catch (err) {
       console.error('Error fetching maintenance data:', err)

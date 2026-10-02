@@ -1,11 +1,13 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Sun, Moon, Monitor, Camera, Loader2, Eye, EyeOff } from 'lucide-react'
+import { Sun, Moon, Monitor, Camera, Loader2, Eye, EyeOff, Trash2 } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
 import { useToast } from '@/context/ToastContext'
+import { useHousehold } from '@/lib/household-context'
 import { useAuth } from '@/lib/auth-context'
 import { insforge } from '@/lib/insforge'
+import { invalidateAvatarCache } from '@/services/householdService'
 import { Switch } from '@/components/ui/Switch'
 
 interface SectionProps {
@@ -55,6 +57,7 @@ function Section({ title, children }: SectionProps) {
 export default function Settings() {
   const { theme, setTheme } = useTheme()
   const { toast } = useToast()
+  const { refreshMembers } = useHousehold()
   const { user, updateProfile, changePassword } = useAuth()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -209,6 +212,9 @@ export default function Settings() {
         console.warn('Automatic avatar cleanup warning:', cleanupErr)
       }
 
+      invalidateAvatarCache(user.id)
+      await refreshMembers()
+
       toast('Foto de perfil actualizada.')
     } catch (err: unknown) {
       const error = err as Error
@@ -217,6 +223,34 @@ export default function Settings() {
     } finally {
       setUploadingAvatar(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleDeleteAvatar = async () => {
+    if (!user) return
+    const previousKey = (user.profile?.avatar_key as string) || extractKeyFromAvatarUrl(user.profile?.avatar_url as string)
+    setUploadingAvatar(true)
+    toast('Eliminando foto de perfil...')
+    try {
+      if (previousKey) {
+        await insforge.storage.from('avatars').remove(previousKey).catch(() => {})
+      }
+      const { error: profileError } = await updateProfile({
+        avatar_url: null,
+        avatar_key: null,
+      })
+      if (profileError) {
+        throw profileError
+      }
+      invalidateAvatarCache(user.id)
+      await refreshMembers()
+      toast('Foto de perfil eliminada.')
+    } catch (err: unknown) {
+      const error = err as Error
+      console.error('Error al eliminar avatar:', error)
+      toast(error.message || 'Error al eliminar foto de perfil.')
+    } finally {
+      setUploadingAvatar(false)
     }
   }
 
@@ -313,6 +347,17 @@ export default function Settings() {
                 >
                   <Camera size={11} />
                 </button>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteAvatar}
+                    disabled={uploadingAvatar}
+                    className="absolute -top-1 -right-1 w-6 h-6 bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-full flex items-center justify-center text-muted dark:text-dark-muted hover:text-terracotta dark:hover:text-dark-terracotta transition-colors cursor-pointer disabled:opacity-50"
+                    title="Eliminar foto de perfil"
+                  >
+                    <Trash2 size={11} />
+                  </button>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[14px] font-semibold text-ink dark:text-dark-ink">{displayName}</div>

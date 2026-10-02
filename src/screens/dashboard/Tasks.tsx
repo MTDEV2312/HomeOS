@@ -27,7 +27,6 @@ import {
   TaskPriority,
 } from '@/services/taskService'
 import {
-  getHouseholdMembers,
   HouseholdMemberDetails,
 } from '@/services/householdService'
 import { Switch } from '@/components/ui/Switch'
@@ -144,10 +143,9 @@ const formatDisplayTask = (
 export default function Tasks() {
   const { toast } = useToast()
   const { user } = useAuth()
-  const { activeHousehold } = useHousehold()
+  const { activeHousehold, members } = useHousehold()
 
   const [taskList, setTaskList] = useState<DisplayTask[]>([])
-  const [members, setMembers] = useState<HouseholdMemberDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<View>('todas')
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -173,18 +171,9 @@ export default function Tasks() {
     }
     setLoading(true)
     try {
-      const [tasksData, membersData] = await Promise.all([
-        getTasks(householdId),
-        getHouseholdMembers(householdId).catch((err) => {
-          console.error('Error fetching household members', err)
-          return [] as HouseholdMemberDetails[]
-        }),
-      ])
-      const safeMembers = membersData || []
-      setMembers(safeMembers)
-
+      const tasksData = await getTasks(householdId)
       const mapped: DisplayTask[] = (tasksData || []).map((t: ApiTask) =>
-        formatDisplayTask(t, safeMembers)
+        formatDisplayTask(t, members)
       )
       setTaskList(mapped)
     } catch (err) {
@@ -192,7 +181,7 @@ export default function Tasks() {
     } finally {
       setLoading(false)
     }
-  }, [householdId])
+  }, [householdId, members])
 
   useEffect(() => {
     loadTasks()
