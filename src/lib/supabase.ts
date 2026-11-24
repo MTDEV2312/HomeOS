@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 export const supabaseUrl = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
@@ -7,12 +7,32 @@ export const supabaseKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   '';
 
-export const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: false,
-    flowType: 'implicit',
+let browserClient: SupabaseClient | null = null;
+
+function getSupabaseClient(): SupabaseClient {
+  if (!browserClient) {
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error(
+        'Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY environment variables.'
+      );
+    }
+    browserClient = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        flowType: 'implicit',
+      },
+    });
+  }
+  return browserClient;
+}
+
+export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    const client = getSupabaseClient();
+    const value = Reflect.get(client, prop, client);
+    return typeof value === 'function' ? value.bind(client) : value;
   },
 });
 
@@ -21,7 +41,12 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
  * and never broadcasts session changes across browser tabs.
  * Used exclusively for password recovery and revoking unused confirmation tokens.
  */
-export function createEphemeralSupabaseClient() {
+export function createEphemeralSupabaseClient(): SupabaseClient {
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error(
+      'Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY environment variables.'
+    );
+  }
   return createClient(supabaseUrl, supabaseKey, {
     auth: {
       persistSession: false,
