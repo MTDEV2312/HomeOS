@@ -42,7 +42,6 @@ import {
   Budget,
   ExpenseCategory,
 } from '@/services/expenseService'
-import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService'
 import {
   getUserTimeZone,
   toUTCISOString,
@@ -71,7 +70,7 @@ const defaultCategories = ['Alimentación', 'Vivienda', 'Servicios', 'Salud', 'M
 
 export default function Expenses() {
   const { toast } = useToast()
-  const { currentHousehold } = useHousehold()
+  const { currentHousehold, members } = useHousehold()
   const { user } = useAuth()
 
   const userTimeZone = useMemo(() => getUserTimeZone(), [])
@@ -85,7 +84,6 @@ export default function Expenses() {
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [allBudgets, setAllBudgets] = useState<Budget[]>([])
   const [budgetTotal, setBudgetTotal] = useState(0)
-  const [members, setMembers] = useState<HouseholdMemberDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [budgetModalOpen, setBudgetModalOpen] = useState(false)
@@ -102,24 +100,22 @@ export default function Expenses() {
     date: '',
   })
 
-  // Load all expenses, budgets, members and categories
+  // Load all expenses, budgets, and categories
   const loadData = useCallback(async () => {
     if (!currentHousehold) return
     setLoading(true)
 
     try {
-      const [expData, budgetData, memberData, categoryData] = await Promise.all([
+      const [expData, budgetData, categoryData] = await Promise.all([
         getExpenses(currentHousehold.id).catch(() => []),
         getBudgets(currentHousehold.id).catch(() => []),
-        getHouseholdMembers(currentHousehold.id).catch(() => []),
         getExpenseCategories(currentHousehold.id).catch(() => []),
       ])
 
-      if (memberData) setMembers(memberData)
       if (budgetData) setAllBudgets(budgetData)
       if (categoryData) setCategories(categoryData)
 
-      const memberMap = new Map(memberData?.map(m => [m.user_id, m.name]) || [])
+      const memberMap = new Map(members.map(m => [m.user_id, m.name]))
 
       if (expData) {
         setAllExpenses(
@@ -142,7 +138,7 @@ export default function Expenses() {
     } finally {
       setLoading(false)
     }
-  }, [currentHousehold, user?.id, userTimeZone, toast])
+  }, [currentHousehold, members, user?.id, userTimeZone, toast])
 
   useEffect(() => {
     loadData()

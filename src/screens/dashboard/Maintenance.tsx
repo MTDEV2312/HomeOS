@@ -27,7 +27,6 @@ import {
   AssetCategory,
   MaintenanceLog,
 } from '@/services/maintenanceService'
-import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService'
 
 export interface MaintenanceAssetItem {
   id: string
@@ -115,12 +114,11 @@ const formatDisplayDate = (dateStr: string | null | undefined): string => {
 
 export default function Maintenance() {
   const { toast } = useToast()
-  const { currentHousehold } = useHousehold()
+  const { currentHousehold, members } = useHousehold()
   const { user } = useAuth()
 
   const [rawAssets, setRawAssets] = useState<Asset[]>([])
   const [logs, setLogs] = useState<MaintenanceLog[]>([])
-  const [members, setMembers] = useState<HouseholdMemberDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
@@ -163,13 +161,11 @@ export default function Maintenance() {
   const loadData = useCallback(async () => {
     if (!currentHousehold) return
     try {
-      const [assetsData, membersData, logsData] = await Promise.all([
+      const [assetsData, logsData] = await Promise.all([
         getAssets(currentHousehold.id).catch(() => []),
-        getHouseholdMembers(currentHousehold.id).catch(() => []),
         getAllMaintenanceLogs(currentHousehold.id).catch(() => []),
       ])
       setRawAssets(assetsData || [])
-      setMembers(membersData || [])
       setLogs(logsData || [])
     } catch (err) {
       console.error('Error fetching maintenance data:', err)
@@ -434,13 +430,13 @@ export default function Maintenance() {
   }
 
   return (
-    <div className="px-6 lg:px-10 py-8 max-w-[1280px] mx-auto">
+    <div className="px-4 sm:px-6 lg:px-10 py-6 sm:py-8 max-w-[1280px] mx-auto">
       {/* Header */}
       <div className="mb-10 border-b border-line dark:border-dark-line pb-8">
         <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted dark:text-dark-muted mb-2">Hogar</p>
-        <div className="flex items-end justify-between gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
           <div>
-            <h1 className="text-[42px] lg:text-[56px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">MANTENIMIENTO</h1>
+            <h1 className="text-[32px] sm:text-[42px] lg:text-[56px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">MANTENIMIENTO</h1>
             <p className="text-[14px] text-muted dark:text-dark-muted mt-3">Cuidá tu hogar antes de que algo falle.</p>
           </div>
           <button
@@ -459,7 +455,7 @@ export default function Maintenance() {
       ) : (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-px bg-line dark:bg-dark-line rounded-[4px] overflow-hidden mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-line dark:bg-dark-line rounded-[4px] overflow-hidden mb-10">
             {[
               { label: 'Total de activos', value: assets.length, alert: false },
               { label: 'Próximos a vencer', value: upcomingCount, alert: upcomingCount > 0 },
@@ -475,7 +471,7 @@ export default function Maintenance() {
           {/* Asset table */}
           <div className="border border-line dark:border-dark-line rounded-[4px] overflow-hidden bg-surface dark:bg-dark-surface">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse min-w-[680px]">
                 <thead>
                   <tr className="border-b border-line dark:border-dark-line bg-bg dark:bg-dark-bg text-[10px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted">
                     <th className="py-3 px-5 font-semibold">Activo</th>

@@ -12,21 +12,17 @@ import {
   regenerateInviteCode,
   leaveHousehold,
   deleteHousehold,
-  getHouseholdMembers,
-  HouseholdMemberDetails,
 } from '@/services/householdService'
 import { useRouter } from '@/lib/navigation'
 
 export default function Household() {
   const { toast } = useToast()
   const router = useRouter()
-  const { currentHousehold, refreshHouseholds } = useHousehold()
+  const { currentHousehold, refreshHouseholds, members, isLoadingMembers } = useHousehold()
   const { user } = useAuth()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(currentHousehold?.name || '')
   const [code, setCode] = useState(currentHousehold?.invite_code || '')
-  const [membersList, setMembersList] = useState<HouseholdMemberDetails[]>([])
-  const [loadingMembers, setLoadingMembers] = useState(true)
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
   const [showConfirmLeave, setShowConfirmLeave] = useState(false)
   const [showQRModal, setShowQRModal] = useState(false)
@@ -35,19 +31,6 @@ export default function Household() {
     if (currentHousehold) {
       setName(currentHousehold.name)
       setCode(currentHousehold.invite_code)
-      setLoadingMembers(true)
-      getHouseholdMembers(currentHousehold.id)
-        .then(res => {
-          if (res) {
-            setMembersList(res)
-          }
-        })
-        .catch(err => {
-          console.error('Error fetching members:', err)
-        })
-        .finally(() => {
-          setLoadingMembers(false)
-        })
     }
   }, [currentHousehold])
 
@@ -158,7 +141,7 @@ export default function Household() {
             <div className="px-6 py-5 flex items-center justify-between">
               <div>
                 <div className="text-[11px] text-muted dark:text-dark-muted">
-                  Creado {currentHousehold?.created_at ? new Date(currentHousehold.created_at).toLocaleDateString('es-AR') : '—'} · {membersList.length} {membersList.length === 1 ? 'miembro' : 'miembros'}
+                  Creado {currentHousehold?.created_at ? new Date(currentHousehold.created_at).toLocaleDateString('es-AR') : '—'} · {members.length} {members.length === 1 ? 'miembro' : 'miembros'}
                 </div>
                 <div className="text-[12px] font-semibold text-ink dark:text-dark-ink mt-0.5">
                   Residencia activa
@@ -233,12 +216,12 @@ export default function Household() {
           <div className="border border-line dark:border-dark-line rounded-[6px] p-5">
             <h3 className="text-[13px] font-semibold text-ink dark:text-dark-ink mb-4">Miembros</h3>
             <div className="space-y-3">
-              {loadingMembers ? (
+              {isLoadingMembers ? (
                 <div className="flex items-center justify-center py-6 text-muted dark:text-dark-muted gap-2 text-[12px]">
                   <Loader2 size={16} className="animate-spin" /> Cargando miembros...
                 </div>
-              ) : membersList.length > 0 ? (
-                membersList.map(m => {
+              ) : members.length > 0 ? (
+                members.map(m => {
                   const avatarUrl = m.avatar_url || (m.user_id === user?.id ? (user?.profile?.avatar_url as string) : undefined);
                   return (
                     <div key={m.member_id} className="flex items-center gap-3">

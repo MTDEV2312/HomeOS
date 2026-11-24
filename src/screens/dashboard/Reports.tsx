@@ -151,13 +151,13 @@ export default function Reports() {
   }
 
   return (
-    <div className="px-6 lg:px-10 py-8 max-w-[1280px] mx-auto">
+    <div className="px-4 sm:px-6 lg:px-10 py-6 sm:py-8 max-w-[1280px] mx-auto">
       {/* Header */}
       <div className="mb-10 border-b border-line dark:border-dark-line pb-8">
         <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted dark:text-dark-muted mb-2">Analítica</p>
-        <div className="flex items-end justify-between gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
           <div>
-            <h1 className="text-[42px] lg:text-[56px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">REPORTES</h1>
+            <h1 className="text-[32px] sm:text-[42px] lg:text-[56px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">REPORTES</h1>
             <p className="text-[14px] text-muted dark:text-dark-muted mt-3">Un resumen de cómo funciona tu hogar.</p>
           </div>
           <div className="flex items-center gap-3">
@@ -189,7 +189,7 @@ export default function Reports() {
       ) : (
         <>
           {/* KPI row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-line dark:bg-dark-line rounded-[4px] overflow-hidden mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-line dark:bg-dark-line rounded-[4px] overflow-hidden mb-10">
             {[
               {
                 label: 'Gasto promedio',
@@ -293,13 +293,13 @@ export default function Reports() {
                   {topItems.map((item, i) => {
                     const maxCount = topItems[0].count || 1
                     return (
-                      <div key={item.name} className="flex items-center gap-3">
-                        <span className="font-mono text-[11px] text-muted dark:text-dark-muted w-4">{String(i + 1).padStart(2, '0')}</span>
-                        <span className="flex-1 text-[13px] text-ink dark:text-dark-ink">{item.name}</span>
-                        <div className="w-24 h-1.5 bg-line dark:bg-dark-line rounded-full overflow-hidden">
+                      <div key={item.name} className="flex items-center gap-3 min-w-0">
+                        <span className="font-mono text-[11px] text-muted dark:text-dark-muted w-4 shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                        <span className="flex-1 text-[13px] text-ink dark:text-dark-ink min-w-0 truncate">{item.name}</span>
+                        <div className="w-20 sm:w-24 h-1.5 bg-line dark:bg-dark-line rounded-full overflow-hidden shrink-0">
                           <div className="h-full bg-sand dark:bg-dark-sand rounded-full" style={{ width: `${(item.count / maxCount) * 100}%` }} />
                         </div>
-                        <span className="font-mono text-[12px] text-muted dark:text-dark-muted w-4 text-right">{item.count}</span>
+                        <span className="font-mono text-[12px] text-muted dark:text-dark-muted w-4 text-right shrink-0">{item.count}</span>
                       </div>
                     )
                   })}
