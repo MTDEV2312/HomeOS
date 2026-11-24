@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useHousehold } from '@/lib/household-context';
 import { useAuth } from '@/lib/auth-context';
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 import { 
   InventoryItem, 
   InventoryCategory, 
@@ -90,45 +90,49 @@ export default function InventoryDashboard() {
     
     loadData();
     
-    const setupRealtime = async () => {
-      try {
-        await insforge.realtime.connect();
-        const channelName = `household:${activeHousehold.id}`;
-        await insforge.realtime.subscribe(channelName);
-        
-        insforge.realtime.on('INSERT_inventory_items', (payload: InventoryItem) => {
+    const channel = supabase
+      .channel(`inventory:${activeHousehold.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'inventory_items', filter: `household_id=eq.${activeHousehold.id}` },
+        (payload) => {
+          const newItem = payload.new as InventoryItem;
           setCategories(cats => {
-            const item = { ...payload, category: cats.find(c => c.id === payload.category_id) };
-            setItems(prev => prev.find(i => i.id === payload.id) ? prev : [item, ...prev]);
+            const item = { ...newItem, category: cats.find(c => c.id === newItem.category_id) };
+            setItems(prev => prev.find(i => i.id === newItem.id) ? prev : [item, ...prev]);
             return cats;
           });
-        });
-        
-        insforge.realtime.on('UPDATE_inventory_items', (payload: InventoryItem) => {
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'inventory_items', filter: `household_id=eq.${activeHousehold.id}` },
+        (payload) => {
+          const updatedItem = payload.new as InventoryItem;
           setCategories(cats => {
-            const item = { ...payload, category: cats.find(c => c.id === payload.category_id) };
-            setItems(prev => prev.map(i => i.id === payload.id ? item : i));
+            const item = { ...updatedItem, category: cats.find(c => c.id === updatedItem.category_id) };
+            setItems(prev => prev.map(i => i.id === updatedItem.id ? item : i));
             return cats;
           });
-        });
-        
-        insforge.realtime.on('DELETE_inventory_items', (payload: InventoryItem) => {
-          setItems(prev => prev.filter(i => i.id !== payload.id));
-        });
-        
-        insforge.realtime.on('INSERT_inventory_categories', () => loadData());
-        insforge.realtime.on('UPDATE_inventory_categories', () => loadData());
-        insforge.realtime.on('DELETE_inventory_categories', () => loadData());
-        
-      } catch (err) {
-        console.error('Error setting up realtime:', err);
-      }
-    };
-    
-    setupRealtime();
-    
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'inventory_items', filter: `household_id=eq.${activeHousehold.id}` },
+        (payload) => {
+          const deletedItem = payload.old as InventoryItem;
+          setItems(prev => prev.filter(i => i.id !== deletedItem.id));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'inventory_categories', filter: `household_id=eq.${activeHousehold.id}` },
+        () => loadData()
+      )
+      .subscribe();
+
     return () => {
-      insforge.realtime.unsubscribe(`household:${activeHousehold.id}`);
+      supabase.removeChannel(channel);
     };
   }, [activeHousehold]);
 

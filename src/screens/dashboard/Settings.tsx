@@ -5,7 +5,7 @@ import { Sun, Moon, Monitor, Camera, Loader2, Eye, EyeOff } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
 import { useToast } from '@/context/ToastContext'
 import { useAuth } from '@/lib/auth-context'
-import { insforge } from '@/lib/insforge'
+import { supabase } from '@/lib/supabase'
 import { Switch } from '@/components/ui/Switch'
 
 interface SectionProps {
@@ -32,11 +32,16 @@ function extractKeyFromAvatarUrl(url?: string | null): string | null {
   try {
     const parsed = new URL(url)
     const pathname = decodeURIComponent(parsed.pathname)
-    const match = pathname.match(/\/objects\/(.+)$/)
-    if (match && match[1]) return match[1]
+    const supabaseMatch = pathname.match(/\/object\/public\/avatars\/(.+)$/)
+    if (supabaseMatch && supabaseMatch[1]) return supabaseMatch[1]
+    const legacyMatch = pathname.match(/\/objects\/(.+)$/)
+    if (legacyMatch && legacyMatch[1]) return legacyMatch[1]
   } catch {
-    const match = decodeURIComponent(url).match(/\/objects\/(.+)$/)
-    if (match && match[1]) return match[1]
+    const decoded = decodeURIComponent(url)
+    const supabaseMatch = decoded.match(/\/object\/public\/avatars\/(.+)$/)
+    if (supabaseMatch && supabaseMatch[1]) return supabaseMatch[1]
+    const legacyMatch = decoded.match(/\/objects\/(.+)$/)
+    if (legacyMatch && legacyMatch[1]) return legacyMatch[1]
   }
   return null
 }
@@ -164,17 +169,24 @@ export default function Settings() {
         throw new Error('Invalid file path')
       }
 
-      const { data: uploadData, error: uploadError } = await insforge.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file)
+        .upload(filePath, file, {
+          contentType: file.type || undefined,
+          upsert: true,
+        })
 
       if (uploadError || !uploadData) {
         throw uploadError || new Error('Error al subir imagen a almacenamiento')
       }
 
+      const { data: publicUrlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(uploadData.path)
+
       const { error: profileError } = await updateProfile({
-        avatar_url: uploadData.url,
-        avatar_key: uploadData.key,
+        avatar_url: publicUrlData.publicUrl,
+        avatar_key: uploadData.path,
       })
 
       if (profileError) {
@@ -184,26 +196,25 @@ export default function Settings() {
       // Synchronously await the purge of older avatar files
       try {
         const keysToDelete = new Set<string>()
-        if (previousKey && previousKey !== uploadData.key) {
+        if (previousKey && previousKey !== uploadData.path) {
           keysToDelete.add(previousKey)
         }
 
-        const { data: listData } = await insforge.storage
+        const { data: listData } = await supabase.storage
           .from('avatars')
-          .list({ prefix: `${user.id}/` })
+          .list(user.id)
 
-        if (listData?.objects && listData.objects.length > 0) {
-          for (const obj of listData.objects) {
-            if (obj.key !== uploadData.key) {
-              keysToDelete.add(obj.key)
+        if (listData && listData.length > 0) {
+          for (const obj of listData) {
+            const objKey = `${user.id}/${obj.name}`
+            if (objKey !== uploadData.path) {
+              keysToDelete.add(objKey)
             }
           }
         }
 
         if (keysToDelete.size > 0) {
-          await Promise.allSettled(
-            Array.from(keysToDelete).map(key => insforge.storage.from('avatars').remove(key))
-          )
+          await supabase.storage.from('avatars').remove(Array.from(keysToDelete))
         }
       } catch (cleanupErr) {
         console.warn('Automatic avatar cleanup warning:', cleanupErr)

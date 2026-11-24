@@ -47,7 +47,7 @@ const categories = ['Todos', 'Financieros', 'Legales', 'Garantías', 'Manuales',
 // Derive the allowed host(s) from that same configuration rather than trusting the URL blindly.
 const ALLOWED_HOSTS: string[] = (() => {
   try {
-    const base = process.env.NEXT_PUBLIC_INSFORGE_URL || ''
+    const base = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
     return base ? [new URL(base).hostname] : []
   } catch {
     return []

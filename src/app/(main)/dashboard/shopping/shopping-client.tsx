@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useHousehold } from '@/lib/household-context';
 import { useAuth } from '@/lib/auth-context';
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 import { 
   ShoppingList, 
   ShoppingListItem, 
@@ -92,43 +92,61 @@ export default function ShoppingClient() {
 
     loadData();
 
-    const setupRealtime = async () => {
-      try {
-        await insforge.realtime.connect();
-        const channelName = `household:${activeHousehold.id}`;
-        await insforge.realtime.subscribe(channelName);
-
-        insforge.realtime.on('INSERT_shopping_lists', (payload: ShoppingList) => {
-          setLists(prev => prev.find(l => l.id === payload.id) ? prev : [payload, ...prev]);
-        });
-        insforge.realtime.on('UPDATE_shopping_lists', (payload: ShoppingList) => {
-          setLists(prev => prev.map(l => l.id === payload.id ? payload : l));
-        });
-        insforge.realtime.on('DELETE_shopping_lists', (payload: ShoppingList) => {
-          setLists(prev => prev.filter(l => l.id !== payload.id));
-          setItems(prev => prev.filter(i => i.list_id !== payload.id)); // local cleanup
-        });
-        
-        insforge.realtime.on('INSERT_shopping_list_items', (payload: ShoppingListItem) => {
-          setItems(prev => prev.find(i => i.id === payload.id) ? prev : [...prev, payload]);
-        });
-        insforge.realtime.on('UPDATE_shopping_list_items', (payload: ShoppingListItem) => {
-          setItems(prev => prev.map(i => i.id === payload.id ? payload : i));
-        });
-        insforge.realtime.on('DELETE_shopping_list_items', (payload: ShoppingListItem) => {
-          setItems(prev => prev.filter(i => i.id !== payload.id));
-        });
-      } catch (err) {
-        console.error('Error setting up realtime:', err);
-      }
-    };
-
-    setupRealtime();
+    const channel = supabase
+      .channel(`shopping:${activeHousehold.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'shopping_lists', filter: `household_id=eq.${activeHousehold.id}` },
+        (payload) => {
+          const list = payload.new as ShoppingList;
+          setLists(prev => prev.find(l => l.id === list.id) ? prev : [list, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'shopping_lists', filter: `household_id=eq.${activeHousehold.id}` },
+        (payload) => {
+          const list = payload.new as ShoppingList;
+          setLists(prev => prev.map(l => l.id === list.id ? list : l));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'shopping_lists', filter: `household_id=eq.${activeHousehold.id}` },
+        (payload) => {
+          const list = payload.old as ShoppingList;
+          setLists(prev => prev.filter(l => l.id !== list.id));
+          setItems(prev => prev.filter(i => i.list_id !== list.id));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'shopping_list_items' },
+        (payload) => {
+          const item = payload.new as ShoppingListItem;
+          setItems(prev => prev.find(i => i.id === item.id) ? prev : [...prev, item]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'shopping_list_items' },
+        (payload) => {
+          const item = payload.new as ShoppingListItem;
+          setItems(prev => prev.map(i => i.id === item.id ? item : i));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'shopping_list_items' },
+        (payload) => {
+          const item = payload.old as ShoppingListItem;
+          setItems(prev => prev.filter(i => i.id !== item.id));
+        }
+      )
+      .subscribe();
 
     return () => {
-      if (activeHousehold) {
-        insforge.realtime.unsubscribe(`household:${activeHousehold.id}`);
-      }
+      supabase.removeChannel(channel);
     };
   }, [activeHousehold]);
 

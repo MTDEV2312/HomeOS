@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useHousehold } from '@/lib/household-context';
 import { useAuth } from '@/lib/auth-context';
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 import {
   Asset,
   AssetCategory,
@@ -128,30 +128,27 @@ export default function MaintenanceDashboard() {
 
     loadData();
 
-    const setupRealtime = async () => {
-      try {
-        await insforge.realtime.connect();
-        const channelName = `household:${activeHousehold.id}`;
-        await insforge.realtime.subscribe(channelName);
-        
-        insforge.realtime.on('INSERT_assets', () => loadData());
-        insforge.realtime.on('UPDATE_assets', () => loadData());
-        insforge.realtime.on('DELETE_assets', () => loadData());
-
-        insforge.realtime.on('INSERT_maintenance_schedule', () => loadData());
-        insforge.realtime.on('UPDATE_maintenance_schedule', () => loadData());
-        insforge.realtime.on('DELETE_maintenance_schedule', () => loadData());
-
-        insforge.realtime.on('INSERT_maintenance_logs', () => loadData());
-      } catch (err) {
-        console.error('Error setting up realtime:', err);
-      }
-    };
-
-    setupRealtime();
+    const channel = supabase
+      .channel(`maintenance:${activeHousehold.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'assets', filter: `household_id=eq.${activeHousehold.id}` },
+        () => loadData()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'maintenance_schedule' },
+        () => loadData()
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'maintenance_logs' },
+        () => loadData()
+      )
+      .subscribe();
 
     return () => {
-      insforge.realtime.unsubscribe(`household:${activeHousehold.id}`);
+      supabase.removeChannel(channel);
     };
   }, [activeHousehold]);
 
