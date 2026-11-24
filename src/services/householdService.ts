@@ -1,4 +1,4 @@
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 
 export type Household = {
   id: string;
@@ -34,8 +34,8 @@ export type UserHousehold = {
 
 export const createHousehold = async (name: string, userId: string): Promise<Household> => {
   const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-  
-  const { data: household, error: householdError } = await insforge.database
+
+  const { data: household, error: householdError } = await supabase
     .from('households')
     .insert([{ name, invite_code: inviteCode, owner_id: userId }])
     .select()
@@ -43,7 +43,7 @@ export const createHousehold = async (name: string, userId: string): Promise<Hou
 
   if (householdError) throw householdError;
 
-  const { error: memberError } = await insforge.database
+  const { error: memberError } = await supabase
     .from('household_members')
     .insert([{ household_id: household.id, user_id: userId, role: 'OWNER' }]);
 
@@ -53,7 +53,7 @@ export const createHousehold = async (name: string, userId: string): Promise<Hou
 };
 
 export const joinHousehold = async (inviteCode: string): Promise<Household> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .rpc('join_household_by_invite_code', { code: inviteCode.toUpperCase() });
 
   if (error) {
@@ -70,51 +70,22 @@ export const joinHousehold = async (inviteCode: string): Promise<Household> => {
 };
 
 export const getHouseholdMembers = async (householdId: string): Promise<HouseholdMemberDetails[]> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .rpc('get_household_members_details', { h_id: householdId });
 
   if (error) throw error;
-  const members = (data || []) as HouseholdMemberDetails[];
-
-  if (members.length === 0) {
-    return [];
-  }
-
-  try {
-    const userIds = members.map((m) => m.user_id).filter(Boolean);
-    if (userIds.length > 0) {
-      const { data: profiles, error: profilesError } = await insforge.database
-        .from('profiles')
-        .select('id, avatar_url')
-        .in('id', userIds);
-
-      if (!profilesError && Array.isArray(profiles)) {
-        const avatarMap = new Map<string, string | null>();
-        for (const p of profiles) {
-          avatarMap.set(p.id, (p as { id: string; avatar_url?: string | null }).avatar_url ?? null);
-        }
-        return members.map((m) => ({
-          ...m,
-          avatar_url: avatarMap.get(m.user_id) ?? m.avatar_url ?? null,
-        }));
-      }
-    }
-  } catch (enrichError) {
-    console.warn('Could not enrich household members with profiles:', enrichError);
-  }
-
-  return members;
+  return (data || []) as HouseholdMemberDetails[];
 };
 
 export const getUserHouseholds = async (userId: string): Promise<UserHousehold[]> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('household_members')
     .select('household_id, role, households(*)')
     .eq('user_id', userId);
-    
+
   if (error) throw error;
   const normalized = (data || [])
-    .map((item: any) => {
+    .map((item: { household_id: string; role: HouseholdMember['role']; households: Household | Household[] | null }) => {
       const household = Array.isArray(item.households)
         ? item.households[0]
         : item.households;
@@ -127,13 +98,13 @@ export const getUserHouseholds = async (userId: string): Promise<UserHousehold[]
         households: household as Household,
       };
     })
-    .filter((item: any): item is UserHousehold => Boolean(item));
+    .filter((item): item is UserHousehold => Boolean(item));
 
   return normalized;
 };
 
 export const updateHousehold = async (householdId: string, updates: { name?: string }): Promise<Household> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('households')
     .update(updates)
     .eq('id', householdId)
@@ -146,7 +117,7 @@ export const updateHousehold = async (householdId: string, updates: { name?: str
 
 export const regenerateInviteCode = async (householdId: string): Promise<string> => {
   const newCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-  const { error } = await insforge.database
+  const { error } = await supabase
     .from('households')
     .update({ invite_code: newCode })
     .eq('id', householdId);
@@ -156,7 +127,7 @@ export const regenerateInviteCode = async (householdId: string): Promise<string>
 };
 
 export const removeMember = async (householdId: string, userIdToRemove: string) => {
-  const { error } = await insforge.database
+  const { error } = await supabase
     .from('household_members')
     .delete()
     .eq('household_id', householdId)
@@ -166,7 +137,7 @@ export const removeMember = async (householdId: string, userIdToRemove: string) 
 };
 
 export const updateMemberRole = async (householdId: string, userIdToUpdate: string, newRole: 'ADMIN' | 'MEMBER') => {
-  const { error } = await insforge.database
+  const { error } = await supabase
     .from('household_members')
     .update({ role: newRole })
     .eq('household_id', householdId)
@@ -176,8 +147,7 @@ export const updateMemberRole = async (householdId: string, userIdToUpdate: stri
 };
 
 export const leaveHousehold = async (householdId: string, userId: string) => {
-  // Verify user is not the owner (owners can't leave, they must transfer or delete)
-  const { data: membership, error: checkError } = await insforge.database
+  const { data: membership, error: checkError } = await supabase
     .from('household_members')
     .select('role')
     .eq('household_id', householdId)
@@ -189,7 +159,7 @@ export const leaveHousehold = async (householdId: string, userId: string) => {
     throw new Error('El propietario no puede abandonar el hogar. Debés transferir la propiedad o eliminar el hogar primero.');
   }
 
-  const { error } = await insforge.database
+  const { error } = await supabase
     .from('household_members')
     .delete()
     .eq('household_id', householdId)
@@ -199,8 +169,7 @@ export const leaveHousehold = async (householdId: string, userId: string) => {
 };
 
 export const deleteHousehold = async (householdId: string): Promise<void> => {
-  // Verify that the household has no other members before deleting.
-  const { data: members, error: membersError } = await insforge.database
+  const { data: members, error: membersError } = await supabase
     .from('household_members')
     .select('id')
     .eq('household_id', householdId);
@@ -211,7 +180,7 @@ export const deleteHousehold = async (householdId: string): Promise<void> => {
     throw new Error('No se puede eliminar el hogar porque aún tiene otros miembros. Debés expulsarlos primero.');
   }
 
-  const { error } = await insforge.database
+  const { error } = await supabase
     .from('households')
     .delete()
     .eq('id', householdId);
@@ -220,7 +189,7 @@ export const deleteHousehold = async (householdId: string): Promise<void> => {
 };
 
 export const getHouseholdByInviteCode = async (inviteCode: string): Promise<Household | null> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('households')
     .select('*')
     .eq('invite_code', inviteCode.toUpperCase())

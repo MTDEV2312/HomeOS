@@ -1,4 +1,4 @@
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 
 export interface InventoryCategory {
   id: string;
@@ -25,7 +25,7 @@ export interface InventoryItem {
 }
 
 export async function getInventoryCategories(householdId: string): Promise<InventoryCategory[]> {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('inventory_categories')
     .select('*')
     .eq('household_id', householdId)
@@ -36,7 +36,7 @@ export async function getInventoryCategories(householdId: string): Promise<Inven
 }
 
 export async function createInventoryCategory(householdId: string, category: Partial<InventoryCategory>): Promise<InventoryCategory> {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('inventory_categories')
     .insert([{
       ...category,
@@ -50,7 +50,7 @@ export async function createInventoryCategory(householdId: string, category: Par
 }
 
 export async function deleteInventoryCategory(categoryId: string): Promise<void> {
-  const { error } = await insforge.database
+  const { error } = await supabase
     .from('inventory_categories')
     .delete()
     .eq('id', categoryId);
@@ -59,7 +59,7 @@ export async function deleteInventoryCategory(categoryId: string): Promise<void>
 }
 
 export async function getInventoryItems(householdId: string): Promise<InventoryItem[]> {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('inventory_items')
     .select('*, category:inventory_categories(id, name, icon)')
     .eq('household_id', householdId)
@@ -70,7 +70,7 @@ export async function getInventoryItems(householdId: string): Promise<InventoryI
 }
 
 export async function addInventoryItem(item: Partial<InventoryItem>): Promise<InventoryItem> {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('inventory_items')
     .insert([item])
     .select('*, category:inventory_categories(id, name, icon)')
@@ -81,7 +81,7 @@ export async function addInventoryItem(item: Partial<InventoryItem>): Promise<In
 }
 
 export async function updateInventoryItem(itemId: string, updates: Partial<InventoryItem>): Promise<InventoryItem> {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('inventory_items')
     .update(updates)
     .eq('id', itemId)
@@ -93,7 +93,7 @@ export async function updateInventoryItem(itemId: string, updates: Partial<Inven
 }
 
 export async function deleteInventoryItem(itemId: string): Promise<void> {
-  const { error } = await insforge.database
+  const { error } = await supabase
     .from('inventory_items')
     .delete()
     .eq('id', itemId);
