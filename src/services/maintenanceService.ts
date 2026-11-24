@@ -1,4 +1,4 @@
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 
 export type AssetCategory = 'APPLIANCE' | 'HVAC' | 'PLUMBING' | 'ELECTRICAL' | 'VEHICLE' | 'STRUCTURE' | 'OTHER';
 
@@ -48,7 +48,7 @@ type ScheduleWithAsset = MaintenanceSchedule & { asset: Asset };
 // --- Assets ---
 
 export const getAssets = async (householdId: string): Promise<Asset[]> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('assets')
     .select('*')
     .eq('household_id', householdId)
@@ -58,7 +58,7 @@ export const getAssets = async (householdId: string): Promise<Asset[]> => {
 };
 
 export const addAsset = async (payload: Partial<Asset>): Promise<Asset> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('assets')
     .insert([payload])
     .select()
@@ -68,7 +68,7 @@ export const addAsset = async (payload: Partial<Asset>): Promise<Asset> => {
 };
 
 export const updateAsset = async (id: string, payload: Partial<Asset>): Promise<Asset> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('assets')
     .update({ ...payload, updated_at: new Date().toISOString() })
     .eq('id', id)
@@ -79,14 +79,14 @@ export const updateAsset = async (id: string, payload: Partial<Asset>): Promise<
 };
 
 export const deleteAsset = async (id: string): Promise<void> => {
-  const { error } = await insforge.database.from('assets').delete().eq('id', id);
+  const { error } = await supabase.from('assets').delete().eq('id', id);
   if (error) throw error;
 };
 
 // --- Maintenance Logs ---
 
 export const getMaintenanceLogs = async (assetId: string): Promise<MaintenanceLog[]> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('maintenance_logs')
     .select('*')
     .eq('asset_id', assetId)
@@ -96,7 +96,7 @@ export const getMaintenanceLogs = async (assetId: string): Promise<MaintenanceLo
 };
 
 export const getAllMaintenanceLogs = async (householdId: string): Promise<MaintenanceLog[]> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('maintenance_logs')
     .select('*, assets!inner(household_id)')
     .eq('assets.household_id', householdId)
@@ -109,7 +109,7 @@ export const getAllMaintenanceLogs = async (householdId: string): Promise<Mainte
 };
 
 export const addMaintenanceLog = async (payload: Partial<MaintenanceLog>): Promise<MaintenanceLog> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('maintenance_logs')
     .insert([payload])
     .select()
@@ -119,7 +119,7 @@ export const addMaintenanceLog = async (payload: Partial<MaintenanceLog>): Promi
 };
 
 export const deleteMaintenanceLog = async (id: string): Promise<void> => {
-  const { error } = await insforge.database.from('maintenance_logs').delete().eq('id', id);
+  const { error } = await supabase.from('maintenance_logs').delete().eq('id', id);
   if (error) throw error;
 };
 
@@ -133,7 +133,7 @@ export const updateMaintenanceLog = async (id: string, payload: Partial<Maintena
   if (payload.notes !== undefined) updates.notes = payload.notes;
   if (payload.next_service_date !== undefined) updates.next_service_date = payload.next_service_date;
   
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('maintenance_logs')
     .update(updates)
     .eq('id', id)
@@ -149,7 +149,7 @@ export const updateMaintenanceLog = async (id: string, payload: Partial<Maintena
 // --- Maintenance Schedule ---
 
 export const getMaintenanceSchedules = async (assetId: string): Promise<MaintenanceSchedule[]> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('maintenance_schedule')
     .select('*')
     .eq('asset_id', assetId)
@@ -160,7 +160,7 @@ export const getMaintenanceSchedules = async (assetId: string): Promise<Maintena
 
 export const getAllMaintenanceSchedules = async (householdId: string): Promise<ScheduleWithAsset[]> => {
   // Fetch schedules joining with assets and filtering on household_id on the database server
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('maintenance_schedule')
     .select('*, asset:assets!inner(*)')
     .eq('asset.household_id', householdId)
@@ -172,7 +172,7 @@ export const getAllMaintenanceSchedules = async (householdId: string): Promise<S
 };
 
 export const addMaintenanceSchedule = async (payload: Partial<MaintenanceSchedule>): Promise<MaintenanceSchedule> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('maintenance_schedule')
     .insert([payload])
     .select()
@@ -182,7 +182,7 @@ export const addMaintenanceSchedule = async (payload: Partial<MaintenanceSchedul
 };
 
 export const updateMaintenanceSchedule = async (id: string, payload: Partial<MaintenanceSchedule>): Promise<MaintenanceSchedule> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('maintenance_schedule')
     .update({ ...payload, updated_at: new Date().toISOString() })
     .eq('id', id)
@@ -193,6 +193,6 @@ export const updateMaintenanceSchedule = async (id: string, payload: Partial<Mai
 };
 
 export const deleteMaintenanceSchedule = async (id: string): Promise<void> => {
-  const { error } = await insforge.database.from('maintenance_schedule').delete().eq('id', id);
+  const { error } = await supabase.from('maintenance_schedule').delete().eq('id', id);
   if (error) throw error;
 };

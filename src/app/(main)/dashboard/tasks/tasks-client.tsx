@@ -6,7 +6,7 @@ import { useHousehold } from '@/lib/household-context';
 import { getTasks, createTask, updateTaskStatus, deleteTask, updateTask, Task, TaskPriority, TaskStatus } from '@/services/taskService';
 import { useToast } from '@/lib/toast-context';
 import { getHouseholdMembers, HouseholdMemberDetails } from '@/services/householdService';
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 import { 
   CheckCircle, PlusCircle, Calendar, User, 
   Filter, Repeat, X, AlertCircle, Loader2, Edit2, Trash2,
@@ -146,16 +146,6 @@ export default function TasksPage() {
         if (!active) return;
         setTasks(tasksData);
         setMembers(membersData);
-
-        // Realtime Subscription
-        await insforge.realtime.connect();
-        const channelName = `household:${activeHousehold.id}`;
-        await insforge.realtime.subscribe(channelName);
-
-        insforge.realtime.on('INSERT_tasks', onInsertTask);
-        insforge.realtime.on('UPDATE_tasks', onUpdateTask);
-        insforge.realtime.on('DELETE_tasks', onDeleteTask);
-
       } catch (err: unknown) {
         if (active) setError(getErrorMessage(err, 'Error al cargar las tareas'));
       } finally {
@@ -164,13 +154,31 @@ export default function TasksPage() {
     }
     loadData();
 
+    const channel = activeHousehold && user
+      ? supabase
+          .channel(`tasks:${activeHousehold.id}`)
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'tasks', filter: `household_id=eq.${activeHousehold.id}` },
+            (payload) => onInsertTask(payload.new as Task)
+          )
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'tasks', filter: `household_id=eq.${activeHousehold.id}` },
+            (payload) => onUpdateTask(payload.new as Task)
+          )
+          .on(
+            'postgres_changes',
+            { event: 'DELETE', schema: 'public', table: 'tasks', filter: `household_id=eq.${activeHousehold.id}` },
+            (payload) => onDeleteTask(payload.old as Task)
+          )
+          .subscribe()
+      : null;
+
     return () => {
       active = false;
-      if (activeHousehold) {
-        insforge.realtime.unsubscribe(`household:${activeHousehold.id}`);
-        insforge.realtime.off('INSERT_tasks', onInsertTask);
-        insforge.realtime.off('UPDATE_tasks', onUpdateTask);
-        insforge.realtime.off('DELETE_tasks', onDeleteTask);
+      if (channel) {
+        supabase.removeChannel(channel);
       }
     };
   }, [activeHousehold, user, isLoadingHousehold]);
@@ -635,7 +643,7 @@ export default function TasksPage() {
             <footer className="flex flex-col-reverse sm:flex-row items-center justify-between gap-sm px-lg py-md border-t border-outline-variant bg-surface-container-lowest shrink-0">
               <div className="flex items-center gap-xs text-on-surface-variant">
                 <CheckCircle className="w-4 h-4" />
-                <span className="font-label-sm text-label-sm">Powered by InsForge</span>
+                <span className="font-label-sm text-label-sm">Powered by Supabase</span>
               </div>
               <div className="flex gap-md w-full sm:w-auto">
                 <button 
@@ -767,7 +775,7 @@ export default function TasksPage() {
             <footer className="flex flex-col-reverse sm:flex-row items-center justify-between gap-sm px-lg py-md border-t border-outline-variant bg-surface-container-lowest shrink-0">
               <div className="flex items-center gap-xs text-on-surface-variant">
                 <CheckCircle className="w-4 h-4" />
-                <span className="font-label-sm text-label-sm">Powered by InsForge</span>
+                <span className="font-label-sm text-label-sm">Powered by Supabase</span>
               </div>
               <div className="flex gap-md w-full sm:w-auto">
                 {canEditOrDelete(selectedTask) && (
@@ -935,7 +943,7 @@ export default function TasksPage() {
             <footer className="flex flex-col-reverse sm:flex-row items-center justify-between gap-sm px-lg py-md border-t border-outline-variant bg-surface-container-lowest shrink-0">
               <div className="flex items-center gap-xs text-on-surface-variant">
                 <CheckCircle className="w-4 h-4" />
-                <span className="font-label-sm text-label-sm">Powered by InsForge</span>
+                <span className="font-label-sm text-label-sm">Powered by Supabase</span>
               </div>
               <div className="flex gap-md w-full sm:w-auto">
                 <button 

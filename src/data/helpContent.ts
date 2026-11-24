@@ -258,7 +258,7 @@ export const helpGuides: HelpGuide[] = [
       'Accedé a "Documentos".',
       'Hacé clic en "Subir documento" y seleccioná el archivo desde tu dispositivo (PDF o imágenes).',
       'Asignale un título claro y una categoría (Financieros, Legales, Garantías, Manuales, Identificación).',
-      'Los documentos se almacenan cifrados en la nube de InsForge Storage del hogar.',
+      'Los documentos se almacenan cifrados en la nube de Supabase Storage del hogar.',
       'Podés previsualizarlos en pantalla o descargarlos cuando los necesites con total privacidad.',
     ],
     tip: 'Asociá las facturas de compra y certificados de garantía a cada equipo registrado en Mantenimiento.',

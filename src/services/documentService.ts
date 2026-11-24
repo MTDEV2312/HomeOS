@@ -1,4 +1,4 @@
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 
 export type DocumentCategory = 'RECEIPT' | 'WARRANTY' | 'CONTRACT' | 'IDENTITY' | 'OTHER';
 
@@ -17,7 +17,7 @@ export type HouseholdDocument = {
 };
 
 export const getHouseholdDocuments = async (householdId: string): Promise<HouseholdDocument[]> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('household_documents')
     .select('*')
     .eq('household_id', householdId)
@@ -31,25 +31,30 @@ export const addHouseholdDocument = async (
   payload: Omit<HouseholdDocument, 'id' | 'created_at' | 'updated_at' | 'file_url' | 'file_key'>,
   file: File
 ): Promise<HouseholdDocument> => {
-  // 1. Upload to storage
   const fileExt = file.name.split('.').pop();
   const filePath = `${payload.household_id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-  
+
   if (filePath.includes('..')) throw new Error('Invalid file path');
-  const { data: uploadData, error: uploadError } = await insforge.storage
+  const { data: uploadData, error: uploadError } = await supabase.storage
     .from('household-documents')
-    .upload(filePath, file);
+    .upload(filePath, file, {
+      contentType: file.type || undefined,
+      upsert: false,
+    });
 
   if (uploadError || !uploadData) throw uploadError || new Error('Upload failed');
 
-  // 2. Insert record in DB
+  const { data: publicUrlData } = supabase.storage
+    .from('household-documents')
+    .getPublicUrl(uploadData.path);
+
   const dbPayload = {
     ...payload,
-    file_key: uploadData.key,
-    file_url: uploadData.url
+    file_key: uploadData.path,
+    file_url: publicUrlData.publicUrl,
   };
 
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('household_documents')
     .insert([dbPayload])
     .select()
@@ -60,16 +65,14 @@ export const addHouseholdDocument = async (
 };
 
 export const deleteHouseholdDocument = async (id: string, fileKey: string): Promise<void> => {
-  // 1. Delete from storage
   if (fileKey.includes('..')) throw new Error('Invalid file key');
-  const { error: storageError } = await insforge.storage
+  const { error: storageError } = await supabase.storage
     .from('household-documents')
-    .remove(fileKey);
+    .remove([fileKey]);
 
   if (storageError) throw storageError;
 
-  // 2. Delete from DB
-  const { error: dbError } = await insforge.database
+  const { error: dbError } = await supabase
     .from('household_documents')
     .delete()
     .eq('id', id);
@@ -79,7 +82,7 @@ export const deleteHouseholdDocument = async (id: string, fileKey: string): Prom
 
 export const downloadHouseholdDocument = async (fileKey: string): Promise<Blob> => {
   if (fileKey.includes('..')) throw new Error('Invalid file key');
-  const { data, error } = await insforge.storage
+  const { data, error } = await supabase.storage
     .from('household-documents')
     .download(fileKey);
 
@@ -91,7 +94,7 @@ export const updateHouseholdDocument = async (
   id: string,
   updates: Partial<Pick<HouseholdDocument, 'title' | 'category' | 'related_type' | 'related_id'>>
 ): Promise<HouseholdDocument> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('household_documents')
     .update({
       ...updates,

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useHousehold } from '@/lib/household-context';
 import { useAuth } from '@/lib/auth-context';
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 import {
   HouseholdDocument,
   DocumentCategory,
@@ -168,24 +168,22 @@ export default function DocumentsDashboard() {
 
     loadDocs();
 
-    const setupRealtime = async () => {
-      try {
-        await insforge.realtime.connect();
-        const channelName = `household:${activeHousehold.id}`;
-        await insforge.realtime.subscribe(channelName);
-        
-        insforge.realtime.on('INSERT_household_documents', () => loadDocs());
-        insforge.realtime.on('UPDATE_household_documents', () => loadDocs());
-        insforge.realtime.on('DELETE_household_documents', () => loadDocs());
-      } catch (err) {
-        console.error('Error setting up realtime:', err);
-      }
-    };
-
-    setupRealtime();
+    const channel = supabase
+      .channel(`documents:${activeHousehold.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'household_documents',
+          filter: `household_id=eq.${activeHousehold.id}`,
+        },
+        () => loadDocs()
+      )
+      .subscribe();
 
     return () => {
-      insforge.realtime.unsubscribe(`household:${activeHousehold.id}`);
+      supabase.removeChannel(channel);
     };
   }, [activeHousehold]);
 

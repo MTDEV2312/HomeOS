@@ -1,4 +1,4 @@
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
@@ -22,7 +22,7 @@ export interface Task {
 }
 
 export const getTasks = async (householdId: string): Promise<Task[]> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('tasks')
     .select('*')
     .eq('household_id', householdId)
@@ -43,7 +43,7 @@ export const createTask = async (
   creatorId: string, 
   taskData: Partial<Task>
 ): Promise<Task> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('tasks')
     .insert([
       {
@@ -69,7 +69,7 @@ export const createTask = async (
 };
 
 export const updateTaskStatus = async (taskId: string, status: TaskStatus): Promise<Task> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('tasks')
     .update({ 
       status, 
@@ -103,7 +103,7 @@ export const updateTask = async (taskId: string, updates: Partial<Task>): Promis
     payload.recurrence_rule = updates.recurrence_rule || null;
   }
 
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('tasks')
     .update(payload)
     .eq('id', taskId)
@@ -117,7 +117,7 @@ export const updateTask = async (taskId: string, updates: Partial<Task>): Promis
 };
 
 export const deleteTask = async (taskId: string): Promise<void> => {
-  const { error } = await insforge.database
+  const { error } = await supabase
     .from('tasks')
     .delete()
     .eq('id', taskId);

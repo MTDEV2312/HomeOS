@@ -1,4 +1,4 @@
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 
 export type ShoppingList = {
   id: string;
@@ -27,7 +27,7 @@ export type ShoppingListItem = {
 };
 
 export const getShoppingLists = async (householdId: string): Promise<ShoppingList[]> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('shopping_lists')
     .select('*')
     .eq('household_id', householdId)
@@ -42,7 +42,7 @@ export const createShoppingList = async (
   name: string, 
   description?: string
 ): Promise<ShoppingList> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('shopping_lists')
     .insert([{ household_id: householdId, name, description }])
     .select()
@@ -56,7 +56,7 @@ export const updateShoppingList = async (
   listId: string, 
   updates: Partial<ShoppingList>
 ): Promise<ShoppingList> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('shopping_lists')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', listId)
@@ -69,14 +69,14 @@ export const updateShoppingList = async (
 
 export const deleteShoppingList = async (listId: string): Promise<void> => {
   // Defensively delete child items before deleting list to avoid foreign key constraint errors
-  const { error: itemsError } = await insforge.database
+  const { error: itemsError } = await supabase
     .from('shopping_list_items')
     .delete()
     .eq('list_id', listId);
 
   if (itemsError) throw itemsError;
 
-  const { error } = await insforge.database
+  const { error } = await supabase
     .from('shopping_lists')
     .delete()
     .eq('id', listId);
@@ -85,7 +85,7 @@ export const deleteShoppingList = async (listId: string): Promise<void> => {
 };
 
 export const getShoppingListItems = async (listId: string): Promise<ShoppingListItem[]> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('shopping_list_items')
     .select('*')
     .eq('list_id', listId)
@@ -97,7 +97,7 @@ export const getShoppingListItems = async (listId: string): Promise<ShoppingList
 
 export const getAllItemsForHousehold = async (householdId: string): Promise<ShoppingListItem[]> => {
   // Single round-trip relational query fetching lists with nested items
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('shopping_lists')
     .select('id, shopping_list_items(*)')
     .eq('household_id', householdId);
@@ -114,7 +114,7 @@ export const addShoppingListItem = async (
   addedBy: string,
   itemData: { item_name: string; quantity?: string; category?: string; assigned_to?: string }
 ): Promise<ShoppingListItem> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('shopping_list_items')
     .insert([{ 
       list_id: listId, 
@@ -141,7 +141,7 @@ export const updateShoppingListItem = async (
     delete dbUpdates.name;
   }
 
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('shopping_list_items')
     .update(dbUpdates)
     .eq('id', itemId)
@@ -153,7 +153,7 @@ export const updateShoppingListItem = async (
 };
 
 export const deleteShoppingListItem = async (itemId: string): Promise<void> => {
-  const { error } = await insforge.database
+  const { error } = await supabase
     .from('shopping_list_items')
     .delete()
     .eq('id', itemId);

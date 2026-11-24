@@ -1,4 +1,4 @@
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 
 export type ExpenseCategory = {
   id: string;
@@ -36,7 +36,7 @@ export type Budget = {
 type ExpenseRow = Expense & { expense_categories?: ExpenseCategory | null };
 
 export const getExpenseCategories = async (householdId: string): Promise<ExpenseCategory[]> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('expense_categories')
     .select('*')
     .eq('household_id', householdId)
@@ -50,7 +50,7 @@ export const createExpenseCategory = async (
   householdId: string, 
   data: Omit<ExpenseCategory, 'id' | 'household_id' | 'created_at'>
 ): Promise<ExpenseCategory> => {
-  const { data: newCategory, error } = await insforge.database
+  const { data: newCategory, error } = await supabase
     .from('expense_categories')
     .insert([{ ...data, household_id: householdId }])
     .select()
@@ -61,7 +61,7 @@ export const createExpenseCategory = async (
 };
 
 export const getExpenses = async (householdId: string): Promise<Expense[]> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('expenses')
     .select(`
       *,
@@ -85,7 +85,7 @@ export const addExpense = async (
   payerId: string, 
   data: Omit<Expense, 'id' | 'household_id' | 'payer_id' | 'created_at' | 'category'>
 ): Promise<Expense> => {
-  const { data: newExpense, error } = await insforge.database
+  const { data: newExpense, error } = await supabase
     .from('expenses')
     .insert([{ 
       ...data, 
@@ -103,7 +103,7 @@ export const updateExpense = async (
   id: string,
   data: Partial<Omit<Expense, 'id' | 'household_id' | 'created_at' | 'category'>>
 ): Promise<Expense> => {
-  const { data: updatedExpense, error } = await insforge.database
+  const { data: updatedExpense, error } = await supabase
     .from('expenses')
     .update(data)
     .eq('id', id)
@@ -115,7 +115,7 @@ export const updateExpense = async (
 };
 
 export const deleteExpense = async (id: string): Promise<void> => {
-  const { error } = await insforge.database
+  const { error } = await supabase
     .from('expenses')
     .delete()
     .eq('id', id);
@@ -124,7 +124,7 @@ export const deleteExpense = async (id: string): Promise<void> => {
 };
 
 export const getBudgets = async (householdId: string): Promise<Budget[]> => {
-  const { data, error } = await insforge.database
+  const { data, error } = await supabase
     .from('budgets')
     .select('*')
     .eq('household_id', householdId);
@@ -137,7 +137,7 @@ export const addBudget = async (
   householdId: string,
   data: Omit<Budget, 'id' | 'household_id' | 'created_at'>
 ): Promise<Budget> => {
-  const { data: newBudget, error } = await insforge.database
+  const { data: newBudget, error } = await supabase
     .from('budgets')
     .insert([{ ...data, household_id: householdId }])
     .select()
@@ -183,7 +183,7 @@ export const setMonthlyBudget = async (
   );
 
   if (existing) {
-    const { data: updated, error } = await insforge.database
+    const { data: updated, error } = await supabase
       .from('budgets')
       .update({ amount })
       .eq('id', existing.id)
@@ -195,7 +195,7 @@ export const setMonthlyBudget = async (
   }
 
   // Create new monthly budget
-  const { data: created, error } = await insforge.database
+  const { data: created, error } = await supabase
     .from('budgets')
     .insert([{
       household_id: householdId,

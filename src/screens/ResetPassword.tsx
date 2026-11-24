@@ -1,243 +1,118 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { useRouter, useSearchParams, Link } from '@/lib/navigation'
+import React, { useState, useEffect, useRef } from 'react'
+import { useRouter, Link } from '@/lib/navigation'
 import { CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react'
-import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/context/ToastContext'
+import { supabase, createEphemeralSupabaseClient } from '@/lib/supabase'
 
-const SESSION_STORAGE_KEY = 'homeos_recovery_session'
-const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000 // 15 minutes
-const steps = ['Código', 'Nueva contraseña', 'Listo']
+type RecoveryStatus = 'checking' | 'ready' | 'invalid' | 'success'
+type EphemeralClient = ReturnType<typeof createEphemeralSupabaseClient>
 
-interface RecoverySession {
-  resetToken: string
-  email: string
-  lastActivity: number
-}
-
-function getValidStoredSession(): RecoverySession | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = sessionStorage.getItem(SESSION_STORAGE_KEY)
-    if (!raw) return null
-    const session = JSON.parse(raw) as Partial<RecoverySession>
-    if (
-      typeof session.resetToken === 'string' &&
-      session.resetToken &&
-      typeof session.lastActivity === 'number' &&
-      Date.now() - session.lastActivity < INACTIVITY_TIMEOUT_MS
-    ) {
-      return session as RecoverySession
-    }
-    // Expired or malformed
-    sessionStorage.removeItem(SESSION_STORAGE_KEY)
-    return null
-  } catch {
-    try {
-      sessionStorage.removeItem(SESSION_STORAGE_KEY)
-    } catch {
-      // ignore
-    }
-    return null
-  }
-}
-
-function saveRecoverySession(session: RecoverySession): void {
-  if (typeof window === 'undefined') return
-  try {
-    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
-  } catch {
-    // ignore
-  }
-}
-
-function clearRecoverySession(): void {
-  if (typeof window === 'undefined') return
-  try {
-    sessionStorage.removeItem(SESSION_STORAGE_KEY)
-  } catch {
-    // ignore
-  }
+interface InitResult {
+  status: 'ready' | 'invalid'
+  client: EphemeralClient | null
+  errorMessage?: string
 }
 
 export default function ResetPassword() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const { exchangeResetPasswordToken, resetPassword } = useAuth()
   const { toast } = useToast()
 
-  const [step, setStep] = useState<0 | 1 | 2>(0)
-  const [email, setEmail] = useState('')
-  const [code, setCode] = useState('')
-  const [resetToken, setResetToken] = useState('')
+  const [status, setStatus] = useState<RecoveryStatus>('checking')
   const [pass, setPass] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
-  const [isSessionExpired, setIsSessionExpired] = useState(false)
 
-  const lastActivityRef = useRef<number>(0)
-  const lastSyncRef = useRef<number>(0)
-  const hasMountedRef = useRef(false)
+  const ephemeralClientRef = useRef<EphemeralClient | null>(null)
+  const initPromiseRef = useRef<Promise<InitResult> | null>(null)
 
-  const purgeSession = useCallback(() => {
-    clearRecoverySession()
-    setResetToken('')
-    setPass('')
-    setConfirm('')
-  }, [])
+  useEffect(() => {
+    let active = true
 
-  const performTokenExchange = useCallback(async (targetEmail: string, targetCode: string) => {
-    setErrorMsg('')
-    setIsSessionExpired(false)
-    setLoading(true)
+    if (!initPromiseRef.current && typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search)
+      const hashRaw = window.location.hash.replace(/^#/, '')
+      const hashParams = new URLSearchParams(hashRaw)
 
-    try {
-      const res = await exchangeResetPasswordToken(targetEmail.trim(), targetCode.trim())
-      const token = res.resetToken || res.token
+      const urlError = searchParams.get('error') || hashParams.get('error')
+      const urlErrorDesc = searchParams.get('error_description') || hashParams.get('error_description')
+      const hashType = hashParams.get('type')
+      const accessToken = hashParams.get('access_token')
+      const refreshToken = hashParams.get('refresh_token')
+      const tokenHash = searchParams.get('token_hash')
+      const queryType = searchParams.get('type')
 
-      if (res.error || !token) {
-        setErrorMsg('El código ingresado es inválido o ya expiró. Solicitá uno nuevo.')
-        toast('El código ingresado es inválido o ya expiró. Solicitá uno nuevo.', 'error')
-        setLoading(false)
-        return
-      }
-
-      const now = Date.now()
-      lastActivityRef.current = now
-      lastSyncRef.current = now
-
-      saveRecoverySession({
-        resetToken: token,
-        email: targetEmail.trim(),
-        lastActivity: now,
-      })
-
-      setResetToken(token)
-      // Sanitize URL via window.history.replaceState to prevent replay
-      if (typeof window !== 'undefined') {
+      if (window.location.search || window.location.hash) {
         window.history.replaceState({}, '', '/reset-password')
       }
-      setStep(1)
-      setLoading(false)
-    } catch {
-      setErrorMsg('El código ingresado es inválido o ya expiró. Solicitá uno nuevo.')
-      toast('El código ingresado es inválido o ya expiró. Solicitá uno nuevo.', 'error')
-      setLoading(false)
-    }
-  }, [exchangeResetPasswordToken, toast])
 
-  // Step 0 & Step 1 initialization on mount
-  useEffect(() => {
-    if (hasMountedRef.current) return
-    hasMountedRef.current = true
-
-    // 1. Check if a valid session already exists in sessionStorage
-    const existingSession = getValidStoredSession()
-    if (existingSession) {
-      const now = Date.now()
-      lastActivityRef.current = now
-      lastSyncRef.current = now
-      saveRecoverySession({
-        ...existingSession,
-        lastActivity: now,
-      })
-      setResetToken(existingSession.resetToken)
-      if (existingSession.email) {
-        setEmail(existingSession.email)
-      }
-      setStep(1)
-
-      // Sanitize URL if query params exist
-      if (typeof window !== 'undefined' && window.location.search) {
-        window.history.replaceState({}, '', '/reset-password')
-      }
-      return
-    }
-
-    // 2. Read URL query params
-    const urlEmail = searchParams.get('email') || ''
-    const urlCode = searchParams.get('code') || searchParams.get('token') || ''
-
-    if (urlEmail) {
-      setEmail(urlEmail)
-    }
-    if (urlCode) {
-      setCode(urlCode)
-    }
-
-    // Auto-trigger if both email and code/token are present in URL on mount
-    if (urlEmail && urlCode) {
-      performTokenExchange(urlEmail, urlCode)
-    }
-  }, [searchParams, performTokenExchange])
-
-  // Step 1: Validated Recovery Session with 15-Minute Sliding Inactivity Window
-  useEffect(() => {
-    if (step !== 1) return
-
-    if (!lastActivityRef.current) {
-      lastActivityRef.current = Date.now()
-    }
-
-    const updateActivity = () => {
-      const now = Date.now()
-      lastActivityRef.current = now
-
-      // Periodically sync to sessionStorage (throttled to once every 2 seconds)
-      if (now - lastSyncRef.current > 2000) {
-        lastSyncRef.current = now
-        const currentSession = getValidStoredSession()
-        if (currentSession) {
-          saveRecoverySession({
-            ...currentSession,
-            lastActivity: now,
-          })
+      initPromiseRef.current = (async (): Promise<InitResult> => {
+        if (urlError) {
+          return {
+            status: 'invalid',
+            client: null,
+            errorMessage: urlErrorDesc || 'El enlace de recuperación es inválido o ya expiró. Solicitá uno nuevo.',
+          }
         }
-      }
+
+        if (hashType === 'recovery' && accessToken && refreshToken) {
+          const ephemeral = createEphemeralSupabaseClient()
+          const { data, error } = await ephemeral.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          if (error || !data.session) {
+            return {
+              status: 'invalid',
+              client: null,
+              errorMessage: 'El enlace de recuperación es inválido o ya expiró. Solicitá uno nuevo.',
+            }
+          }
+          return { status: 'ready', client: ephemeral }
+        }
+
+        if (tokenHash && queryType === 'recovery') {
+          const ephemeral = createEphemeralSupabaseClient()
+          const { data, error } = await ephemeral.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'recovery',
+          })
+          if (error || !data.session) {
+            return {
+              status: 'invalid',
+              client: null,
+              errorMessage: 'El enlace de recuperación es inválido o ya expiró. Solicitá uno nuevo.',
+            }
+          }
+          return { status: 'ready', client: ephemeral }
+        }
+
+        return { status: 'invalid', client: null }
+      })()
     }
 
-    const events: Array<keyof WindowEventMap> = ['keydown', 'mousedown', 'touchstart', 'focus', 'input']
-    events.forEach(evt => window.addEventListener(evt, updateActivity, { passive: true }))
-
-    const timer = setInterval(() => {
-      const inactiveDuration = Date.now() - lastActivityRef.current
-      if (inactiveDuration >= INACTIVITY_TIMEOUT_MS) {
-        purgeSession()
-        setIsSessionExpired(true)
-        setErrorMsg('Tu sesión de recuperación expiró por inactividad (15 minutos). Por seguridad, deberás solicitar un nuevo código.')
+    initPromiseRef.current?.then((result) => {
+      if (!active) return
+      ephemeralClientRef.current = result.client
+      if (result.errorMessage) {
+        setErrorMsg(result.errorMessage)
       }
-    }, 1000)
+      setStatus(result.status)
+    })
 
     return () => {
-      events.forEach(evt => window.removeEventListener(evt, updateActivity))
-      clearInterval(timer)
+      active = false
     }
-  }, [step, purgeSession])
+  }, [])
 
-  const handleStep0Submit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrorMsg('')
-
-    if (!email.trim()) {
-      setErrorMsg('Ingresa tu correo electrónico.')
-      return
-    }
-    if (!code.trim()) {
-      setErrorMsg('Ingresa el código de verificación.')
-      return
-    }
-
-    await performTokenExchange(email, code)
-  }
-
-  const handleStep1Submit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMsg('')
 
     if (!pass) {
-      setErrorMsg('Ingresa una nueva contraseña.')
+      setErrorMsg('Ingresá una nueva contraseña.')
       return
     }
 
@@ -252,28 +127,28 @@ export default function ResetPassword() {
       return
     }
 
-    if (!resetToken) {
-      purgeSession()
-      setIsSessionExpired(true)
-      setErrorMsg('Tu sesión de recuperación expiró o no es válida. Solicita un nuevo código.')
+    const client = ephemeralClientRef.current
+    if (!client) {
+      setStatus('invalid')
       return
     }
 
     setLoading(true)
     try {
-      const { error } = await resetPassword(pass, resetToken)
+      const { error } = await client.auth.updateUser({ password: pass })
       if (error) {
-        const msg = error.message || 'Error al restablecer la contraseña. El código puede haber expirado.'
+        const msg = error.message || 'Error al restablecer la contraseña. El enlace puede haber expirado.'
         setErrorMsg(msg)
         toast(msg, 'error')
         setLoading(false)
         return
       }
 
-      // On success: purge sessionStorage and advance to step 2
-      purgeSession()
+      await client.auth.signOut({ scope: 'global' }).catch(() => {})
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+      ephemeralClientRef.current = null
       toast('Contraseña restablecida con éxito.', 'success')
-      setStep(2)
+      setStatus('success')
       setLoading(false)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error inesperado'
@@ -281,13 +156,6 @@ export default function ResetPassword() {
       toast(msg, 'error')
       setLoading(false)
     }
-  }
-
-  const handleCancelStep1 = () => {
-    purgeSession()
-    setErrorMsg('')
-    setIsSessionExpired(false)
-    setStep(0)
   }
 
   return (
@@ -298,71 +166,81 @@ export default function ResetPassword() {
           HomeOS
         </Link>
 
-        {/* Step indicator */}
-        <div className="flex items-center gap-2 mb-10">
-          {steps.map((s, i) => (
-            <div key={s} className="flex items-center gap-2">
-              <div
-                className={`w-5 h-5 rounded-full text-[10px] font-semibold flex items-center justify-center transition-colors ${
-                  i < step
-                    ? 'bg-olive dark:bg-dark-olive text-white'
-                    : i === step
-                    ? 'bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg'
-                    : 'bg-line dark:bg-dark-line text-muted dark:text-dark-muted'
-                }`}
-              >
-                {i < step ? '✓' : i + 1}
-              </div>
-              <span className={`text-[11px] ${i === step ? 'text-ink dark:text-dark-ink font-medium' : 'text-muted dark:text-dark-muted'}`}>
-                {s}
-              </span>
-              {i < steps.length - 1 && <div className="w-6 h-px bg-line dark:bg-dark-line ml-1" />}
-            </div>
-          ))}
-        </div>
-
-        {errorMsg && !isSessionExpired && (
-          <div className="mb-5 px-3.5 py-2.5 rounded-[4px] bg-terracotta-bg border border-terracotta text-terracotta dark:bg-dark-surface dark:border-dark-terracotta dark:text-dark-terracotta text-[13px]">
-            {errorMsg}
+        {status === 'checking' && (
+          <div className="py-12 text-center">
+            <span className="w-6 h-6 border-2 border-olive/30 border-t-olive rounded-full animate-spin mx-auto block mb-4" />
+            <p className="text-[13px] text-muted dark:text-dark-muted">Validando enlace de recuperación...</p>
           </div>
         )}
 
-        {/* Step 0: Upfront Code / Token Validation */}
-        {step === 0 && (
-          <form onSubmit={handleStep0Submit} className="space-y-5">
+        {status === 'invalid' && (
+          <div className="text-center py-4">
+            <div className="w-10 h-10 bg-terracotta-bg dark:bg-dark-surface border border-terracotta dark:border-dark-terracotta rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle size={20} className="text-terracotta dark:text-dark-terracotta" />
+            </div>
+            <h1 className="text-[24px] font-light text-ink dark:text-dark-ink mb-3">Enlace inválido o expirado</h1>
+            <p className="text-[13px] text-muted dark:text-dark-muted mb-8 leading-relaxed">
+              {errorMsg || 'Abrí esta página desde el enlace que te enviamos por correo, o solicitá uno nuevo.'}
+            </p>
+            <div className="space-y-3">
+              <Link
+                href="/forgot-password"
+                className="w-full py-3 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[14px] font-medium inline-flex items-center justify-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                Solicitar nuevo enlace
+              </Link>
+              <button
+                type="button"
+                onClick={() => router.push('/login')}
+                className="text-[12px] text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors inline-flex items-center gap-1"
+              >
+                <ArrowLeft size={12} /> Volver al inicio de sesión
+              </button>
+            </div>
+          </div>
+        )}
+
+        {status === 'ready' && (
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="mb-6">
-              <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted dark:text-dark-muted mb-2">Recuperación</p>
-              <h1 className="text-[28px] font-light tracking-[-0.02em] text-ink dark:text-dark-ink mb-2">Ingresa el código</h1>
+              <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted dark:text-dark-muted mb-2">Nueva clave</p>
+              <h1 className="text-[28px] font-light tracking-[-0.02em] text-ink dark:text-dark-ink mb-2">Nueva contraseña</h1>
               <p className="text-[13px] text-muted dark:text-dark-muted leading-relaxed">
-                Ingresa el correo asociado a tu cuenta y el código de verificación que te enviamos.
+                Ingresá una contraseña segura de al menos 8 caracteres para tu cuenta.
               </p>
             </div>
 
+            {errorMsg && (
+              <div className="mb-5 px-3.5 py-2.5 rounded-[4px] bg-terracotta-bg border border-terracotta text-terracotta dark:bg-dark-surface dark:border-dark-terracotta dark:text-dark-terracotta text-[13px]">
+                {errorMsg}
+              </div>
+            )}
+
             <div>
               <label className="block text-[11px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted mb-1.5">
-                Email
+                Nueva contraseña
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                type="password"
+                value={pass}
+                onChange={e => setPass(e.target.value)}
                 required
-                placeholder="ana@ejemplo.com"
-                className="w-full px-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[14px] text-ink dark:text-dark-ink bg-surface dark:bg-dark-surface placeholder:text-muted/40 focus:outline-none focus:border-olive dark:focus:border-dark-olive transition-colors"
+                placeholder="••••••••"
+                className="w-full px-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[14px] text-ink dark:text-dark-ink bg-surface dark:bg-dark-surface focus:outline-none focus:border-olive dark:focus:border-dark-olive transition-colors"
               />
             </div>
 
             <div>
               <label className="block text-[11px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted mb-1.5">
-                Código de verificación
+                Confirmar contraseña
               </label>
               <input
-                type="text"
-                value={code}
-                onChange={e => setCode(e.target.value)}
+                type="password"
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
                 required
-                placeholder="123456"
-                className="w-full px-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[18px] font-mono text-ink dark:text-dark-ink bg-surface dark:bg-dark-surface tracking-widest focus:outline-none focus:border-olive dark:focus:border-dark-olive transition-colors"
+                placeholder="••••••••"
+                className="w-full px-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[14px] text-ink dark:text-dark-ink bg-surface dark:bg-dark-surface focus:outline-none focus:border-olive dark:focus:border-dark-olive transition-colors"
               />
             </div>
 
@@ -374,136 +252,18 @@ export default function ResetPassword() {
               {loading ? (
                 <span className="w-4 h-4 border-2 border-surface/30 border-t-surface rounded-full animate-spin mx-auto block" />
               ) : (
-                'Validar código'
+                'Guardar contraseña'
               )}
             </button>
-
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  purgeSession()
-                  router.push('/login')
-                }}
-                className="text-[12px] text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors inline-flex items-center gap-1"
-              >
-                <ArrowLeft size={12} /> Volver al inicio de sesión
-              </button>
-            </div>
           </form>
         )}
 
-        {/* Step 1: Validated Recovery Session */}
-        {step === 1 && (
-          <>
-            {isSessionExpired ? (
-              <div className="text-center py-4">
-                <div className="w-10 h-10 bg-terracotta-bg dark:bg-dark-surface border border-terracotta dark:border-dark-terracotta rounded-full flex items-center justify-center mx-auto mb-4">
-                  <AlertCircle size={20} className="text-terracotta dark:text-dark-terracotta" />
-                </div>
-                <h2 className="text-[24px] font-light text-ink dark:text-dark-ink mb-3">Sesión expirada</h2>
-                <p className="text-[13px] text-muted dark:text-dark-muted mb-8 leading-relaxed">
-                  Tu sesión de recuperación expiró por inactividad (15 minutos). Por seguridad, deberás solicitar un nuevo código.
-                </p>
-                <div className="space-y-3">
-                  <Link
-                    href="/forgot-password"
-                    onClick={() => {
-                      purgeSession()
-                      setIsSessionExpired(false)
-                      setStep(0)
-                    }}
-                    className="w-full py-3 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[14px] font-medium inline-flex items-center justify-center gap-2 hover:opacity-80 transition-opacity"
-                  >
-                    Solicitar nuevo código
-                  </Link>
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        purgeSession()
-                        setIsSessionExpired(false)
-                        setErrorMsg('')
-                        setStep(0)
-                      }}
-                      className="text-[12px] text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors"
-                    >
-                      Ingresar otro código
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleStep1Submit} className="space-y-5">
-                <div className="mb-6">
-                  <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted dark:text-dark-muted mb-2">Nueva clave</p>
-                  <h1 className="text-[28px] font-light tracking-[-0.02em] text-ink dark:text-dark-ink mb-2">Nueva contraseña</h1>
-                  <p className="text-[13px] text-muted dark:text-dark-muted leading-relaxed">
-                    Ingresa una contraseña segura de al menos 8 caracteres para tu cuenta.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted mb-1.5">
-                    Nueva contraseña
-                  </label>
-                  <input
-                    type="password"
-                    value={pass}
-                    onChange={e => setPass(e.target.value)}
-                    required
-                    placeholder="••••••••"
-                    className="w-full px-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[14px] text-ink dark:text-dark-ink bg-surface dark:bg-dark-surface focus:outline-none focus:border-olive dark:focus:border-dark-olive transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted mb-1.5">
-                    Confirmar contraseña
-                  </label>
-                  <input
-                    type="password"
-                    value={confirm}
-                    onChange={e => setConfirm(e.target.value)}
-                    required
-                    placeholder="••••••••"
-                    className="w-full px-3.5 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[14px] text-ink dark:text-dark-ink bg-surface dark:bg-dark-surface focus:outline-none focus:border-olive dark:focus:border-dark-olive transition-colors"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[14px] font-medium hover:opacity-80 disabled:opacity-50 transition-opacity"
-                >
-                  {loading ? (
-                    <span className="w-4 h-4 border-2 border-surface/30 border-t-surface rounded-full animate-spin mx-auto block" />
-                  ) : (
-                    'Guardar contraseña'
-                  )}
-                </button>
-
-                <div className="mt-4 text-center">
-                  <button
-                    type="button"
-                    onClick={handleCancelStep1}
-                    className="text-[12px] text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors"
-                  >
-                    Volver
-                  </button>
-                </div>
-              </form>
-            )}
-          </>
-        )}
-
-        {/* Step 2: Success Confirmation */}
-        {step === 2 && (
+        {status === 'success' && (
           <div className="text-center py-4">
             <CheckCircle size={40} className="text-olive dark:text-dark-olive mx-auto mb-4" />
-            <h2 className="text-[28px] font-light tracking-[-0.02em] text-ink dark:text-dark-ink mb-3">Contraseña actualizada</h2>
+            <h1 className="text-[28px] font-light tracking-[-0.02em] text-ink dark:text-dark-ink mb-3">Contraseña actualizada</h1>
             <p className="text-[13px] text-muted dark:text-dark-muted mb-8 leading-relaxed">
-              Tu contraseña fue cambiada correctamente. Ya puedes iniciar sesión con tu nueva clave.
+              Tu contraseña fue cambiada correctamente. Ya podés iniciar sesión con tu nueva clave.
             </p>
             <button
               type="button"

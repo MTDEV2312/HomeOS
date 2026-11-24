@@ -1,10 +1,10 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { insforge, hasPotentialSession, markSessionActive, clearSessionMarkers } from '@/lib/insforge';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
-// InsForge user type based on SDK docs
-interface InsForgeUser {
+export interface AppUser {
   id: string;
   email: string;
   emailVerified: boolean;
@@ -20,147 +20,188 @@ interface InsForgeUser {
   metadata: Record<string, unknown>;
 }
 
+function mapSupabaseUser(sbUser: SupabaseUser | null): AppUser | null {
+  if (!sbUser) return null;
+  const userMeta = (sbUser.user_metadata || {}) as Record<string, unknown>;
+  const appMeta = (sbUser.app_metadata || {}) as Record<string, unknown>;
+  const providers = Array.isArray(appMeta.providers)
+    ? (appMeta.providers as string[])
+    : typeof appMeta.provider === 'string'
+      ? [appMeta.provider]
+      : ['email'];
+
+  return {
+    id: sbUser.id,
+    email: sbUser.email || '',
+    emailVerified: Boolean(sbUser.email_confirmed_at),
+    providers,
+    createdAt: sbUser.created_at,
+    updatedAt: sbUser.updated_at || sbUser.created_at,
+    profile: {
+      ...userMeta,
+    },
+    metadata: appMeta,
+  };
+}
+
 interface AuthContextType {
-  user: InsForgeUser | null;
+  user: AppUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, name?: string) => Promise<{ error: Error | null; requireEmailVerification?: boolean }>;
   signOut: () => Promise<void>;
-  verifyEmail: (email: string, otp: string) => Promise<{ error: Error | null }>;
+  resendVerificationEmail: (email: string) => Promise<{ error: Error | null }>;
   refreshUser: () => Promise<void>;
   updateProfile: (profile: Record<string, unknown>) => Promise<{ error: Error | null }>;
   sendResetPasswordEmail: (email: string) => Promise<{ error: Error | null; success?: boolean }>;
-  exchangeResetPasswordToken: (email: string, code: string) => Promise<{ error: Error | null; resetToken?: string; token?: string }>;
-  resetPassword: (newPassword: string, token: string) => Promise<{ error: Error | null }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<InsForgeUser | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
-    if (typeof window !== 'undefined' && !hasPotentialSession()) {
-      setUser(null);
-      return;
-    }
-
     try {
-      const { data, error } = await insforge.auth.getCurrentUser();
-      if (error || !data?.user) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
         setUser(null);
-        clearSessionMarkers();
+        return;
+      }
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user) {
+        setUser(null);
       } else {
-        setUser(data.user as InsForgeUser);
-        markSessionActive();
+        setUser(mapSupabaseUser(data.user));
       }
     } catch {
       setUser(null);
-      clearSessionMarkers();
     }
   }, []);
 
-  // Get initial session on mount
   useEffect(() => {
-    refreshUser().finally(() => setLoading(false));
-  }, [refreshUser]);
+    let mounted = true;
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!mounted) return;
+        setUser(mapSupabaseUser(data.session?.user ?? null));
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setUser(mapSupabaseUser(session?.user ?? null));
+    });
+
+    return () => {
+      mounted = false;
+      subscription.subscription.unsubscribe();
+    };
+  }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await insforge.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       return { error: error as Error };
     }
-    if (data?.user) {
-      markSessionActive();
-      setUser(data.user as InsForgeUser);
+    if (data.user) {
+      setUser(mapSupabaseUser(data.user));
     }
     return { error: null };
   };
 
   const signUp = async (email: string, password: string, name?: string) => {
-    const { data, error } = await insforge.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      name: name || email.split('@')[0],
+      options: {
+        data: {
+          name: name || email.split('@')[0],
+        },
+        emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/login?verified=true` : undefined,
+      },
     });
     if (error) {
       return { error: error as Error, requireEmailVerification: false };
     }
-    if (data?.user) {
-      markSessionActive();
-      setUser(data.user as InsForgeUser);
+    if (data.session?.user) {
+      setUser(mapSupabaseUser(data.session.user));
     }
     return {
       error: null,
-      requireEmailVerification: data?.requireEmailVerification ?? false,
+      requireEmailVerification: !data.session,
     };
   };
 
-  const verifyEmail = async (email: string, otp: string) => {
-    const { data, error } = await insforge.auth.verifyEmail({ email, otp });
+  const resendVerificationEmail = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/login?verified=true` : undefined,
+      },
+    });
     if (error) {
       return { error: error as Error };
-    }
-    if (data?.user) {
-      markSessionActive();
-      setUser(data.user as InsForgeUser);
     }
     return { error: null };
   };
 
   const signOut = async () => {
-    clearSessionMarkers();
     try {
-      await insforge.auth.signOut();
+      await supabase.auth.signOut();
     } catch {
-      // Ignorar fallo de red en logout
+      // Ignore network errors during logout
     }
     setUser(null);
   };
 
   const updateProfile = async (profile: Record<string, unknown>) => {
-    const { error } = await insforge.auth.setProfile(profile);
+    const { data, error } = await supabase.auth.updateUser({
+      data: {
+        ...(user?.profile || {}),
+        ...profile,
+      },
+    });
     if (error) {
       return { error: error as Error };
     }
-    // Refresh user to get updated profile
-    await refreshUser();
+    if (data.user) {
+      setUser(mapSupabaseUser(data.user));
+    }
     return { error: null };
   };
 
   const sendResetPasswordEmail = async (email: string) => {
-    const { data, error } = await insforge.auth.sendResetPasswordEmail({
-      email,
-      redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/reset-password`,
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined,
     });
     if (error) {
       return { error: error as Error, success: false };
     }
-    return { error: null, success: data?.success ?? false };
-  };
-
-  const exchangeResetPasswordToken = async (email: string, code: string) => {
-    const { data, error } = await insforge.auth.exchangeResetPasswordToken({ email, code });
-    if (error) {
-      return { error: error as Error, resetToken: undefined, token: undefined };
-    }
-    return { error: null, resetToken: data?.token, token: data?.token };
-  };
-
-  const resetPassword = async (newPassword: string, token: string) => {
-    const { error } = await insforge.auth.resetPassword({ newPassword, otp: token });
-    if (error) {
-      return { error: error as Error };
-    }
-    return { error: null };
+    return { error: null, success: true };
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
-    const { error } = await insforge.auth.resetPassword({
-      newPassword,
-      otp: currentPassword,
+    if (!user?.email) {
+      return { error: new Error('No hay sesión activa.') };
+    }
+    const { error: verifyErr } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+    if (verifyErr) {
+      return { error: new Error('La contraseña actual es incorrecta.') };
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
     });
     if (error) {
       return { error: error as Error };
@@ -169,7 +210,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, verifyEmail, refreshUser, updateProfile, sendResetPasswordEmail, exchangeResetPasswordToken, resetPassword, changePassword }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        resendVerificationEmail,
+        refreshUser,
+        updateProfile,
+        sendResetPasswordEmail,
+        changePassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

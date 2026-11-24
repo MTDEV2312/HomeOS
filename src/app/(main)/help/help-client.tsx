@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { useHousehold } from '@/lib/household-context';
-import { insforge } from '@/lib/insforge';
 
 interface HelpCategory {
   id: string;
@@ -94,7 +93,7 @@ const helpCategories: HelpCategory[] = [
     tips: [
       'Organiza tus archivos usando carpetas por categorías para encontrarlos rápido.',
       'Asocia documentos (como garantías) a activos específicos del hogar o gastos.',
-      'El almacenamiento utiliza la infraestructura segura y cifrada de InsForge Storage.'
+      'El almacenamiento utiliza la infraestructura segura y cifrada de Supabase Storage.'
     ]
   }
 ];
@@ -102,7 +101,7 @@ const helpCategories: HelpCategory[] = [
 const faqItems: FAQItem[] = [
   {
     question: '¿Cómo funciona la sincronización en tiempo real?',
-    answer: 'HomeOS utiliza la tecnología Realtime de InsForge mediante WebSockets. Esto significa que cuando marcas una tarea como completada, agregas un artículo a la lista de compras o registras un nuevo gasto, el cambio se actualiza instantáneamente en las pantallas de todos los miembros del hogar que estén conectados, sin necesidad de recargar la página.',
+    answer: 'HomeOS utiliza la tecnología Realtime de Supabase mediante WebSockets. Esto significa que cuando marcas una tarea como completada, agregas un artículo a la lista de compras o registras un nuevo gasto, el cambio se actualiza instantáneamente en las pantallas de todos los miembros del hogar que estén conectados, sin necesidad de recargar la página.',
     category: 'general'
   },
   {
@@ -127,7 +126,7 @@ const faqItems: FAQItem[] = [
   },
   {
     question: '¿Existe un límite para la cantidad de documentos que puedo subir?',
-    answer: 'Los documentos, recibos y contratos se almacenan en InsForge Storage de forma segura. El plan gratuito de HomeOS comparte los límites estándar del almacenamiento en la nube de InsForge. Para un uso óptimo, te recomendamos subir archivos en formato PDF o imágenes comprimidas de recibos y facturas, y eliminar documentos antiguos que ya no sean de utilidad.',
+    answer: 'Los documentos, recibos y contratos se almacenan en Supabase Storage de forma segura. El plan gratuito de HomeOS comparte los límites estándar del almacenamiento en la nube de Supabase. Para un uso óptimo, te recomendamos subir archivos en formato PDF o imágenes comprimidas de recibos y facturas, y eliminar documentos antiguos que ya no sean de utilidad.',
     category: 'documents'
   }
 ];
@@ -226,36 +225,21 @@ export default function HelpClient() {
     setIsSubmitting(true);
 
     try {
-      const subject = `[HomeOS Soporte] ${formCategory.toUpperCase()} - Prioridad: ${formPriority.toUpperCase()}`;
-      
-      const htmlContent = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded-lg: 8px;">
-          <h2 style="color: #4f46e5; margin-top: 0;">Nueva Consulta de Soporte de HomeOS</h2>
-          <p><strong>Usuario:</strong> ${user?.profile?.name || 'Usuario'} (${user?.email})</p>
-          <p><strong>Hogar Activo:</strong> ${activeHousehold?.name || 'Ninguno'}</p>
-          <p><strong>Categoría:</strong> ${formCategory.toUpperCase()}</p>
-          <p><strong>Prioridad:</strong> ${formPriority.toUpperCase()}</p>
-          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-          <p style="font-weight: bold; margin-bottom: 5px;">Mensaje:</p>
-          <div style="background-color: #f8fafc; padding: 15px; border-radius: 6px; white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #334155;">
-            ${formMessage.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}
-          </div>
-        </div>
-      `;
-
-      // Recipient support email address (can be configured in .env file)
-      const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@residencia.com';
-
-      const { error } = await insforge.emails.send({
-        to: supportEmail,
-        subject: subject,
-        html: htmlContent,
-        from: 'Soporte HomeOS',
-        replyTo: user?.email || undefined
+      const response = await fetch('/api/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: user?.profile?.name || 'Usuario',
+          email: user?.email || '',
+          household: activeHousehold?.name || 'Ninguno',
+          category: formCategory,
+          priority: formPriority,
+          message: formMessage,
+        }),
       });
 
-      if (error) {
-        console.error('Error al enviar el email de soporte con InsForge:', error);
+      if (!response.ok) {
+        console.error('Error al enviar el email de soporte:', await response.text());
       }
     } catch (err) {
       console.error('Excepción al enviar el formulario de soporte:', err);
@@ -641,7 +625,7 @@ export default function HelpClient() {
               </div>
               <div>
                 <h3 className="font-h3 text-body-lg font-bold text-on-surface">Estado del Sistema</h3>
-                <p className="font-label-sm text-label-sm text-on-surface-variant">Servicios integrados en InsForge</p>
+                <p className="font-label-sm text-label-sm text-on-surface-variant">Servicios integrados en Supabase</p>
               </div>
             </div>
 

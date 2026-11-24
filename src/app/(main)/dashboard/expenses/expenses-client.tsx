@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useHousehold } from '@/lib/household-context';
 import { useAuth } from '@/lib/auth-context';
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 import { 
   Expense, 
   ExpenseCategory, 
@@ -222,44 +222,38 @@ export default function ExpensesDashboard() {
       loadData();
     };
 
-    const setupRealtime = async () => {
-      try {
-        await insforge.realtime.connect();
-        const channelName = `household:${activeHousehold.id}`;
-        await insforge.realtime.subscribe(channelName);
-        
-        insforge.realtime.on('INSERT_expenses', onInsertExpense);
-        insforge.realtime.on('UPDATE_expenses', onUpdateExpense);
-        insforge.realtime.on('DELETE_expenses', onDeleteExpense);
-        
-        insforge.realtime.on('INSERT_budgets', onBudgetOrCategoryChange);
-        insforge.realtime.on('UPDATE_budgets', onBudgetOrCategoryChange);
-        insforge.realtime.on('DELETE_budgets', onBudgetOrCategoryChange);
-        
-        insforge.realtime.on('INSERT_expense_categories', onBudgetOrCategoryChange);
-        insforge.realtime.on('UPDATE_expense_categories', onBudgetOrCategoryChange);
-        insforge.realtime.on('DELETE_expense_categories', onBudgetOrCategoryChange);
-      } catch (err) {
-        console.error('Error setting up realtime:', err);
-      }
-    };
-    
-    setupRealtime();
-    
+    const channel = supabase
+      .channel(`expenses:${activeHousehold.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'expenses', filter: `household_id=eq.${activeHousehold.id}` },
+        (payload) => onInsertExpense(payload.new as Expense)
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'expenses', filter: `household_id=eq.${activeHousehold.id}` },
+        (payload) => onUpdateExpense(payload.new as Expense)
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'expenses', filter: `household_id=eq.${activeHousehold.id}` },
+        (payload) => onDeleteExpense(payload.old as Expense)
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'budgets', filter: `household_id=eq.${activeHousehold.id}` },
+        onBudgetOrCategoryChange
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'expense_categories', filter: `household_id=eq.${activeHousehold.id}` },
+        onBudgetOrCategoryChange
+      )
+      .subscribe();
+
     return () => {
       active = false;
-      insforge.realtime.unsubscribe(`household:${activeHousehold.id}`);
-      insforge.realtime.off('INSERT_expenses', onInsertExpense);
-      insforge.realtime.off('UPDATE_expenses', onUpdateExpense);
-      insforge.realtime.off('DELETE_expenses', onDeleteExpense);
-      
-      insforge.realtime.off('INSERT_budgets', onBudgetOrCategoryChange);
-      insforge.realtime.off('UPDATE_budgets', onBudgetOrCategoryChange);
-      insforge.realtime.off('DELETE_budgets', onBudgetOrCategoryChange);
-      
-      insforge.realtime.off('INSERT_expense_categories', onBudgetOrCategoryChange);
-      insforge.realtime.off('UPDATE_expense_categories', onBudgetOrCategoryChange);
-      insforge.realtime.off('DELETE_expense_categories', onBudgetOrCategoryChange);
+      supabase.removeChannel(channel);
     };
   }, [activeHousehold]);
 
@@ -1175,10 +1169,11 @@ export default function ExpensesDashboard() {
               if (!activeHousehold) return;
               try {
                 // Delete existing budgets for this household
-                await insforge.database
+                const { error: deleteErr } = await supabase
                   .from('budgets')
                   .delete()
                   .eq('household_id', activeHousehold.id);
+                if (deleteErr) throw deleteErr;
                   
                 const budgetRows = [];
                 
@@ -1209,9 +1204,10 @@ export default function ExpensesDashboard() {
                 });
 
                 if (budgetRows.length > 0) {
-                  await insforge.database
+                  const { error: insertErr } = await supabase
                     .from('budgets')
                     .insert(budgetRows);
+                  if (insertErr) throw insertErr;
                 }
                   
                 setIsBudgetModalOpen(false);

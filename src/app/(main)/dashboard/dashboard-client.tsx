@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useHousehold } from '@/lib/household-context';
-import { insforge } from '@/lib/insforge';
+import { supabase } from '@/lib/supabase';
 import { getTasks, Task } from '@/services/taskService';
 import { getInventoryItems, InventoryItem } from '@/services/inventoryService';
 import { getAllMaintenanceSchedules, MaintenanceSchedule } from '@/services/maintenanceService';
@@ -60,37 +60,28 @@ export default function DashboardClient() {
 
     loadData();
 
-    const tables = ['tasks', 'inventory_items', 'maintenance_schedule', 'expenses', 'budgets', 'shopping_lists'];
+    const householdScopedTables = ['tasks', 'inventory_items', 'expenses', 'budgets', 'shopping_lists'];
     const handleUpdate = () => {
       loadData();
     };
 
-    const setupRealtime = async () => {
-      try {
-        await insforge.realtime.connect();
-        const channelName = `household:${activeHousehold.id}`;
-        await insforge.realtime.subscribe(channelName);
-        
-        // Listen to all inserts/updates/deletes on relevant tables
-        tables.forEach(table => {
-          insforge.realtime.on(`INSERT_${table}`, handleUpdate);
-          insforge.realtime.on(`UPDATE_${table}`, handleUpdate);
-          insforge.realtime.on(`DELETE_${table}`, handleUpdate);
-        });
-      } catch (err) {
-        console.error('Error setting up realtime on dashboard:', err);
-      }
-    };
-
-    setupRealtime();
+    const channel = supabase.channel(`dashboard:${activeHousehold.id}`);
+    householdScopedTables.forEach(table => {
+      channel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table, filter: `household_id=eq.${activeHousehold.id}` },
+        handleUpdate
+      );
+    });
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'maintenance_schedule' },
+      handleUpdate
+    );
+    channel.subscribe();
 
     return () => {
-      insforge.realtime.unsubscribe(`household:${activeHousehold.id}`);
-      tables.forEach(table => {
-        insforge.realtime.off(`INSERT_${table}`, handleUpdate);
-        insforge.realtime.off(`UPDATE_${table}`, handleUpdate);
-        insforge.realtime.off(`DELETE_${table}`, handleUpdate);
-      });
+      supabase.removeChannel(channel);
     };
   }, [activeHousehold]);
 
