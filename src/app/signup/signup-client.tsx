@@ -4,18 +4,21 @@ import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { signupSchema, getFieldErrors } from '@/lib/validations';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MailCheck, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 
 export default function SignupClient() {
   const router = useRouter();
-  const { signUp } = useAuth();
+  const { signUp, resendVerificationEmail } = useAuth();
   const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -43,16 +46,82 @@ export default function SignupClient() {
 
     setLoading(true);
     const { error, requireEmailVerification } = await signUp(formData.email, formData.password, formData.name);
-    
+
     if (error) {
       setError(error.message || 'Error al crear la cuenta');
       setLoading(false);
     } else if (requireEmailVerification) {
-      router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+      setVerificationSent(true);
+      setLoading(false);
     } else {
       router.push('/dashboard');
     }
   };
+
+  const handleResend = async () => {
+    setResending(true);
+    setResendMessage('');
+    setError('');
+    try {
+      const { error } = await resendVerificationEmail(formData.email);
+      if (error) {
+        setError(error.message || 'Error al reenviar el enlace');
+      } else {
+        setResendMessage('Enlace reenviado exitosamente.');
+      }
+    } catch {
+      setError('Error al reenviar el enlace');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  if (verificationSent) {
+    return (
+      <main className="bg-surface-dim h-screen overflow-y-auto text-on-surface font-body-md">
+        <div className="min-h-full w-full flex items-center justify-center p-md">
+          <div className="w-full max-w-md bg-surface-container-low rounded-xl shadow-[0px_4px_30px_rgba(0,0,0,0.3)] border border-outline-variant p-lg md:p-xl flex flex-col gap-lg text-center">
+            <div className="w-14 h-14 rounded-2xl bg-primary-container text-on-primary-container flex items-center justify-center mx-auto">
+              <MailCheck className="w-7 h-7" />
+            </div>
+            <div className="flex flex-col gap-xs">
+              <h1 className="font-h1 text-h2 text-primary">Revisá tu correo</h1>
+              <p className="font-body-md text-body-md text-on-surface-variant">
+                Te enviamos un enlace de confirmación a <strong className="text-on-surface">{formData.email}</strong>. Hacé clic en el enlace para activar tu cuenta.
+              </p>
+            </div>
+            {error && (
+              <div className="p-3 bg-red-100/10 border border-red-500/50 text-red-400 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+            {resendMessage && (
+              <div className="p-3 bg-emerald-100/10 border border-emerald-500/40 text-emerald-400 rounded-lg text-sm">
+                {resendMessage}
+              </div>
+            )}
+            <div className="flex flex-col gap-sm">
+              <Link
+                href="/login"
+                className="w-full bg-primary text-on-primary font-label-sm text-label-sm py-sm px-lg rounded-lg hover:bg-primary-container hover:text-on-primary-container transition-colors text-center"
+              >
+                Volver al inicio de sesión
+              </Link>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending}
+                className="w-full py-sm px-lg rounded-lg border border-outline-variant text-on-surface font-label-sm text-label-sm inline-flex items-center justify-center gap-xs hover:border-primary transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${resending ? 'animate-spin' : ''}`} />
+                {resending ? 'Reenviando...' : 'Reenviar enlace'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="bg-surface-dim h-screen overflow-y-auto text-on-surface font-body-md">

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter, Link } from '@/lib/navigation'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, MailCheck } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/context/ToastContext'
 
@@ -32,7 +32,7 @@ export default function ForgotPassword() {
       }
 
       setSent(true)
-      toast('Código enviado a tu casilla.', 'success')
+      toast('Enlace de recuperación enviado a tu casilla.', 'success')
       setLoading(false)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error inesperado'
@@ -53,24 +53,26 @@ export default function ForgotPassword() {
         {sent ? (
           <div>
             <div className="w-10 h-10 bg-olive-soft dark:bg-dark-olive-soft rounded-full flex items-center justify-center mb-6">
-              <span className="text-olive dark:text-dark-olive text-lg">✉</span>
+              <MailCheck size={20} className="text-olive dark:text-dark-olive" />
             </div>
-            <h2 className="text-[24px] font-light text-ink dark:text-dark-ink mb-3">Revisá tu correo</h2>
+            <h1 className="text-[24px] font-light text-ink dark:text-dark-ink mb-3">Revisá tu correo</h1>
             <p className="text-[13px] text-muted dark:text-dark-muted mb-8 leading-relaxed">
-              Te enviamos las instrucciones para restablecer tu contraseña a <strong className="text-ink dark:text-dark-ink">{email}</strong>.
+              Te enviamos un enlace para restablecer tu contraseña a <strong className="text-ink dark:text-dark-ink">{email}</strong>. Abrí el enlace desde tu correo para elegir una nueva clave.
             </p>
             <button
-              onClick={() => router.push(`/reset-password?email=${encodeURIComponent(email)}`)}
+              type="button"
+              onClick={() => router.push('/login')}
               className="w-full py-3 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[14px] font-medium inline-flex items-center justify-center gap-2 hover:opacity-80 transition-opacity"
             >
-              Ingresar código <ArrowRight size={15} />
+              <ArrowLeft size={15} /> Volver al inicio de sesión
             </button>
             <div className="mt-4 text-center">
               <button
+                type="button"
                 onClick={() => setSent(false)}
                 className="text-[12px] text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors"
               >
-                Volver
+                Usar otro email
               </button>
             </div>
           </div>
@@ -79,7 +81,7 @@ export default function ForgotPassword() {
             <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted dark:text-dark-muted mb-2">Recuperación</p>
             <h1 className="text-[28px] font-light tracking-[-0.02em] text-ink dark:text-dark-ink mb-3">¿Olvidaste tu contraseña?</h1>
             <p className="text-[13px] text-muted dark:text-dark-muted mb-8 leading-relaxed">
-              Ingresá tu email y te enviamos un código para restablecer tu contraseña.
+              Ingresá tu email y te enviamos un enlace para restablecer tu contraseña.
             </p>
 
             {errorMsg && (
@@ -105,12 +107,13 @@ export default function ForgotPassword() {
                 disabled={loading}
                 className="w-full py-3 bg-ink dark:bg-dark-ink text-surface dark:text-dark-bg rounded-[4px] text-[14px] font-medium inline-flex items-center justify-center gap-2 hover:opacity-80 transition-opacity disabled:opacity-50"
               >
-                {loading ? <span className="w-4 h-4 border-2 border-surface/30 border-t-surface rounded-full animate-spin" /> : 'Enviar código'}
+                {loading ? <span className="w-4 h-4 border-2 border-surface/30 border-t-surface rounded-full animate-spin" /> : 'Enviar enlace'}
               </button>
             </form>
 
             <div className="mt-6 text-center">
               <button
+                type="button"
                 onClick={() => router.push('/login')}
                 className="text-[12px] text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors inline-flex items-center gap-1"
               >

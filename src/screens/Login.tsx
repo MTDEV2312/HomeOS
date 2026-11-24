@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from '@/lib/navigation'
 import { Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 import { useToast } from '@/context/ToastContext'
+import { createEphemeralSupabaseClient } from '@/lib/supabase'
 
 export default function Login() {
   const router = useRouter()
@@ -16,6 +17,49 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [verifiedBanner, setVerifiedBanner] = useState(false)
+  const handledUrlRef = useRef(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || handledUrlRef.current) return
+    handledUrlRef.current = true
+
+    const searchParams = new URLSearchParams(window.location.search)
+    const hashRaw = window.location.hash.replace(/^#/, '')
+    const hashParams = new URLSearchParams(hashRaw)
+
+    const urlError = searchParams.get('error') || hashParams.get('error')
+    const urlErrorDesc = searchParams.get('error_description') || hashParams.get('error_description')
+    const isVerified =
+      searchParams.get('verified') === 'true' ||
+      hashParams.get('type') === 'signup' ||
+      Boolean(hashParams.get('access_token'))
+    const accessToken = hashParams.get('access_token')
+    const refreshToken = hashParams.get('refresh_token')
+
+    if (window.location.search || window.location.hash) {
+      window.history.replaceState({}, '', '/login')
+    }
+
+    if (urlError) {
+      setErrorMsg(urlErrorDesc || 'El enlace de verificación es inválido o ya expiró.')
+      return
+    }
+
+    if (isVerified) {
+      setVerifiedBanner(true)
+    }
+
+    // Revoke any session token auto-issued by the email confirmation redirect
+    // on the server without touching localStorage or AuthProvider.
+    if (accessToken && refreshToken) {
+      const ephemeral = createEphemeralSupabaseClient()
+      ephemeral.auth
+        .setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(() => ephemeral.auth.signOut())
+        .catch(() => {})
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,6 +128,12 @@ export default function Login() {
             <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-muted dark:text-dark-muted mb-2">Bienvenido de vuelta</p>
             <h1 className="text-[28px] font-light tracking-[-0.02em] text-ink dark:text-dark-ink">Iniciar sesión</h1>
           </div>
+
+          {verifiedBanner && (
+            <div className="mb-5 px-3.5 py-2.5 rounded-[4px] bg-olive-soft border border-olive text-olive dark:bg-dark-olive-soft dark:border-dark-olive dark:text-dark-olive text-[13px]">
+              ¡Correo verificado! Iniciá sesión con tu email y contraseña.
+            </div>
+          )}
 
           {errorMsg && (
             <div className="mb-5 px-3.5 py-2.5 rounded-[4px] bg-terracotta-bg border border-terracotta text-terracotta dark:bg-dark-surface dark:border-dark-terracotta dark:text-dark-terracotta text-[13px]">
