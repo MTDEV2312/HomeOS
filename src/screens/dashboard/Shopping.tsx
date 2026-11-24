@@ -314,13 +314,13 @@ export default function Shopping() {
   }
 
   return (
-    <div className="px-6 lg:px-10 py-8 max-w-[1280px] mx-auto font-sans">
+    <div className="px-4 sm:px-6 lg:px-10 py-6 sm:py-8 max-w-[1280px] mx-auto font-sans">
       {/* Header */}
       <div className="mb-10 border-b border-line dark:border-dark-line pb-8">
         <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted dark:text-dark-muted mb-2">Hogar</p>
-        <div className="flex items-end justify-between gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
           <div>
-            <h1 className="text-[42px] lg:text-[56px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">
+            <h1 className="text-[32px] sm:text-[42px] lg:text-[56px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">
               COMPRAS
             </h1>
             <p className="text-[14px] text-muted dark:text-dark-muted mt-3">Lo que necesitamos para la semana.</p>
@@ -388,9 +388,9 @@ export default function Shopping() {
 
           {/* Progress */}
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-medium text-ink dark:text-dark-ink">{activeList.name}</span>
+            <div className="flex items-center justify-between mb-2 gap-2 min-w-0">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="text-[13px] font-medium text-ink dark:text-dark-ink min-w-0 truncate">{activeList.name}</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -398,7 +398,7 @@ export default function Shopping() {
                     setEditingListModal(true)
                   }}
                   title="Editar nombre de lista"
-                  className="p-1 text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors cursor-pointer rounded"
+                  className="p-1 text-muted dark:text-dark-muted hover:text-ink dark:hover:text-dark-ink transition-colors cursor-pointer rounded shrink-0"
                 >
                   <Pencil size={15} />
                 </button>
@@ -406,12 +406,12 @@ export default function Shopping() {
                   type="button"
                   onClick={() => setDeletingListModal(true)}
                   title="Eliminar lista"
-                  className="p-1 text-muted dark:text-dark-muted hover:text-terracotta dark:hover:text-terracotta transition-colors cursor-pointer rounded"
+                  className="p-1 text-muted dark:text-dark-muted hover:text-terracotta dark:hover:text-terracotta transition-colors cursor-pointer rounded shrink-0"
                 >
                   <Trash2 size={15} />
                 </button>
               </div>
-              <span className="font-mono text-[12px] text-muted dark:text-dark-muted">
+              <span className="font-mono text-[12px] text-muted dark:text-dark-muted shrink-0">
                 {boughtCount} / {activeList.items.length} comprados
               </span>
             </div>
@@ -434,7 +434,7 @@ export default function Shopping() {
               activeList.items.map((item, i) => (
                 <div
                   key={item.id}
-                  className={`group flex items-center gap-4 px-5 py-4 hover:bg-bg dark:hover:bg-dark-bg transition-colors ${
+                  className={`group flex items-center gap-2.5 sm:gap-4 px-3 sm:px-5 py-3 sm:py-4 hover:bg-bg dark:hover:bg-dark-bg transition-colors ${
                     i > 0 ? 'border-t border-line dark:border-dark-line' : ''
                   }`}
                 >
@@ -449,20 +449,20 @@ export default function Shopping() {
                     {item.done && <span className="text-white text-[10px] leading-none">✓</span>}
                   </button>
 
-                  <div className="flex-1 min-w-0">
-                    <span className={`text-[14px] font-medium text-ink dark:text-dark-ink transition-all ${item.done ? 'line-through opacity-40' : ''}`}>
+                  <div className="flex-1 min-w-0 flex items-baseline gap-1.5 sm:gap-2">
+                    <span className={`text-[13px] sm:text-[14px] font-medium text-ink dark:text-dark-ink transition-all min-w-0 truncate ${item.done ? 'line-through opacity-40' : ''}`}>
                       {item.name}
                     </span>
-                    <span className={`text-[12px] text-muted dark:text-dark-muted ml-2 font-mono ${item.done ? 'opacity-40' : ''}`}>
+                    <span className={`text-[11px] sm:text-[12px] text-muted dark:text-dark-muted font-mono shrink-0 ${item.done ? 'opacity-40' : ''}`}>
                       {item.qty} {item.unit}
                     </span>
                   </div>
 
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${catColor[item.category] || catColor.Otros}`}>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded shrink-0 ${catColor[item.category] || catColor.Otros}`}>
                     {item.category}
                   </span>
 
-                  <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity shrink-0">
                     <button
                       type="button"
                       onClick={() => handleStartEditItem(item)}

@@ -82,7 +82,7 @@ export default function Landing() {
     <div className="min-h-screen bg-bg dark:bg-dark-bg font-sans">
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-bg/90 dark:bg-dark-bg/90 backdrop-blur-sm border-b border-line dark:border-dark-line">
-        <div className="max-w-[1280px] mx-auto px-8 lg:px-16 h-14 flex items-center justify-between">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-16 h-14 flex items-center justify-between">
           <Link href="/" className="text-[15px] font-semibold tracking-tight text-ink dark:text-dark-ink flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-olive dark:bg-dark-olive" />
             HomeOS
@@ -108,13 +108,13 @@ export default function Landing() {
       </nav>
 
       {/* Hero */}
-      <section className="pt-40 pb-24 px-8 lg:px-16 max-w-[1280px] mx-auto">
+      <section className="pt-32 sm:pt-40 pb-16 sm:pb-24 px-4 sm:px-8 lg:px-16 max-w-[1280px] mx-auto">
         <div className="grid lg:grid-cols-[1fr_auto] gap-12 items-end">
           <div>
             <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-olive dark:text-dark-olive mb-6">
               Sistema operativo para el hogar
             </p>
-            <h1 className="text-[56px] sm:text-[72px] lg:text-[88px] font-light leading-[0.95] tracking-[-0.03em] text-ink dark:text-dark-ink mb-8">
+            <h1 className="text-[34px] xs:text-[42px] sm:text-[60px] lg:text-[84px] font-light leading-[0.95] tracking-[-0.03em] text-ink dark:text-dark-ink mb-8">
               Todo lo que<br />
               <em className="not-italic font-semibold">mantiene tu hogar</em><br />
               en marcha.
@@ -157,10 +157,10 @@ export default function Landing() {
       </section>
 
       {/* Divider */}
-      <div className="border-t border-line dark:border-dark-line max-w-[1280px] mx-auto px-8 lg:px-16" />
+      <div className="border-t border-line dark:border-dark-line max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-16" />
 
       {/* Features - editorial sequence */}
-      <section className="py-20 max-w-[1280px] mx-auto px-8 lg:px-16">
+      <section className="py-16 sm:py-20 max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-16">
         <div className="mb-16">
           <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted dark:text-dark-muted mb-3">Qué incluye</p>
           <h2 className="text-[36px] lg:text-[48px] font-light tracking-[-0.02em] text-ink dark:text-dark-ink">Diseñado para el hogar real.</h2>
@@ -208,10 +208,10 @@ export default function Landing() {
 
       {/* CTA Final */}
       <section className="border-t border-line dark:border-dark-line">
-        <div className="max-w-[1280px] mx-auto px-8 lg:px-16 py-24 lg:py-36">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-16 py-16 sm:py-24 lg:py-36">
           <div className="max-w-2xl">
             <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted dark:text-dark-muted mb-4">Empezá hoy</p>
-            <h2 className="text-[48px] sm:text-[64px] font-light leading-[0.95] tracking-[-0.03em] text-ink dark:text-dark-ink mb-10">
+            <h2 className="text-[28px] xs:text-[36px] sm:text-[56px] font-light leading-[0.95] tracking-[-0.03em] text-ink dark:text-dark-ink mb-10">
               TU CASA,<br />
               <strong className="font-semibold">EN ORDEN.</strong>
             </h2>
@@ -235,12 +235,12 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="border-t border-line dark:border-dark-line">
-        <div className="max-w-[1280px] mx-auto px-8 lg:px-16 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-16 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <span className="text-[12px] text-muted dark:text-dark-muted flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-olive dark:bg-dark-olive" />
             HomeOS © 2026
           </span>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap justify-center sm:justify-start gap-x-6 gap-y-3">
             {[
               ['Inicio', '/'],
               ['Entrar', '/login'],

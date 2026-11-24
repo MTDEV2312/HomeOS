@@ -365,7 +365,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             HomeOS
           </div>
 
-          <div className="flex-1 flex items-center">
+          <div className="flex-1 min-w-0 flex items-center">
             <button
               onClick={() => setCmdOpen(true)}
               className="flex items-center gap-2 px-3 py-1.5 border border-line dark:border-dark-line rounded-[4px] text-muted dark:text-dark-muted hover:border-olive/50 dark:hover:border-dark-olive/50 transition-colors text-[13px] w-full max-w-xs bg-bg/40 dark:bg-dark-bg/40"

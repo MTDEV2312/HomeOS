@@ -505,15 +505,15 @@ export default function Inventory() {
   }
 
   return (
-    <div className="px-6 lg:px-10 py-8 max-w-[1280px] mx-auto">
+    <div className="px-4 sm:px-6 lg:px-10 py-6 sm:py-8 max-w-[1280px] mx-auto">
       {/* Header */}
       <div className="mb-10 border-b border-line dark:border-dark-line pb-8">
         <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted dark:text-dark-muted mb-2">
           Hogar
         </p>
-        <div className="flex items-end justify-between gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
           <div>
-            <h1 className="text-[42px] lg:text-[56px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">
+            <h1 className="text-[32px] sm:text-[42px] lg:text-[56px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">
               INVENTARIO
             </h1>
             <p className="text-[14px] text-muted dark:text-dark-muted mt-3">
@@ -536,7 +536,7 @@ export default function Inventory() {
       ) : (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-px bg-line dark:bg-dark-line rounded-[4px] overflow-hidden mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-line dark:bg-dark-line rounded-[4px] overflow-hidden mb-8">
             {[
               { label: 'Total de productos', value: items.length, alert: false },
               { label: 'Stock bajo', value: lowCount, alert: lowCount > 0 },
@@ -602,26 +602,26 @@ export default function Inventory() {
                   } hover:bg-bg dark:hover:bg-dark-bg transition-colors group cursor-pointer`}
                 >
                   {/* Name & Brand */}
-                  <div>
-                    <div className="text-[13px] font-medium text-ink dark:text-dark-ink">{item.name}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] font-medium text-ink dark:text-dark-ink min-w-0 truncate">{item.name}</div>
                     {item.brand && (
-                      <div className="text-[11px] text-muted dark:text-dark-muted mt-0.5">{item.brand}</div>
+                      <div className="text-[11px] text-muted dark:text-dark-muted mt-0.5 min-w-0 truncate">{item.brand}</div>
                     )}
                   </div>
 
                   {/* Category */}
-                  <span className="hidden lg:block text-[12px] text-muted dark:text-dark-muted">
+                  <span className="hidden lg:block text-[12px] text-muted dark:text-dark-muted truncate">
                     {item.category?.name || item.categoryName}
                   </span>
 
                   {/* Location */}
-                  <span className="hidden lg:block text-[12px] text-muted dark:text-dark-muted">
+                  <span className="hidden lg:block text-[12px] text-muted dark:text-dark-muted truncate">
                     {item.location || '—'}
                   </span>
 
                   {/* Stock & Status Badge */}
                   <div className="hidden lg:flex items-center gap-2">
-                    <span className="font-mono text-[13px] text-ink dark:text-dark-ink">
+                    <span className="font-mono text-[13px] text-ink dark:text-dark-ink whitespace-nowrap">
                       {item.qty} {item.unit}
                     </span>
                     {item.status !== 'ok' && (
@@ -638,25 +638,25 @@ export default function Inventory() {
 
                   {/* Expiration Date */}
                   <div className="hidden lg:block">
-                    <span className="font-mono text-[12px] text-muted dark:text-dark-muted">
+                    <span className="font-mono text-[12px] text-muted dark:text-dark-muted whitespace-nowrap">
                       {formatDate(item.expiry)}
                     </span>
                   </div>
 
                   {/* Mobile Stock Indicator */}
-                  <div className="lg:hidden text-right ml-auto flex flex-col items-end">
-                    <span className="font-mono text-[13px] text-ink dark:text-dark-ink">
+                  <div className="lg:hidden text-right ml-auto flex flex-col items-end shrink-0">
+                    <span className="font-mono text-[13px] text-ink dark:text-dark-ink whitespace-nowrap">
                       {item.qty} {item.unit}
                     </span>
                     {item.status !== 'ok' && (
-                      <span className={`text-[10px] font-medium mt-0.5 ${statusBadgeConfig[item.status].textCls}`}>
+                      <span className={`text-[10px] font-medium mt-0.5 ${statusBadgeConfig[item.status].textCls} whitespace-nowrap`}>
                         {statusBadgeConfig[item.status].label}
                       </span>
                     )}
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center gap-1.5 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity ml-2 lg:ml-0 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity ml-2 lg:ml-0 flex-shrink-0">
                     <button
                       type="button"
                       onClick={e => {

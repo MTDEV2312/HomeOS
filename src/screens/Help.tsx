@@ -159,7 +159,7 @@ export default function Help() {
   }
 
   return (
-    <div className="px-6 lg:px-10 py-8 max-w-[1280px] mx-auto font-sans">
+    <div className="w-full min-w-0 px-4 sm:px-6 lg:px-10 py-6 sm:py-8 max-w-[1280px] mx-auto font-sans">
       {/* Header */}
       <div className="mb-8 border-b border-line dark:border-dark-line pb-8">
         <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-muted dark:text-dark-muted mb-2">
@@ -167,7 +167,7 @@ export default function Help() {
         </p>
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="text-[38px] lg:text-[52px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">
+            <h1 className="text-[32px] sm:text-[38px] lg:text-[52px] font-light leading-[0.95] tracking-[-0.02em] text-ink dark:text-dark-ink">
               CENTRO DE<br />AYUDA
             </h1>
             <p className="text-[14px] text-muted dark:text-dark-muted mt-3 max-w-xl">
@@ -190,7 +190,7 @@ export default function Help() {
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Buscá por tema: 'presupuesto mensual', 'tareas urgentes', 'invitar', 'roles'..."
+            placeholder="Busca por tema: 'presupuesto mensual', 'tareas urgentes', 'invitar', 'roles'..."
             className="w-full pl-11 pr-10 py-3.5 bg-surface dark:bg-dark-surface border border-line dark:border-dark-line rounded-[6px] text-[14px] text-ink dark:text-dark-ink placeholder:text-muted/60 focus:outline-none focus:border-olive transition-colors shadow-xs"
           />
           {searchQuery && (
@@ -227,14 +227,14 @@ export default function Help() {
 
         {/* Filter Feedback */}
         {(searchQuery || selectedCategory !== 'all') && (
-          <div className="mt-4 flex items-center justify-between text-[12px] text-muted dark:text-dark-muted">
-            <span>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-[12px] text-muted dark:text-dark-muted min-w-0">
+            <span className="min-w-0">
               Mostrando <strong>{totalResults}</strong> resultado{totalResults === 1 ? '' : 's'}
               {searchQuery && <> para &quot;<strong>{searchQuery}</strong>&quot;</>}
             </span>
             <button
               onClick={handleClearFilters}
-              className="flex items-center gap-1 text-olive dark:text-dark-olive hover:underline cursor-pointer"
+              className="flex items-center gap-1 text-olive dark:text-dark-olive hover:underline cursor-pointer shrink-0"
             >
               <RotateCcw size={12} /> Restablecer filtros
             </button>
@@ -242,9 +242,9 @@ export default function Help() {
         )}
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_340px] gap-10 items-start">
+      <div className="grid lg:grid-cols-[1fr_340px] gap-8 lg:gap-10 items-start min-w-0">
         {/* Main Content Area */}
-        <div className="space-y-10">
+        <div className="space-y-10 min-w-0">
           {/* Quick Start Cards (Only when no active query or on QuickStart/All) */}
           {!searchQuery && (selectedCategory === 'all' || selectedCategory === 'quickstart') && (
             <div>
@@ -311,15 +311,15 @@ export default function Help() {
                         onClick={() => toggleGuide(guide.id)}
                         className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-bg dark:hover:bg-dark-bg transition-colors cursor-pointer"
                       >
-                        <div className="pr-4">
-                          <span className="text-[14px] font-medium text-ink dark:text-dark-ink block">
+                        <div className="pr-4 min-w-0 flex-1">
+                          <span className="text-[14px] font-medium text-ink dark:text-dark-ink block truncate">
                             {guide.title}
                           </span>
                           <span className="text-[12px] text-muted dark:text-dark-muted mt-0.5 block line-clamp-1">
                             {guide.summary}
                           </span>
                         </div>
-                        <div className="text-muted shrink-0">
+                        <div className="text-muted shrink-0 ml-2">
                           {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         </div>
                       </button>
@@ -340,7 +340,7 @@ export default function Help() {
                                 <span className="w-5 h-5 rounded-full bg-olive/15 text-olive dark:text-dark-olive text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                                   {i + 1}
                                 </span>
-                                <span className="leading-snug">{st}</span>
+                                <span className="leading-snug break-words min-w-0 flex-1">{st}</span>
                               </div>
                             ))}
                           </div>
@@ -349,7 +349,7 @@ export default function Help() {
                           {guide.tip && (
                             <div className="flex items-start gap-2.5 p-3 rounded-[4px] bg-olive/10 dark:bg-dark-olive/10 border border-olive/20 text-[12px] text-ink dark:text-dark-ink leading-relaxed">
                               <Info size={15} className="text-olive dark:text-dark-olive shrink-0 mt-0.5" />
-                              <div>
+                              <div className="min-w-0 flex-1">
                                 <strong className="font-semibold text-olive dark:text-dark-olive">Nota importante: </strong>
                                 {guide.tip}
                               </div>
@@ -384,60 +384,62 @@ export default function Help() {
                   Matriz de Roles y Permisos en el Hogar
                 </h2>
               </div>
-              <div className="border border-line dark:border-dark-line rounded-[6px] overflow-x-auto bg-surface dark:bg-dark-surface">
-                <table className="w-full text-left border-collapse text-[12px]">
-                  <thead>
-                    <tr className="border-b border-line dark:border-dark-line bg-bg dark:bg-dark-bg text-muted dark:text-dark-muted font-semibold tracking-wider uppercase text-[10px]">
-                      <th className="py-3 px-4">Acción o Facultad</th>
-                      <th className="py-3 px-4 text-center">Owner (Propietario)</th>
-                      <th className="py-3 px-4 text-center">Admin (Administrador)</th>
-                      <th className="py-3 px-4 text-center">Member (Miembro)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line dark:divide-dark-line">
-                    {rolePermissions.map((row, i) => (
-                      <tr key={i} className="hover:bg-bg/50 dark:hover:bg-dark-bg/50 transition-colors">
-                        <td className="py-3 px-4">
-                          <span className="font-medium text-ink dark:text-dark-ink block">{row.action}</span>
-                          <span className="text-[11px] text-muted dark:text-dark-muted">{row.description}</span>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          {typeof row.owner === 'boolean' ? (
-                            row.owner ? (
-                              <Check size={16} className="text-olive inline-block" />
-                            ) : (
-                              <X size={16} className="text-muted inline-block" />
-                            )
-                          ) : (
-                            <span className="text-[11px] font-medium text-olive">{row.owner}</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          {typeof row.admin === 'boolean' ? (
-                            row.admin ? (
-                              <Check size={16} className="text-olive inline-block" />
-                            ) : (
-                              <X size={16} className="text-muted inline-block" />
-                            )
-                          ) : (
-                            <span className="text-[11px] font-medium text-ink dark:text-dark-ink">{row.admin}</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          {typeof row.member === 'boolean' ? (
-                            row.member ? (
-                              <Check size={16} className="text-olive inline-block" />
-                            ) : (
-                              <X size={16} className="text-muted inline-block" />
-                            )
-                          ) : (
-                            <span className="text-[11px] text-muted">{row.member}</span>
-                          )}
-                        </td>
+              <div className="border border-line dark:border-dark-line rounded-[6px] overflow-hidden bg-surface dark:bg-dark-surface max-w-full">
+                <div className="overflow-x-auto max-w-full">
+                  <table className="w-full text-left border-collapse min-w-[540px] text-[12px]">
+                    <thead>
+                      <tr className="border-b border-line dark:border-dark-line bg-bg dark:bg-dark-bg text-muted dark:text-dark-muted font-semibold tracking-wider uppercase text-[10px]">
+                        <th className="py-3 px-4">Acción o Facultad</th>
+                        <th className="py-3 px-4 text-center">Owner (Propietario)</th>
+                        <th className="py-3 px-4 text-center">Admin (Administrador)</th>
+                        <th className="py-3 px-4 text-center">Member (Miembro)</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-line dark:divide-dark-line">
+                      {rolePermissions.map((row, i) => (
+                        <tr key={i} className="hover:bg-bg/50 dark:hover:bg-dark-bg/50 transition-colors">
+                          <td className="py-3 px-4">
+                            <span className="font-medium text-ink dark:text-dark-ink block">{row.action}</span>
+                            <span className="text-[11px] text-muted dark:text-dark-muted">{row.description}</span>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            {typeof row.owner === 'boolean' ? (
+                              row.owner ? (
+                                <Check size={16} className="text-olive inline-block" />
+                              ) : (
+                                <X size={16} className="text-muted inline-block" />
+                              )
+                            ) : (
+                              <span className="text-[11px] font-medium text-olive">{row.owner}</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            {typeof row.admin === 'boolean' ? (
+                              row.admin ? (
+                                <Check size={16} className="text-olive inline-block" />
+                              ) : (
+                                <X size={16} className="text-muted inline-block" />
+                              )
+                            ) : (
+                              <span className="text-[11px] font-medium text-ink dark:text-dark-ink">{row.admin}</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            {typeof row.member === 'boolean' ? (
+                              row.member ? (
+                                <Check size={16} className="text-olive inline-block" />
+                              ) : (
+                                <X size={16} className="text-muted inline-block" />
+                              )
+                            ) : (
+                              <span className="text-[11px] text-muted">{row.member}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -461,10 +463,10 @@ export default function Help() {
                         onClick={() => toggleTroubleshoot(item.id)}
                         className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-bg dark:hover:bg-dark-bg transition-colors cursor-pointer"
                       >
-                        <span className="text-[14px] font-medium text-ink dark:text-dark-ink pr-4">
+                        <span className="text-[14px] font-medium text-ink dark:text-dark-ink pr-4 min-w-0 flex-1">
                           {item.title}
                         </span>
-                        <div className="text-muted shrink-0">
+                        <div className="text-muted shrink-0 ml-2">
                           {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         </div>
                       </button>
@@ -487,7 +489,7 @@ export default function Help() {
                             {item.solutionSteps.map((step, sIdx) => (
                               <div key={sIdx} className="flex items-start gap-2.5 text-[12px] text-ink dark:text-dark-ink">
                                 <span className="font-mono text-olive font-bold">•</span>
-                                <span className="leading-snug">{step}</span>
+                                <span className="leading-snug break-words min-w-0 flex-1">{step}</span>
                               </div>
                             ))}
                           </div>
@@ -532,10 +534,10 @@ export default function Help() {
                         onClick={() => toggleFaq(f.id)}
                         className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-bg dark:hover:bg-dark-bg transition-colors cursor-pointer"
                       >
-                        <span className="text-[14px] font-medium text-ink dark:text-dark-ink pr-4">
+                        <span className="text-[14px] font-medium text-ink dark:text-dark-ink pr-4 min-w-0 flex-1">
                           {f.question}
                         </span>
-                        <div className="text-muted shrink-0">
+                        <div className="text-muted shrink-0 ml-2">
                           {isOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                         </div>
                       </button>
@@ -559,7 +561,7 @@ export default function Help() {
                 No encontramos resultados para tu búsqueda
               </h3>
               <p className="text-[13px] text-muted dark:text-dark-muted max-w-md mx-auto mb-5">
-                Probá con palabras más generales (como &quot;gastos&quot;, &quot;tareas&quot; o &quot;miembros&quot;) o limpiá los filtros.
+                Prueba con palabras más generales (como &quot;gastos&quot;, &quot;tareas&quot; o &quot;miembros&quot;) o limpia los filtros.
               </p>
               <button
                 type="button"
@@ -573,7 +575,7 @@ export default function Help() {
         </div>
 
         {/* Sidebar: Shortcuts & Support Contact */}
-        <div className="space-y-6">
+        <div className="space-y-6 min-w-0 w-full">
           {/* Keyboard Shortcuts Card */}
           <div className="border border-line dark:border-dark-line rounded-[6px] overflow-hidden bg-surface dark:bg-dark-surface">
             <div className="px-5 py-4 border-b border-line dark:border-dark-line bg-bg dark:bg-dark-bg">
@@ -581,10 +583,10 @@ export default function Help() {
                 Atajos de Teclado
               </h3>
             </div>
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-3 min-w-0">
               {keyboardShortcuts.map((s, i) => (
-                <div key={i} className="text-[12px] flex items-center justify-between gap-3">
-                  <span className="text-muted dark:text-dark-muted">{s.description}</span>
+                <div key={i} className="text-[12px] flex items-center justify-between gap-3 min-w-0">
+                  <span className="text-muted dark:text-dark-muted truncate min-w-0">{s.description}</span>
                   <kbd className="font-mono text-[10px] bg-bg dark:bg-dark-bg border border-line dark:border-dark-line px-2 py-0.5 rounded text-ink dark:text-dark-ink shrink-0 whitespace-nowrap">
                     {s.combo}
                   </kbd>
@@ -597,10 +599,10 @@ export default function Help() {
           <div className="border border-line dark:border-dark-line rounded-[6px] overflow-hidden bg-surface dark:bg-dark-surface shadow-xs">
             <div className="px-5 py-4 border-b border-line dark:border-dark-line bg-bg dark:bg-dark-bg">
               <h3 className="text-[11px] font-semibold tracking-widest uppercase text-muted dark:text-dark-muted">
-                ¿No encontrás lo que buscás?
+                ¿No encuentras lo que buscas?
               </h3>
             </div>
-            <div className="p-5">
+            <div className="p-4 sm:p-5 min-w-0">
               {sent ? (
                 <div className="text-center py-6">
                   <CheckCircle size={28} className="text-olive dark:text-dark-olive mx-auto mb-3" />
@@ -643,7 +645,7 @@ export default function Help() {
                       required
                       value={form.message}
                       onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
-                      placeholder="Describí qué estabas intentando hacer..."
+                      placeholder="Describe qué estabas intentando hacer..."
                       rows={4}
                       className="w-full px-3 py-2.5 border border-line dark:border-dark-line rounded-[4px] text-[13px] text-ink dark:text-dark-ink bg-surface dark:bg-dark-surface placeholder:text-muted/40 focus:outline-none focus:border-olive resize-none"
                     />
