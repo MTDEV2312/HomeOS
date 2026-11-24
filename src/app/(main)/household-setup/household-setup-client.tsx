@@ -125,7 +125,7 @@ export default function HouseholdSetupClient() {
           <div className="mt-auto pt-xl">
             <p className="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-xs">
               <ShieldCheck className="w-4 h-4" />
-              Powered by InsForge
+              Powered by Supabase
             </p>
           </div>
         </div>
